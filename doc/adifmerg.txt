@@ -1,0 +1,360 @@
+NAME
+    adifmerg - convert, check and merge ADIF files
+
+SYNOPSIS
+    adifmerg -f file [-m file|-M file] [-b] [-d] [-c] [-i] [-u] [-a award]
+    [-o|-s|-x|-X|-l|-L|-e|-C file|-T file] [-A record] [-D record] [-S
+    record] [-F record] [-R record] [-t min] [-p script] [-q query] [-Q
+    all|requested] [-2] [-h] [-v] [-V]
+
+DESCRIPTION
+    The input log file type is recognized from the '.adi', '.adif', '.csv'
+    or '.txt' suffix in the file name. If the file comes from standard input
+    with option '-f -', it is assumed to be ADIF file. The output is either
+    ADIF, csv or simple text.
+
+    Two ADIF files can be merged to one. In this case the output is sorted
+    in ascending time order if both of the input files are already sorted.
+    If the QSO calls are same in the two files and the times match within
+    minutes given by the switch -t, then the two ADIF records are merged to
+    one. Data in the records from the first file are not over written if the
+    second file has some same records filled with data. This kind of online
+    merging works only if the two QSO records have very close the same time
+    and there is no other QSO in between the two. It is a good idea to sort
+    the two files separately using switch -s before trying to merge them.
+
+    For sorting and QSL label printing the full file is read into memory.
+    Sorting works only for ADIF-files. All other operations are done online
+    without reading the full file to memory.
+
+    If one of the output options -o, -s, -x, -X, -l or -L is given, the QSO
+    record is checked for valid date, start time, band, mode, QSL flag and
+    report. Optionally dxcc by Fabian Kurz DJ1YFK can be used to check the
+    call sign. For this the switch -c is used. In this case also the CQ and
+    ITU zones are checked in addition to the continent information. If this
+    information is missing it is filled into the empty records. The ITU zone
+    is not necessarily the correct one for large countries.
+
+    The switch -C allows to create Cabrillo log from the ADIF file and a
+    template file. The *STX_STRING* and *SRX_STRING* are used without
+    modifications as exchange for each QSO. Optionally points for each QSO
+    can be calculated with the script given by switch -p. The *CALL*,
+    *BAND*, *STX_STRING* and *SRX_STRING* are passed as parameters to the
+    script, which returns the calculate points.
+
+    The switch -S allows to select QSOs with given value in the record or
+    with a value between lower and upper limits. If no value is given, any
+    non-empty or non-zero value is accepted. The limits are separated by a
+    comma. The switch -F can be used to fix bad values in the records.
+
+    Position coordinates can be calculated from Maidenhead locator with
+    switch -d. Distance to the contacted station is calculated if its
+    position is also known.
+
+    The option -q allows to get different parameters from the ADIF file. The
+    possible parameters are
+
+    *bands* list of bands
+
+    *cont* list of continents
+
+    *country* list of countries
+
+    *cqz* list of CQ zones
+
+    *dxcc* list of DXCCs
+
+    *firstqso* date and time of first QSO
+
+    *grids* list of grid squares with 4 characters
+
+    *grid6* list of grid squares with 6 characters
+
+    *grid8* list of grid squares with 8 characters
+
+    *iota* list of IOTAs
+
+    *ituz* list of ITU zones
+
+    *lastqsl* date of last QSL received
+
+    *lasteqsl* date of last eQSL received
+
+    *lastlqsl* date of last LoTW QSL received
+
+    *lastqso* date and time of last QSO
+
+    *llastqsl* date of last QSL received in format for LoTW query
+
+    *llastqso* date of last QSO in format for LoTW query
+
+    *llastqsot* time of last QSO in format for LoTW query
+
+    *lonlat* list of longitude and latitude values
+
+    *lonlatd* list of longitude and latitude values in simple decimal format
+
+    *modes* list of modes
+
+    *ncont* number of continents
+
+    *ncq* number of CQ zones
+
+    *ndxcc* number of DXCCs
+
+    *neqslr* number of eQSL received
+
+    *neqsls* number of eQSL sent
+
+    *nerr* number of errors
+
+    *ngrid* number of grid squares
+
+    *niota* number of IOTAs
+
+    *nitu* number of ITU zones
+
+    *nlonlat* number of longitudes/latitudes
+
+    *nlqslr* number of LoTW QSL received
+
+    *nlqsls* number of LoTW QSL sent
+
+    *nqslr* number of QSL received
+
+    *nqsls* number of QSL sent
+
+    *nqso* number of QSOs
+
+    *nsota* number of SOTAs
+
+    *sota* list of SOTAs
+
+OPTIONS
+    -f read in ADIF, text or csv files
+
+    -m second ADIF file for merging
+
+    -M matching merge for received QSL cards with possible false QSOs
+
+    -b add band record from frequency
+
+    -c check call sign with dxcc and fill empty CQ/ITU zone and continent
+    records
+
+    -d calculate position and distance if Maidenhead locator information is
+    available
+
+    -a select QSOs with CREDIT_SUBMITTED or CREDIT_GRANTED field
+
+    -o print ADIF file
+
+    -s sort in ascending time order and print ADIF file
+
+    -x print csv file
+
+    -X print csv file for SOTA database import
+
+    -l print simple list of QSOs
+
+    -L print list of QSOs with all the non empty records
+
+    -i print info on ADIF file
+
+    -e print only lines with errors
+
+    -u remove USERDEF records
+
+    -t maximum time difference for merging two records, default 5 min
+
+    -C template file to produce Cabrillo log file
+
+    -A add new record to all QSOs, e.g. OWNER_CALLSIGN=XY0ABC
+
+    -D delete record from all QSOs
+
+    -S select only QSOs with given record value, e.g. CALL=AB5XYZ, or
+    between limits, e.g. QSO_DATE=19990101,19991231, use 'QSL_SENT=' for any
+    non-empty value
+
+    -F fix record value, e.g. MODE=THROB=THRB
+
+    -R remap record to an other, e.g. LOTW_QSLRDATE=QSLRDATE
+
+    -p script to calculate points to each Cabrillo log QSO
+
+    -q query parameters from ADIF file, e.g. lastqsl
+
+    -Q print ascii QSL labels for all QSOs with QSL_SENT=N or only for
+    requested with QSL_SENT=R
+
+    -T replace ADIF tags (e.g. __CALL) in given file for each QSO and print
+    the resulting file, if -Q switch is used the QSL record tags are printed
+
+    -2 search for duplicate QSOs, here -t can be used to change time range,
+    default is 24 hours
+
+    -h display a short help text
+
+    -v verbose
+
+    -V print version
+
+TEXT FILES
+    The QSOs in the txt files are listed as follows
+
+    YYYYMMDD HHMM BAND/FREQ MODE CALL RSTS RSTR QSLS/R EQSL LOTW PROPAGATION
+    COMMMENT
+
+    Here the date is given with year YYYY, month MM and day DD. The time
+    HHMM is the UTC of the start of the QSO. This is followed by the band or
+    frequency in MHz. Next the mode and call sign are given. The RSTS is the
+    sent report and RSTR the received report. The QSLS/R column has the
+    flags: QSL sent Y(es), N(o), R(equested), Q(ueued) or I(gnored) and QSL
+    sent via B(ureau), D(irect), E(electronic) or M(anager). For the
+    received QSLs: QSL received (Y)es, N(o), R(equested), I(gnored) or
+    V(verified) and QSL received via B(ureau), D(irect), E(electronic) or
+    M(anager). The eQSL and LoTW flags are first the sent flag Y, N, R, Q or
+    I followed by the received flag Y, N, R, I or V. The next column tells
+    the propagation mode and finally the comments in the last column.
+
+    If all the QSOs are not with the same station call sign or are from
+    different locations, it is useful to have a line with the new station
+    info as follows
+
+    MYCALL MYGRID MYRIG TXPWR
+
+    Here MYCALL was the station call sign used, MYGRID was the grid square,
+    MYRIG the radio and TXPWR the transmitter power. When verbosed text file
+    is printed with -l and -v switches, each new call sign, QTH or rig is
+    printed in this way before the QSOs.
+
+    Corrections to the printed text files can be made and new information
+    can be added. The updated text file can then be converted to ADIF and
+    merged with the original ADIF file. When reading in the text file QSOs,
+    the following key words are recognized in the comments: *QSL*, *buro*,
+    *NIL* and *viaCALL*. The CQ zone has the form *EU-14* and ITU zone
+    *I27*. The known propagation modes, satellites and satellite modes are
+    converted. The 4, 6, 8 character long grid square is converted to ADIF.
+    The IOTA is recognized.
+
+    The station info line that starts with MYCALL can have following tags:
+    *ciCity*, *stState*, *cyCounty* and *coCountry*. For example *coFrance*
+    could be used.
+
+EXAMPLE
+    Print simple list of QSOs to screen
+
+    adifmerg -f qso.adi -l -v
+
+    Print all known ADIF records, modes, bands and csv records
+
+    adifmerg -V -v
+
+    Print verbosed info on ADIF file
+
+    adifmerg -f qso.adi -i -v
+
+    Add owner call sign and locator to all QSOs
+
+    adifmerg -f qso.adi -A OWNER_CALLSIGN=MY0CALL,MY_GRIDSQUARE=LM75kp -o >
+    file.adi
+
+    Add locator for field day QSOs on September 18 2008
+
+    adifmerg -f qso.adi -A MY_GRIDSQUARE=ER38gh23 -S QSO_DATE=20080918 -o |
+    adifmerg -f - -m qso.adi -o > file.adi
+
+    Print QSOs if the distance can be calculated
+
+    adifmerg -f qso.adi -l -d -S DISTANCE=
+
+    Compare two almost identical files
+
+    adifmerg -f qso.adi -l > a.txt
+
+    adifmerg -f qso2.adi -l > b.txt
+
+    diff a.txt b.txt
+
+    Create empty ADIF file
+
+    echo "" | adifmerg -f - -o > empty.adi
+
+    To add received paper QSL cards write them to a file, for example
+
+    20060420 2112 70CM CW ON1FER - 579 R-YB -- -- SAT VO-52 U/V JB70GB
+
+    20070923 0948 30M SSB LT3BB - 55 R-YB -- -- Tic KA48HI
+
+    20070722 1141 40M CW G0/IK4EE 599 559 --YB -- -- Hep EU-14 EU-005
+
+    Convert the file to ADIF
+
+    adifmerg -f qsls.txt -A QSLRDATE=20080130 -o > qsls.adif
+
+    Sort QSOs to ascending time order
+
+    adifmerg -f qsls.adif -s > qsls.adi
+
+    Try matching without output to see problems
+
+    adifmerg -f qsos.adi -M qsls.adi -v
+
+    The lines starting with *L* show changes to the QSO. The *+* means data
+    included to the merged file and *-* the lost data. Lines with *M?* mean
+    that no matching QSO was found. If there is a likely candidate in file
+    *qsos.adi* also a line starting with *C:* is printed. In this case you
+    need to check that both files are sorted and you may need to change UTC
+    or use larger value for *-t* switch. Fix the errors and write the result
+    to a file
+
+    adifmerg -f qsos.adi -M qsls.adi -o > file.adi
+
+    Create QSO map
+
+    adifmerg -f qso.adi -S MY_GRIDSQUARE=KP32la -q grid6
+
+    and copy the grid squares for example to
+    http://dvi.elcom.cz/ok2pbq/prog/qso_map.php
+
+    To make paper QSLs with LaTeX copy first an example from
+
+    http://fkurz.net/ham/stuff.html
+
+    Put the necessary ADIF tags to the LaTeX file. These are the ADIF record
+    names with '__' prefix. In addition for QSLs *__DATE* and *__QSL* are
+    defined. Usually each QSO line has *__DATE*, *__TIME_ON*, *__BAND*,
+    *__MODE*, *__RST_SENT*, *__PROP_MODE* and *__QSL*. The part of the LaTeX
+    file that repeates itself is put to *qsl.tex*. Create LaTeX file with
+    QSO information filled in with
+
+    adifmerg -f mylog.adi -Q r -T qsl.tex > cards.tex
+
+    This includes only ADIF-records, where QSL_SENT=R. Add the necessary
+    definitions to the beginning of the file and *\end{document}* to the
+    end. Use pdflatex to produce pdf-file from the LaTeX file. Once the
+    QSL-cards have been produced, create an ADIF-file with flags QSL_SENT=Y
+    and QSL_SENT_VIA=B
+
+    adifmerg -f mylog.adi -Q r -o > newlog.adi
+
+DIAGNOSTICS
+    The *adifmerg* has been tested with perl v5.8.5. You may need to adapt
+    the script to your environment.
+
+BUGS
+    THROB and PHONE modes are not defined in Adif 2.2.6. See the web page
+    below. Program breaks if CALL, TIME_ON or QSO_DATE is missing.
+
+AUTHORS
+    Jaakko Koivuniemi OH7BF, if tod lars ta fb7ho
+
+LINKS
+    http://www.adif.org
+
+    http://www.kkn.net/~trey/cabrillo/
+
+SEE ALSO
+    Getopt::Std(3pm), dxcc(1)
+

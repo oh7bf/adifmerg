@@ -1,0 +1,4 @@
+
+lqslget		- script to merge received QSLs from LoTW to ADIF-file
+lqsoget		- script to merge QSOs from LoTW to ADIF-file
+new.adi		- dummy ADIF-file for testing the scripts

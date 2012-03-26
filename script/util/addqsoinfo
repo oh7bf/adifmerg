@@ -1,0 +1,132 @@
+#!/usr/bin/perl -w
+# Add info to ADIF file.
+# 
+# The 'info.txt' file can be for example
+# 
+# IF QSO_DATE=20070401
+# IF STATION_CALLSIGN=XY7ABC
+# MY_CQ_ZONE=14
+# MY_GRIDSQUARE=JN36rb
+# MY_RIG=FT817ND
+#
+#
+
+use strict;
+
+if((!$ARGV[0])||(!$ARGV[1]))
+{
+    print "Usage: addqsoinfo file.adi info.txt\n";
+    exit;
+}
+
+my $fname=$ARGV[0];
+my $fname2=$fname."_new.adi";
+my $qname=$ARGV[1];
+
+# check that file can be read
+my $nqso=`adifmerg -f $fname -q nqso`;
+
+chomp $nqso;
+
+if($nqso<1)
+{
+    print "--file not found or is empty\n";
+    exit;
+}
+else
+{
+    print "--file ok\n";
+}
+
+my $INFOFILE;
+my $s="";
+my $a="";
+my $line;
+my $c="";
+my $tname1=$fname;
+my $tname2="/tmp/tmp.adi";
+
+if(open($INFOFILE,"<",$ARGV[1]))
+{
+    $line=<$INFOFILE>;
+    while($line)
+    {
+	if((substr $line,0,1) ne '#')
+	{
+	    chomp $line;
+	    if($line =~ /IF\s(\w+\=.*)/)
+	    {
+		$c=$1;
+		if($a)
+		{
+		    print ".";
+		    `$s -A $a -o | adifmerg -f - -m $tname1 -o > $tname2`;
+
+		    if($tname1 eq "/tmp/tmp.adi")
+		    {
+			$tname1="/tmp/tmp2.adi";
+			$tname2="/tmp/tmp.adi";
+		    }
+		    else
+		    {
+			$tname1="/tmp/tmp.adi";
+			$tname2="/tmp/tmp2.adi";
+		    }		 
+		    $a="";
+		    $s="adifmerg -f $fname -S $c" if($c);
+		}
+		else
+		{
+		    if($s)
+		    {
+			$s="$s -o | adifmerg -f $fname -S $c";
+		    }
+		    else
+		    {
+			$s="adifmerg -f $fname -S $c";
+		    }
+		}
+	    }
+	    else
+	    {
+		if($line)
+		{
+		    if($a)
+		    {
+			$a="$a,$line";
+		    }
+		    else
+		    {
+			$a=$line;
+		    }
+		}
+	    }
+	}
+	$line=<$INFOFILE>;
+    }
+}
+else
+{
+    print "Could not open $ARGV[1]\n";
+    exit;
+}
+
+
+if($a)
+{
+    `$s -A $a -o | adifmerg -f - -m $tname1 -o > $tname2`;
+}
+
+print ".";
+
+`adifmerg -f $tname2 -o > $fname2`;
+
+print "\r";
+
+my $nqso2=`adifmerg -f $fname2 -q nqso`;
+
+chomp $nqso2;
+
+print "-- QSO: $nqso -> $nqso2\n";
+
+

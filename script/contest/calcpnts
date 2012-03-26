@@ -1,0 +1,21 @@
+#!/usr/bin/perl -w
+# Calculate points for each QSO for Cabrillo log.
+# This example expects call, band, send exchange and received exchange.
+
+use strict;
+
+my $pnts=0;
+
+if((!$ARGV[0])||(!$ARGV[1])||(!$ARGV[2])||(!$ARGV[3]))
+{
+#    print "Usage: calcpnts call band tx-string rx-string\n";
+    print "0\n";
+    exit;
+}
+
+
+# one point if both sent and received exchange match to '001-NAME' 
+$pnts=1 if(($ARGV[2]=~ /\d\d\d-\w{2,5}/)&&($ARGV[3]=~ /\d\d\d-\w{2,5}/));
+
+print "$pnts\n";
+

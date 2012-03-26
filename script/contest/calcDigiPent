@@ -1,0 +1,165 @@
+#!/usr/bin/perl -w
+# Calculate points for Digital Pentathlon contest from formula
+#
+# distance/(P1*P2)
+# 
+
+use strict;
+use POSIX;
+
+my $pnts=0;
+
+if((!$ARGV[0])||(!$ARGV[1])||(!$ARGV[2])||(!$ARGV[3]))
+{
+#    print "Usage: calcpnts call band tx-string rx-string\n";
+    print "0\n";
+    exit;
+}
+
+my $g1=uc $ARGV[2];
+my $g2=uc $ARGV[3];
+my ($g1lat, $g1lon, $g2lat, $g2lon);
+my ($p1, $p2);
+
+if($g1 =~ /^\d\d\d-([A-R][A-R]\d\d[A-X][A-X])-(\d{1,2})/)
+{
+#    print "$1 $2\n";
+    $p1=$2;
+    ($g1lon,$g1lat)=Grid2Loc($1);
+#    print "$g1lon $g1lat\n";
+
+    if($g2 =~ /^\d\d\d-([A-R][A-R]\d\d[A-X][A-X])-(\d{1,2})/)
+    {
+#	print "$1 $2\n";
+	$p2=$2;
+	($g2lon,$g2lat)=Grid2Loc($1);
+#	print "$g2lon $g2lat\n";
+
+	$pnts=CalcDist();
+	$pnts=$pnts/($p1*$p2) if(($p1>0)&&($p2>0));
+    }
+}
+
+print "$pnts\n";
+
+
+
+# calculate distance if MY_LON, MY_LAT, LON and LAT are known
+sub CalcDist
+{
+    my $pi=3.14159265358979;
+    my $er=6371; # earth radius
+    my $d=0;
+
+    if(($g1lat ne $g2lat)&&($g1lon ne $g2lon))
+    {
+        my $hn=Loc2Rad($g1lat);
+        my $he=Loc2Rad($g1lon);
+	my $n=Loc2Rad($g2lat);
+	my $e=Loc2Rad($g2lon);
+
+        my $co=cos($he-$e)*cos($hn)*cos($n)+sin($hn)*sin($n);
+        my $ca=$co ? atan(abs(sqrt(1-$co*$co)/$co)) : $pi;
+        $ca=$pi-$ca if($co<0);
+        $d=$er*$ca;
+    }
+
+    return $d;
+}
+
+# convert location to decimal radians
+sub Loc2Rad
+{
+    my $pi=3.14159265358979;
+    my $l=shift;
+    $l=uc $l;
+    my $d=0;
+
+    if($l =~ /^([EWNS])(\d\d\d)\s(\d\d\.\d\d\d)/)
+    {
+        $d=$2+$3/60;
+        $d=-$d if(($1 eq 'W')||($1 eq 'S'));
+    };
+
+    $d*=$pi/180;
+
+    return $d;
+}
+
+
+# convert grid square to location in the center of the square
+# XDDD MM.MMM
+sub Grid2Loc 
+{
+    my $g=shift;
+    $g=uc $g;
+    my $lon=0;
+    my $lat=0;
+    my $lons="W";
+    my $lats="S";
+
+    if($g =~ /([A-R])([A-R])(.*)/)
+    {
+        $lon=20*(ord($1)-ord('A'));
+        $lat=10*(ord($2)-ord('A'));
+        if($3)
+        {
+            if($3 =~ /(\d)(\d)(.*)/)
+            {
+                $lon+=2*$1;
+                $lat+=$2;
+                if($3)
+                {
+                    if($3 =~ /([A-X])([A-X])(.*)/)
+                    {
+                        $lon+=((ord($1)-ord('A'))/12);
+                        $lat+=((ord($2)-ord('A'))/24);
+                        if($3 =~ /(\d)(\d)(.*)/)
+                        {
+                            $lon+=$1/120;
+                            $lat+=$2/240;
+                            if($3 =~ /([A-X])([A-X])/)
+                            {
+                                $lon+=(ord($1)-ord('A')+0.5)/(24*120);
+                                $lat+=(ord($2)-ord('A')+0.5)/(24*240);
+                            }
+                            else
+                            {
+                                $lon+=0.5/120;
+                                $lat+=0.5/240;
+                            }
+                        }
+                        else
+                        {
+                            $lon+=0.5/12;
+                            $lat+=0.5/24;
+                        }
+                    }
+                }
+                else
+                {
+                    $lon+=1;
+                    $lat+=0.5;
+                }
+            }
+        }
+        else
+        {
+            $lon+=10;
+            $lat+=5;
+        }
+    }
+ 
+    $lon-=180;
+    $lat-=90;
+    $lons="E" if($lon>=0);
+    $lats="N" if($lat>=0);
+    $lon=abs $lon;
+    $lat=abs $lat;
+    $lons=$lons.sprintf "%03d ", (int $lon);
+    $lats=$lats.sprintf "%03d ", (int $lat);
+    $lons=$lons.sprintf "%06.3f", (60*($lon-(int $lon)));
+    $lats=$lats.sprintf "%06.3f", (60*($lat-(int $lat)));
+
+    return ($lons,$lats);
+}

@@ -1,0 +1,21 @@
+# http://home.no.net/jlog/adif/adif.html
+<adif_ver:4>1.00testing
+<userdef21:16>HUMIDITY,{0:100}
+<app_logger_ver:4>1.23testing
+<userdef3:40>MOON,{New,FirstQuarter,Full,LastQuarter}test
+<eoh>test
+ing
+<call:6>AB9XYZ<qso_date:8>20000101<time_on:4>1001<band:4>160m-testing<mode:2>CW<rst_sent:3>359
+<STX_STRING:8>001-John
+<SRX_STRING:7>010-TAM
+<qsl_sent:1>r
+<eor>test
+<call:6>XY0ABC<qso_date:8>20000130testing<time_on:4>2358test<band:3>80m<mode:2>CW<rst_sent:3>479
+<STX_STRING:8>002-John
+<SRX_STRING:8>038-IGOR
+<CREDIT_SUBMITTED:8>DXCC,WAS
+<GRIDSQUARE:6>JO21rj
+<moon:4>Full
+<MY_GRIDSQUARE:6>KP32ab
+<qsl_sent:1>R
+<eor>test

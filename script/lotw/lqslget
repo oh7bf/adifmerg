@@ -1,0 +1,57 @@
+#!/usr/bin/perl -w
+#
+# Update ADIF file QSL records from LoTW. If no date is given, the last QSL
+# received date from the ADIF file is used. The new file is written with
+# '_new.adi' suffix.
+#
+
+use strict;
+my $login="my0call"; # login for LoTW
+my $pswd=""; # password for LoTW
+
+if(!$ARGV[0])
+{
+    print "Usage: lqslget file [yyyy-mm-dd]\n";
+    exit;
+}
+
+my $fname=$ARGV[0];
+my $fname2=$fname."_new.adi";
+
+# check that file can be read
+my ($nqso,$nqsl)=split /\s+/, `adifmerg -f $fname -q nqso,nlqslr`;
+
+if($nqso<1)
+{
+    print "File $fname not found or is empty\n";
+    exit;
+}
+else
+{
+    print "--file ok\n";
+}
+
+my $qslsince;
+if(!$ARGV[1])
+{
+    $qslsince=`adifmerg -f $fname -q llastqsl`;
+    $qslsince =~ s/\s//g; 
+}
+else
+{
+    $qslsince=$ARGV[1];
+}
+
+my $lq="https://p1k.arrl.org/lotwuser/lotwreport.adi";
+$lq=$lq."?login=$login\&password=$pswd\&qso_query=1";
+$lq=$lq."\&qso_qslsince=$qslsince";
+$lq=$lq."\&qso_qsldetail=yes";
+$lq=$lq."\&qso_withown=yes";
+
+print "--send query to LoTW\n";
+`wget '$lq' -q -O - | adifmerg -f - -s | adifmerg -f - -A LOTW_QSL_RCVD=Y,LOTW_QSL_SENT=Y -R LOTW_QSLRDATE=QSLRDATE -o | adifmerg -f - -m $fname -o -v > $fname2`;
+
+my ($nqso2,$nqsl2)=split /\s+/, `adifmerg -f $fname2 -q nqso,nlqslr`;
+
+print "--QSO $nqso -> $nqso2, QSL $nqsl -> $nqsl2\n";
+

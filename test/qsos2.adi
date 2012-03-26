@@ -1,0 +1,19 @@
+# http://home.no.net/jlog/adif/adif.html
+<adif_ver:4>1.00testing
+<eoh>test
+ing
+<call:6>XY0ABC<qso_date:8>20000131testing<time_on:6>000245
+<qsl_sent:1>Y<rst_sent:6>479QRM
+<CREDIT_SUBMITTED:8>DXCC,WAZ
+<eor>test
+
+<call:6>CD5XYZ<qso_date:8>20000101<time_on:4>1205<band:4>160m-testing<mode:2>CW<rst_sent:3>359
+<STX_STRING:8>006-John
+<SRX_STRING:10>011-Kombit
+<PROP_MODE:2>f2
+<eor>test
+<call:6>XY0ABC<qso_date:8>20000101testing<time_on:4>1309test<band:3>80m<mode:2>CW<rst_sent:3>579
+<STX_STRING:8>007-John
+<SRX_STRING:8>xxx-teki
+<eor>test
+

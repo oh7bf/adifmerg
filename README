@@ -1,0 +1,28 @@
+
+adifmerg
+--------
+
+Small utility to convert ADIF files. To produce output without USERDEF fields
+use the switch '-u'.
+
+
+Files
+-----
+
+adifmerg 		- main program 
+CHANGELOG   		- history of changes
+COPYING  		- GPL2
+doc			- manual page
+README    		- this file
+script/contest		- contest scripts
+script/eqslcc		- eQSLcc scripts
+script/lotw		- LoTW scripts
+script/util		- utility scripts
+test/runtest		- test routine 
+
+
+Installing
+----------
+
+Test first by 'cd test' and './runtest'. Then copy adifmerg to ~/bin and
+the manual page doc/adifmerg.1 to ~/man/man1.

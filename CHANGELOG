@@ -1,0 +1,88 @@
+Sun Nov 14 20:39:06 CET 2010
+Jaakko Koivuniemi, OH7BF
+
+CHANGE LOG
+==========
+
+DATE            DESCRIPTION
+2010 Nov 14	-T template file for output, also QSL printing with -Q	
+2010 Aug 14     text files description to manual
+2010 Aug 13	txt log my comments ciCity, coCountry, cyCounty, stState
+2010 Aug 8	process txt log comments QSL, buro, NIL and viaCALL
+2010 Jul 22     -Q -o set QSL_SENT=Y and QSL_SENT_VIA=B
+2010 Jul 22     txt log Inn for the (my) ITU-zone
+2010 Jul 17     fix lqslget and lqsoget scripts
+2010 Jul 11	-X output for SOTA database format
+2010 Jul 11	add ADIF 2.2.6 modes
+2010 Jul 11     recognize some of the common rigs for RIG and MY_RIG
+2010 Jul 11	txt file can give station call sign and other station infos
+2010 Jul 11	-l -v gives station call sign and other station info
+2009 Dec 4	small updates to ADIF 2.2.4
+2009 Aug 3	'-q country' count country statistics
+2009 Aug 3	-c fill/check COUNTRY and MY_COUNTRY with dxcc
+2009 Jul 15	-q lonlat print list of position coordinates
+2009 Jun 25	-q grid6 and grid8
+2009 Jun 25	-2 check for duplicates
+2009 Jun 6	support grid squares with 10 characters
+2009 May 21	-M and -v improved print of changes
+2009 May 17	SOTA statistics
+2009 May 17	QSO search with -v if no matching found using -M
+2009 May 10	-R to remap record to an other
+2009 May 10	csv import parse 'Notes' for useful data
+2009 May 8	verbosed warnings for lost data with -m/-M and -v
+2009 May 4	check SOTA
+2009 May 4	CREDIT_SUBMITTED and CREDIT_GRANTED merging
+2009 Apr 26	CheckSota function
+2009 Apr 26	-u to remove USERDEF fields
+2009 Apr 24	MY_SOTA and SOTA added as USERDEF fields 
+2009 Apr 24	-a list award QSOs
+2009 Apr 17	ADIF 2.2.3 updates
+2009 Feb 6	-M QSL flag changing rules more strict
+2009 Feb 3	-M matching merge for received QSL cards 
+2009 Feb 3	check satellite name
+2008 Nov 16	check not different band before merging two QSOs
+2008 Nov 16	allow empty or comment only files
+2008 Oct 13	check and print propagation modes
+2008 Oct 13	check IOTA and statistics
+2008 Oct 13	'-S REC=' for any non-empty value 
+2008 Sep 14	more info to QSL labels
+2008 Sep 14	-q for query of different parameters
+2008 Sep 12	print last QSL date
+2008 Sep 7	-q switch removed, info on eQSL/LoTW is printed with -l
+2008 Sep 2	-Q print QSL labels
+2008 Aug 31	-c check call and check/fill cq/itu zones w/ dxcc 
+2008 Aug 31	count dxcc's
+2008 Aug 30	-d calculate position/distance for contacted station
+2008 Aug 28	check location and grid square data
+2008 Aug 26	-F fix bad records, e.g. -F MODE=THROB=THRB
+2008 Aug 26	-q QSL source: eQSL or LoTW
+2008 Aug 26	-S upper and lower limit
+2008 Aug 26	fix missing 'QSO: ' in cabrillo file 
+2008 Aug 19	count QSLs
+2008 Aug 19	csv print
+2008 Aug 17	runtest script
+2008 Aug 17	read csv headers
+2008 Jul 20	'-f -' for standard input reading
+2008 Jul 20	-s sort adif records in ascendig time order
+2008 Jul 20	-D delete record
+2008 Jul 20	-A add record
+2008 Jul 20	-m used for merged file
+2008 Jul 16	-p calculate contest points from exchange
+2008 Jul 16	-C print Cabrillo file
+2008 Jul 16	-e print only errors
+2008 Jul 16	complane and ignore unknown records
+2008 Jul 16	-i print start and end days, bands, modes
+2008 Jul 9	use Julian day for time comparison
+2008 Jul 8	same CALL and TIME_ON +- => merge records
+2008 Jul 8	deprecated GUEST_OP and VE_PROV
+2008 Jul 8	add Adif 2.0 data types
+2008 Jul 8	use dxcc to check call signs
+
+
+
+TASK LIST
+=========
+
+PRIORITY        DESCRIPTION
+
+	

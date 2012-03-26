@@ -1,0 +1,52 @@
+#!/bin/bash
+
+echo "** LIST QSOS FROM ADIF FILE **"
+../adifmerg -f qsos.adi -l -v
+echo ""
+
+echo "** MERGE TWO SORTED ADIF FILES AND OUTPUT ADIF **"
+../adifmerg -f qsos.adi -m qsos2.adi -o > mqsos.adi
+echo ""
+
+echo "** PRINT SUMMARY ON MERGED FILE **"
+../adifmerg -f mqsos.adi -i
+echo ""
+
+echo "** CONVERT CSV FILE TO ADIF **"
+../adifmerg -f qsos.csv -o > newqsos.adi
+echo ""
+
+echo "** PRINT SUMMARY FROM THE NEW FILE **"
+../adifmerg -f newqsos.adi -i
+echo ""
+
+echo "** PRINT CABRILLO FILE WITH POINTS **"
+../adifmerg -f mqsos.adi -C ../script/contest/template.cab -p ../script/contest/calcpnts
+echo ""
+
+echo "** EXPORT CSV FILE **"
+echo "Date,Time,Band,Station worked,Mode,RSTs,SerRx,SerTx" > mqsos.csv
+../adifmerg -f mqsos.adi -x >> mqsos.csv
+echo ""
+
+echo "** LIST QSOS IN CSV FILE **"
+../adifmerg -f mqsos.csv -l -v
+echo "** EDIT CSV FILE IN SPREAD SHEET PROGRAM TO REMOVE THE ERROR ABOVE"
+
+echo "** EXPORT TEXT FILE **"
+../adifmerg -f mqsos.adi -l >> mqsos.txt
+echo ""
+
+echo "** LIST QSOS IN TEXT FILE **"
+../adifmerg -f mqsos.adi -l
+echo ""
+
+echo "** PRINT QSL LABELS **"
+../adifmerg -f newqsos.adi -A QSL_SENT=R,QSL_RCVD=R,MY_CQ_ZONE=14,MY_GRIDSQUARE=LM71pq -o > newqsos2.adi
+../adifmerg -f newqsos2.adi -Q r
+echo ""
+
+
+
+
+

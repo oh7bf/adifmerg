@@ -1,0 +1,15 @@
+#!/usr/bin/perl -w
+# Filter file downloaded from eQSL. 
+
+use strict;
+
+if(!$ARGV[0])
+{
+    print "Usage: eqslfilt file > file2\n";
+    exit;
+}
+
+my $fname=$ARGV[0];
+
+print `adifmerg -f $ARGV[0] -R EQSL_QSL_SENT=QSL_SENT -A EQSL_QSL_RCVD=Y -o -u`;
+

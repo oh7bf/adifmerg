@@ -1,0 +1,4351 @@
+#!/usr/bin/perl -w 
+###############################################################################
+#                                                                             
+# Merge and convert ADIF files.
+#
+# This program was written by Jaakko Koivuniemi OH7BF on November 16 2010.  
+# Copyright (C) 2008-2010 Jaakko Koivuniemi.
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+#############################################################################
+
+use strict;
+use POSIX;
+use Getopt::Std;
+
+use subs qw/AddLoc AddRec AdifHead AdifLine AdifRecTo2 b2cabf b2sota Band2freq CalcDist CheckBand CheckCQZ CheckDate CheckGrid CheckIota CheckITUZ CheckLoc CheckMode CheckPmode CheckPwr CheckQslr CheckQsls CheckQso CheckRig CheckRst CheckSat CheckSatMode CheckSota CheckUtc CheckVia CompareRec date2csv DelRec EmptyRec f2cabf FixRec Freq2band Grid2Loc jday Loc2Rad m2cab MapRec MergeRecs MRules MyNotes2Adif Notes2Adif PrintAdifHead PrintAdifRec PrintCabHead PrintCabRec PrintCsvRec PrintInfo PrintQsls PrintQso PrintQsos PrintTxtHead PrintTxtRec PrintTxtRecL printusage printversion QslDate Qso2Array Qso2Hash Qso2HashT Qso2Hash2s ReadAdifLog ReadAdifRec ReadCsvLog ReadTxtLog SearchMatch StatQso time2csv/;
+
+my $verno="20101116";
+my $averno="2.2.6";
+
+# general debugging switch
+my $dbug=0;
+
+# header hash
+my %hed = ("PROGRAMID" => "",
+	   "PROGRAMVERSION" => "",
+	   "ADIF_VER" => "",
+	   "USERDEF1" => "MY_SOTA",
+	   "USERDEF2" => "SOTA"
+	   );
+
+# global two component array of record hash
+my @rec = ({"ADDRESS" => "",
+	   "AGE" => 0,
+	   "A_INDEX" => 0,
+	   "ANT_AZ" => 0,
+	   "ANT_EL" => 0,
+	   "ANT_PATH" => "",
+	   "ARRL_SECT" => "",
+	   "BAND" => "",
+	   "BAND_RX" => "",
+	   "CALL" => "",
+	   "CHECK" => "",
+	   "CLASS" => "",
+	   "CNTY" => "",
+	   "COMMENT" => "",
+	   "CONT" => "",
+	   "CONTACTED_OP" => "",
+	   "CONTEST_ID" => "",
+	   "COUNTRY" => "",
+	   "CREDIT_GRANTED" => "",
+	   "CREDIT_SUBMITTED" => "",
+	   "CQZ" => 0,
+	   "DISTANCE" => 0,
+	   "DXCC" => 0,
+	   "EMAIL" => "",
+	   "EQ_CALL" => "",
+	   "EQSL_QSLRDATE" => "",
+	   "EQSL_QSLSDATE" => "",
+	   "EQSL_QSL_RCVD" => "",
+	   "EQSL_QSL_SENT" => "",  	
+	   "FORCE_INIT" => "",
+	   "FREQ" => 0,
+	   "FREQ_RX" => 0,
+	   "GUEST_OP" => "",
+	   "GRIDSQUARE" => "",
+	   "IOTA" => "",
+	   "IOTA_ISLAND_ID" => "",
+	   "ITUZ" => 0,
+	   "K_INDEX" => 0,
+	   "LAT" => "",
+	   "LON" => "",
+	   "LOTW_QSLRDATE" => "",
+	   "LOTW_QSLSDATE" => "",
+	   "LOTW_QSL_RCVD" => "",
+	   "LOTW_QSL_SENT" => "",
+	   "MAX_BURSTS" => 0,
+	   "MODE" => "",
+	   "MS_SHOWER" => "",
+	   "MY_CITY" => "",
+	   "MY_CNTY" => "",
+	   "MY_COUNTRY" => "",
+	   "MY_CQ_ZONE" => 0,
+	   "MY_GRIDSQUARE" => "",
+	   "MY_IOTA" => "",
+	   "MY_IOTA_ISLAND_ID" => "",
+	   "MY_ITU_ZONE" => "",
+	   "MY_LAT" => "",
+	   "MY_LON" => "",
+	   "MY_NAME" => "",
+	   "MY_POSTAL_CODE" => "",
+	   "MY_RIG" => "",
+	   "MY_SIG" => "",
+	   "MY_SIG_INFO" => "",
+	   "MY_SOTA" => "",
+	   "MY_STATE" => "",
+	   "MY_STREET" => "",
+	   "NAME" => "",
+	   "NOTES" => "",
+	   "NR_BURSTS" => "",
+	   "NR_PINGS" => "",
+	   "OPERATOR" => "",
+	   "OWNER_CALLSIGN" => "",
+	   "PFX" => "",
+	   "PRECEDENCE" => "",
+	   "PROP_MODE" => "",
+	   "PUBLIC_KEY" => "",
+	   "QSLMSG" => "",
+	   "QSLRDATE" => "",
+	   "QSLSDATE" => "",
+	   "QSL_RCVD" => "",
+	   "QSL_RCVD_VIA" => "",
+	   "QSL_SENT" => "",
+	   "QSL_SENT_VIA" => "",
+	   "QSL_VIA" => "",
+	   "QSO_COMPLETE" => "",
+	   "QSO_DATE" => "",
+	   "QSO_DATE_OFF" => "",
+	   "QSO_RANDOM" => "",
+	   "QTH" => "",
+	   "RIG" => "",
+	   "RST_RCVD" => "",
+	   "RST_SENT" => "",
+	   "RX_PWR" => 0,
+	   "SAT_MODE" => "",
+	   "SAT_NAME" => "",
+	   "SFI" => "",
+	   "SIG" => "",
+	   "SIG_INFO" => "",
+	   "SOTA" => "",
+	   "SRX" => 0,
+	   "SRX_STRING" => "",
+	   "STATE" => "",
+	   "STATION_CALLSIGN" => "",
+	   "STX" => 0,
+	   "STX_STRING" => "",
+	   "SWL" => "",
+	   "TEN_TEN" => 0,
+	   "TIME_OFF" => "",
+	   "TIME_ON" => "",
+	   "TX_PWR" => 0,
+	   "VE_PROV" => "",
+	   "WEB" => ""},
+	   {"ADDRESS" => "",
+	   "AGE" => 0,
+	   "A_INDEX" => 0,
+	   "ANT_AZ" => 0,
+	   "ANT_EL" => 0,
+	   "ANT_PATH" => "",
+	   "ARRL_SECT" => "",
+	   "BAND" => "",
+	   "BAND_RX" => "",
+	   "CALL" => "",
+	   "CHECK" => "",
+	   "CLASS" => "",
+	   "CNTY" => "",
+	   "COMMENT" => "",
+	   "CONT" => "",
+	   "CONTACTED_OP" => "",
+	   "CONTEST_ID" => "",
+	   "COUNTRY" => "",
+	   "CREDIT_GRANTED" => "",
+	   "CREDIT_SUBMITTED" => "",
+	   "CQZ" => 0,
+	   "DISTANCE" => 0,
+	   "DXCC" => 0,
+	   "EMAIL" => "",
+	   "EQ_CALL" => "",
+	   "EQSL_QSLRDATE" => "",
+	   "EQSL_QSLSDATE" => "",
+	   "EQSL_QSL_RCVD" => "",
+	   "EQSL_QSL_SENT" => "",  	
+	   "FORCE_INIT" => "",
+	   "FREQ" => 0,
+	   "FREQ_RX" => 0,
+	   "GUEST_OP" => "",
+	   "GRIDSQUARE" => "",
+	   "IOTA" => "",
+	   "IOTA_ISLAND_ID" => "",
+	   "ITUZ" => 0,
+	   "K_INDEX" => 0,
+	   "LAT" => "",
+	   "LON" => "",
+	   "LOTW_QSLRDATE" => "",
+	   "LOTW_QSLSDATE" => "",
+	   "LOTW_QSL_RCVD" => "",
+	   "LOTW_QSL_SENT" => "",
+	   "MAX_BURSTS" => 0,
+	   "MODE" => "",
+	   "MS_SHOWER" => "",
+	   "MY_CITY" => "",
+	   "MY_CNTY" => "",
+	   "MY_COUNTRY" => "",
+	   "MY_CQ_ZONE" => 0,
+	   "MY_GRIDSQUARE" => "",
+	   "MY_IOTA" => "",
+	   "MY_IOTA_ISLAND_ID" => "",
+	   "MY_ITU_ZONE" => "",
+	   "MY_LAT" => "",
+	   "MY_LON" => "",
+	   "MY_NAME" => "",
+	   "MY_POSTAL_CODE" => "",
+	   "MY_RIG" => "",
+	   "MY_SIG" => "",
+	   "MY_SIG_INFO" => "",
+	   "MY_SOTA" => "",
+	   "MY_STATE" => "",
+	   "MY_STREET" => "",
+	   "NAME" => "",
+	   "NOTES" => "",
+	   "NR_BURSTS" => "",
+	   "NR_PINGS" => "",
+	   "OPERATOR" => "",
+	   "OWNER_CALLSIGN" => "",
+	   "PFX" => "",
+	   "PRECEDENCE" => "",
+	   "PROP_MODE" => "",
+	   "PUBLIC_KEY" => "",
+	   "QSLMSG" => "",
+	   "QSLRDATE" => "",
+	   "QSLSDATE" => "",
+	   "QSL_RCVD" => "",
+	   "QSL_RCVD_VIA" => "",
+	   "QSL_SENT" => "",
+	   "QSL_SENT_VIA" => "",
+	   "QSL_VIA" => "",
+	   "QSO_COMPLETE" => "",
+	   "QSO_DATE" => "",
+	   "QSO_DATE_OFF" => "",
+	   "QSO_RANDOM" => "",
+	   "QTH" => "",
+	   "RIG" => "",
+	   "RST_RCVD" => "",
+	   "RST_SENT" => "",
+	   "RX_PWR" => 0,
+	   "SAT_MODE" => "",
+	   "SAT_NAME" => "",
+	   "SFI" => "",
+	   "SIG" => "",
+	   "SIG_INFO" => "",
+	   "SOTA" => "",
+	   "SRX" => 0,
+	   "SRX_STRING" => "",
+	   "STATE" => "",
+	   "STATION_CALLSIGN" => "",
+	   "STX" => 0,
+	   "STX_STRING" => "",
+	   "SWL" => "",
+	   "TEN_TEN" => 0,
+	   "TIME_OFF" => "",
+	   "TIME_ON" => "",
+	   "TX_PWR" => 0,
+	   "VE_PROV" => "",
+	   "WEB" => ""});
+
+# data types: D date, T time, M multiline, S character/string, N number,
+# L location, B boolean, E enumeration, A award list
+my %typ = ("ADDRESS" => "M",
+	   "AGE" => "N",
+	   "A_INDEX" => "N",
+	   "ANT_AZ" => "N",
+	   "ANT_EL" => "N",
+	   "ANT_PATH" => "E",
+	   "ARRL_SECT" => "E",
+	   "BAND" => "E",
+	   "BAND_RX" => "E",
+	   "CALL" => "S",
+	   "CHECK" => "S",
+	   "CLASS" => "S",
+	   "CNTY" => "E",
+	   "COMMENT" => "S",
+	   "CONT" => "E",
+	   "CONTACTED_OP" => "S",
+	   "CONTEST_ID" => "S",
+	   "COUNTRY" => "S",
+	   "CREDIT_GRANTED" => "A",
+	   "CREDIT_SUBMITTED" => "A",
+	   "CQZ" => "N",
+	   "DISTANCE" => "N",
+	   "DXCC" => "E",
+	   "EMAIL" => "S",
+	   "EQ_CALL" => "S",
+	   "EQSL_QSLRDATE" => "D",
+	   "EQSL_QSLSDATE" => "D",
+	   "EQSL_QSL_RCVD" => "E",
+	   "EQSL_QSL_SENT" => "E",  	
+	   "FORCE_INIT" => "B",
+	   "FREQ" => "N",
+	   "FREQ_RX" => "N",
+	   "GUEST_OP" => "S",
+	   "GRIDSQUARE" => "S",
+	   "IOTA" => "S",
+	   "IOTA_ISLAND_ID" => "S",
+	   "ITUZ" => "N",
+	   "K_INDEX" => "N",
+	   "LAT" => "L",
+	   "LON" => "L",
+	   "LOTW_QSLRDATE" => "D",
+	   "LOTW_QSLSDATE" => "D",
+	   "LOTW_QSL_RCVD" => "E",
+	   "LOTW_QSL_SENT" => "E",
+	   "MAX_BURSTS" => "N",
+	   "MODE" => "E",
+	   "MS_SHOWER" => "S",
+	   "MY_CITY" => "S",
+	   "MY_CNTY" => "E",
+	   "MY_COUNTRY" => "E",
+	   "MY_CQ_ZONE" => "N",
+	   "MY_GRIDSQUARE" => "S",
+	   "MY_IOTA" => "S",
+	   "MY_IOTA_ISLAND_ID" => "S",
+	   "MY_ITU_ZONE" => "N",
+	   "MY_LAT" => "L",
+	   "MY_LON" => "L",
+	   "MY_NAME" => "S",
+	   "MY_POSTAL_CODE" => "S",
+	   "MY_RIG" => "S",
+	   "MY_SIG" => "S",
+	   "MY_SIG_INFO" => "S",
+	   "MY_SOTA" => "S",
+	   "MY_STATE" => "E",
+	   "MY_STREET" => "S",
+	   "NAME" => "S",
+	   "NOTES" => "M",
+	   "NR_BURSTS" => "N",
+	   "NR_PINGS" => "N",
+	   "OPERATOR" => "S",
+	   "OWNER_CALLSIGN" => "S",
+	   "PFX" => "S",
+	   "PRECEDENCE" => "S",
+	   "PROP_MODE" => "E",
+	   "PUBLIC_KEY" => "S",
+	   "QSLMSG" => "M",
+	   "QSL_RCVD" => "E",
+	   "QSLRDATE" => "D",
+	   "QSLSDATE" => "D",
+	   "QSL_RCVD" => "E",
+	   "QSL_RCVD_VIA" => "E",
+	   "QSL_SENT" => "E",
+	   "QSL_SENT_VIA" => "E",
+	   "QSL_VIA" => "S",
+	   "QSO_COMPLETE" => "E",
+	   "QSO_DATE" => "D",
+	   "QSO_DATE_OFF" => "D",
+	   "QSO_RANDOM" => "B",
+	   "QTH" => "S",
+	   "RIG" => "M",
+	   "RST_RCVD" => "S",
+	   "RST_SENT" => "S",
+	   "RX_PWR" => "N",
+	   "SAT_MODE" => "S",
+	   "SAT_NAME" => "S",
+	   "SFI" => "N",
+	   "SIG" => "S",
+	   "SIG_INFO" => "S",
+	   "SOTA" => "S",
+	   "SRX" => "N",
+	   "SRX_STRING" => "S",
+	   "STATE" => "E",
+	   "STATION_CALLSIGN" => "S",
+	   "STX" => "N",
+	   "STX_STRING" => "S",
+	   "SWL" => "B",
+	   "TEN_TEN" => "N",
+	   "TIME_OFF" => "T",
+	   "TIME_ON" => "T",
+	   "TX_PWR" => "N",
+	   "VE_PROV" => "S",
+	   "WEB" => "S");
+
+
+# csv record convertion hash
+my %cconv = ("Band" => "BAND",
+	     "Full reference" => "SOTA",
+	     "Station worked" => "CALL",
+	     "Notes" => "COMMENT",
+	     "Mode" => "MODE",
+	     "Date" => "QSO_DATE",
+	     "Call used" => "STATION_CALLSIGN",
+	     "Time" => "TIME_ON",
+	     "End" => "TIME_OFF",
+	     "GridLoc" => "GRIDSQUARE",
+	     "RSTs" => "RST_SENT",
+	     "RSTr" => "RST_RCVD",
+	     "SerRx" => "SRX_STRING",
+	     "SerTx" => "STX_STRING",
+	     "QSLr" => "QSL_RCVD",
+	     "QSLrv" => "QSL_RCVD_VIA",
+	     "QSLs" => "QSL_SENT",
+	     "QSLsv" => "QSL_SENT_VIA",
+	     "QSLvia" => "QSL_VIA");
+
+# modes for adif 2.2.6
+my @modes=("AM","AMTORFEC","ASCI","ATV","CHIP64","CHIP128","CLO","CONTESTI","CW","DSTAR","DOMINO","DOMINOF","FAX","FM","FMHELL","FSK31","FSK441","GTOR","HELL","HELL80","HFSK","JT44","JT4A","JT4B","JT4C","JT4D","JT4E","JT4F","JT4G","JT65","JT65A","JT6M","MFSK8","MFSK16","MT63","OLIVIA","PAC","PAC2","PAC3","PAX","PAX2","PCW","PKT","PSK10","PSK31","PSK63","PSK63F","PSK125","PSKAM10","PSKAM31","PSKAM50","PSKFEC31","PSKHELL","Q15","QPSK31","QPSK63","QPSK125","ROS","RTTY","RTTYM","SSB","SSTV","THRB","THRBX","THOR","TOR","VOI","WINMOR","WSPR");
+
+# propagation modes
+my @pmodes=("AUR","AUE","BS","ECH","EME","ES","FAI","F2","INTERNET","ION","IRL","MS","RPT","RS","SAT","TEP","TR");
+
+# bands for adif 2.2.6
+my @bands=("2190M","560M","160M","80M","60M","40M","30M","20M","17M","15M","12M","10M","6M","4M","2M","1.25M","70CM","33CM","23CM","13CM","9CM","6CM","3CM","1.25CM","6MM","4MM","2.5MM","2MM","1MM");
+
+my @bandl=(0.136,0.501,1.8,3.5,5.102,7,10,14,18.068,21,24.89,28,50,70,144,222,420,902,1240,2300,3300,5650,10000,24000,47000,75500,119980,142000,241000);
+
+my @bandu=(0.137,0.504,2,4,5.404,7.3,10.15,14.35,18.168,21.45,24.99,29.7,54,71,148,225,450,928,1300,2450,3500,5925,10500,24250,47200,81000,120020,149000,250000);
+
+my @bandf=(0.137,0.5,1.8,3.5,5,7,10.1,14,18.068,21,24.89,28,50,70,144,222,432,902,1240,2300,3300,5650,10000,24000,47000,75500,119980,142000,241000);
+
+# satellites for LoTW
+my @sats=("AO-10","AO-13","AO-16","AO-21","AO-27","AO-3","AO-4","AO-40","AO-51","AO-6","AO-7","AO-8","Arsene","FO-12","FO-20","FO-29","LO-19","NO-44","RS-1","RS-10","RS-11","RS-12","RS-13","RS-15","RS-2","RS-5","RS-6","RS-7","RS-8","SO-35","SO-41","SO-50","UO-14","VO-52");
+
+# typical rigs
+my @rigs=("ATS3B","ATS3B.1","ATS4","FT100","FT1802","FT1900","FT1000","FT2000","FT250","FT270","FT2800","FT450","FTDX5000","FT60R","FT736","FT747","FT757","FT757GX","FT767","FT817","FT817ND","FT840","FT847","FT857","FT8800","FT8900","FTM10R","FTM350R","FT890","FT897","FT900","FT920","FT950","FT990","FTDX9000","VX110","VX120","VX127","VX150","VX170","VX3R","VX6R","VX7R","VX8R","VX8RD","FT50R","FT7800","IC271","IC275","IC471","IC475","IC7000","IC703","IC706","IC706MkII","IC707","IC718","IC7200","IC725","IC726","IC728","IC735","IC736","IC737","IC746","IC751","IC756","IC761","IC765","IC775","IC78","IC7800","IC781","IC820","IC821","IC910","IC970","ICR10","ICR20","ICR7000","ICR71","ICR7100","ICR72","ICR75","ICR8500","ICR9000","K1","KX1","K2","K3","R5000","R8A","R8B","THD7A","THF7E","THG71","TMD700","TMV7","TS140","TS2000","TS440","TS450","TS480","TS50S","TS570","TS570","TS680","TS690","TS711","TS790","TS811","TS850","TS870","TS930","TS940","TS950","VR5000");
+
+# options: -h help, -V version, -v verbose, -f adif file, -l list qsos etc
+our ($opt_h,$opt_V,$opt_v,$opt_f,$opt_m,$opt_M,$opt_s,$opt_l,$opt_o,$opt_i,$opt_b,$opt_L,$opt_t,$opt_C,$opt_p,$opt_e,$opt_A,$opt_D,$opt_S,$opt_x,$opt_F,$opt_d,$opt_c,$opt_Q,$opt_q,$opt_a,$opt_u,$opt_R,$opt_2,$opt_X,$opt_T);
+
+$opt_h=0;$opt_V=0;$opt_v=0;$opt_f="";$opt_m="";$opt_M="";$opt_s=0;$opt_l=0;
+$opt_o=0;$opt_i=0;$opt_b=0;$opt_L=0;$opt_t=5;$opt_C="";$opt_p="";
+$opt_e=0;$opt_A="";$opt_D="";$opt_S="";$opt_x=0;$opt_F="";$opt_d=0;
+$opt_c=0;$opt_Q="";$opt_q="";$opt_a="";$opt_u=0;$opt_R="";$opt_2=0;$opt_X=0;
+$opt_T="";
+
+# main program
+my $nqso=0; # number of QSOs
+my $fdate="21000101"; # first date in file
+my $ldate="11000101"; # last date in file
+my $ftime="235959"; # first time in file
+my $ltime="000000"; # last time in file
+my $nerr=0; # number of errors
+
+my $nqsls=0; # number of sent QSLs
+my $nqslr=0; # number of received QSLs
+my $neqsls=0; # number of sent eQSLs
+my $neqslr=0; # number of received eQSLs
+my $nlqsls=0; # number of sent LoTW QSLs
+my $nlqslr=0; # number of received LoTW QSLs
+my $lstqsl="11000101"; # most recent received QSL date
+my $lsteqsl="11000101"; # most recent received eQSL date
+my $lstlqsl="11000101"; # most recent received LoTW QSL date
+my $sqsos=0; # number of shown QSOs
+my %bndstat; # hash for band statistics
+my %modstat; # hash for mode statistics
+my %dxstat; # hash for dxcc statistics
+my %ctrystat; # hash for country statistics
+my %dxstatc; # hash for confirmed dxcc statistics
+my %cqzstat; # hash for CQ zone statistics
+my %ituzstat; # hash for ITU zone statistics
+my %contstat; # hash for continent statistics
+my %gridstat; # grid square statistics
+my $gridlen=4; # length of grid square in statistics
+my %lonlatstat; # longitude/latitude statistics 
+my %iotastat; # IOTA statistics
+my %sotastat; # SOTA statistics
+my $dloss=0; # possible data loss during merging
+
+my @qsos; # array of parsed adif lines with time in beginning for sorting
+my $qi=0; # qso index
+
+my %qsl; # hash for printing QSL labels
+
+my %qso2d; # date hash to check duplicate QSOs
+my %qso2t; # time hash to check duplicate QSOs
+
+my $mycall=""; # my call sign in log
+my $myiota=""; # my iota in log
+my $mysota=""; # my sota in log
+my $myloc=""; # my locator in log
+
+my @tfile; # template file for output with ADIF tags, e.g. _CALL
+my $ntf=0; # number of lines in template file
+
+getopts('2hVvf:m:M:lsoibLt:C:A:D:p:eS:xq:F:dcQ:a:uR:XT:');
+
+printversion() if($opt_V); 
+printusage() if($opt_h||(!$opt_f)); 
+
+$opt_t=24*60 if((!$opt_t)&&($opt_2));
+
+$gridlen=6 if($opt_q =~ /grid6/);
+$gridlen=8 if($opt_q =~ /grid8/);
+$gridlen=10 if($opt_q =~ /grid10/);
+
+
+# remove USERDEF fields
+if($opt_u)
+{
+    delete $hed{USERDEF1};
+    delete $hed{USERDEF2};
+    delete $rec[0]{MY_SOTA};
+    delete $rec[1]{MY_SOTA};
+    delete $rec[0]{SOTA};
+    delete $rec[1]{SOTA};
+    delete $typ{MY_SOTA};
+    delete $typ{SOTA};
+    delete $cconv{"Full reference"};
+}
+
+$opt_Q=uc (substr $opt_Q,0,1) if($opt_Q);
+
+# check if point calculation script can be called
+`$opt_p`|| die("Script $opt_p not found\n") if($opt_p);
+
+my $file1; # main file
+my $file2; # optional file for merging
+
+$file1=$opt_f;
+$file2=$opt_m if($opt_m);
+$file2=$opt_M if($opt_M);
+
+# print header for ADIF file unless reading ADIF-file, in that case print
+# only after reading the header first 
+PrintAdifHead() if(($opt_o)&&($file1 !~ /\w+\.adi$/i)&&($file1 !~ /\w+\.adif$/i)&&($file1 ne "-")); 
+
+PrintTxtHead() if((($opt_l)||($opt_e))&&($opt_v));
+
+my $tpnts=0; # claimed points
+my $cabcall=PrintCabHead() if($opt_C); # print header for Cabrillo file
+
+# check that valid record name is given for addition/deletion
+my $recn;
+my @arecs;
+if($opt_A)
+{
+    @arecs=split /,/, $opt_A;
+    foreach(@arecs)
+    {
+	($recn,)=split /=/, $_;
+    }
+}
+
+my @drecs;
+if($opt_D)
+{
+    @drecs=split /,/, $opt_D;
+}
+
+my $srecn=""; 
+my $srecv="";
+my $srecu="";
+if($opt_S)
+{
+    ($srecn,$srecv,$srecu)=split /[=,]/, $opt_S;
+}
+
+my @frecs;
+if($opt_F)
+{
+    @frecs=split /,/, $opt_F;
+    foreach(@frecs)
+    {
+	($recn,,)=split /=/, $_;
+    }
+}
+
+my @mrecs;
+if($opt_R)
+{
+    @mrecs=split /,/, $opt_R;
+    foreach(@mrecs)
+    {
+	($recn,)=split /=/, $_;
+    }
+}
+
+# read -T template file to an array
+if($opt_T)
+{
+    my $TEMPFILE;
+    if(open($TEMPFILE,"<",$opt_T))
+    {
+	my $line=<$TEMPFILE>;
+	$ntf=0;
+	while($line)
+	{
+	    $tfile[$ntf]=$line;
+	    $ntf++;
+	    $line=<$TEMPFILE>;
+	}
+    }
+    else
+    {
+	print "Could not open $opt_T\n";
+	exit;
+    }
+}
+
+# check if dxcc can be used to check the call sign
+`dxcc`|| die("dxcc not found\n") if($opt_c);
+
+if($opt_f) 
+{
+    if($file1)
+    {
+	# adif file
+	if(($file1 =~ /\w+\.adi$/i)||($file1 =~ /\w+\.adif$/i)||($file1 eq "-"))
+	{
+	    $nqso=ReadAdifLog($file1,$file2);
+	    PrintInfo($nqso) if($opt_i);
+	}
+	else 
+	{
+	    # csv file
+	    if($file1 =~ /\w+\.csv$/i)
+	    {
+		$nqso=ReadCsvLog($file1);
+		PrintInfo($nqso) if($opt_i);
+	    }
+	    else
+	    {
+		# text file
+		if($file1 =~ /\w+\.txt$/i)
+		{
+		    $nqso=ReadTxtLog($file1);
+		    PrintInfo($nqso) if($opt_i);
+		}
+		else
+		{
+		    print "$file1 unknown suffix\n";
+		}
+	    }
+	}
+    }
+}
+
+#  print sorted adif log to simple ascending time order
+#  for descending time order use 'sort {$b <=> $a} (@qsos)';
+if($opt_s)
+{
+    @qsos=sort(@qsos);
+    PrintAdifHead();
+    PrintQsos();
+}
+
+# last lines for Cabrillo file
+if($opt_C)
+{
+    print "END-OF-LOG:\n"; 
+    if($opt_p)
+    {
+	print (sprintf "Total points: %-10.2f\n", $tpnts);
+	print "Move to CLAIMED-SCORE in Cabrillo template file and run again without '-p'\n";
+    }
+} 
+
+# print QSL labels unless switch -o
+PrintQsls() if(($opt_Q)&&(!$opt_o));
+
+# print results from simple query
+PrintInfo($nqso) if($opt_q);
+
+print "Warning: data changed $dloss times during merging\n" if($dloss>0);
+
+# read in QSO data from ADIF file
+sub ReadAdifLog
+{
+    my $file1=shift;
+    my $file2=shift;
+    my $LOGFILE;
+    my $LOGFILE2;
+    my $l=0;
+    my $l2=0;
+    my $line="";
+    my $line2="";
+    my $ok=0;
+    my $ne=0;
+    my $serr=""; # type of error
+    my $res="";
+    my $res2="";
+    my $c;
+    my $c2;
+    my $rcc1=0; # record 0 complete
+    my $rcc2=0; # record 1 complete
+
+    if(open($LOGFILE,"<",$file1)||($file1 eq "-"))
+    {
+        # parse header if first character is not '<'
+	if($file1 ne "-")
+	{
+	    $line=<$LOGFILE>;
+	}
+	else 
+	{
+	    $line=<>;
+	}
+
+        $c=substr $line,0,1 if($line);
+        if($c&&($c ne "<"))
+        {
+            while(($line)&&($res !~ /^<eoh>.*/i))
+            {
+                $res=AdifHead($line);
+		if($file1 ne "-")
+		{
+		    $line=<$LOGFILE>;
+		}
+		else 
+		{
+		    $line=<>;
+		}
+            }
+            print "--end of header\n" if($dbug);
+	    $res=substr $res,5,(length($res)-5) if(length($res)>=5);
+            print "--rest of line: $res\n" if($dbug);
+        }
+
+	# second file for merging
+	if($file2)
+	{
+	    if(open($LOGFILE2,"<",$file2))
+	    {
+		# parse header if first character is not '<'
+		$line2=<$LOGFILE2>;
+		$c2=substr $line2,0,1;
+		if($c2 ne "<")
+		{
+		    while(($line2)&&($res2 !~ /^<eoh>.*/i))
+		    {
+			$res2=AdifHead($line2);
+			$line2=<$LOGFILE2>;
+		    }
+		    print "--end of header2\n" if($dbug);
+		    $res2=substr $res2,5,(length($res2)-5);
+		    print "--rest of line: $res2\n" if($dbug);
+		}
+	    }
+	    else
+	    {
+		print "Could not open $file2\n";
+		exit;
+	    }
+	}
+	
+	PrintAdifHead() if($opt_o);
+
+        # fill the first two records from (two) files
+	$line=$res.$line if($line&&$res);
+	while(($line)&&(!$rcc1))
+	{
+	    ($res,$rcc1,$l)=ReadAdifRec($line,$l,0);
+	    if($file1 ne "-")
+	    {
+		$line=<$LOGFILE>;
+	    }
+	    else 
+	    {
+		$line=<>;
+	    }
+	}
+	$l++ if($rcc1);
+	    
+	$line2=$res2.$line2;
+	while(($line2)&&(!$rcc2))
+	{
+	    ($res2,$rcc2,$l2)=ReadAdifRec($line2,$l2,1);
+	    $line2=<$LOGFILE2>;
+	}
+	$l2++ if($rcc2);
+
+	print "--rec1 status $rcc1 rec2 status $rcc2\n" if($dbug);
+        $ok=1;
+	while($ok)
+	{
+	    $ok=0 if((!$rcc1)&&(!$rcc2)); # no record full
+
+	    # record 1 complete, second file already empty
+	    if($rcc1&&(!$rcc2)) 
+	    {
+		print "--rec1 complete\n" if($dbug);
+		$rcc1=0;
+		$nerr+=PrintQso(0);
+		EmptyRec(0);
+	  
+		# fill new record
+		$line=$res.$line if($line);
+		while(($line)&&(!$rcc1))
+		{
+		    ($res,$rcc1,$l)=ReadAdifRec($line,$l,0);
+		    if($file1 ne "-")
+		    {
+			$line=<$LOGFILE>;
+		    }
+		    else 
+		    {
+			$line=<>;
+		    }
+		}
+		$l++ if($rcc1);
+	    }
+
+	    # record 2 complete, first file already empty
+	    if($rcc2&&(!$rcc1)) 
+	    {
+		print "--rec2 complete\n" if($dbug);
+		$rcc2=0;
+		$nerr+=PrintQso(1) if(!$opt_M);
+		SearchMatch() if($opt_M);
+		EmptyRec(1);
+
+		# fill new record
+		$line2=$res2.$line2 if($line2);
+		while(($line2)&&(!$rcc2))
+		{
+		    ($res2,$rcc2,$l2)=ReadAdifRec($line2,$l2,1);
+		    $line2=<$LOGFILE2>;
+		}
+		$l2++ if($rcc2);
+	    }
+
+	    # both records complete, compare and print first in time
+	    if($rcc1&&$rcc2)
+	    {
+		print "--rec1 and rec2 complete\n" if($dbug);
+		# compare and print out
+		if(CompareRec()==1)
+		{
+		    # first record earlier
+		    $rcc1=0;
+		    $nerr+=PrintQso(0);		    
+		    EmptyRec(0);
+
+		    # fill new record
+		    $line=$res.$line if($line);
+		    while(($line)&&(!$rcc1))
+		    {
+			($res,$rcc1,$l)=ReadAdifRec($line,$l,0);
+			if($file1 ne "-")
+			{
+			    $line=<$LOGFILE>;
+			}
+			else 
+			{
+			    $line=<>;
+			}
+		    }
+		    $l++ if($rcc1);
+		}
+		else
+		{
+		    if(CompareRec()!=-1)
+		    {
+			# second record earlier
+			$rcc2=0;
+			$nerr+=PrintQso(1) if(!$opt_M);
+			SearchMatch() if($opt_M);
+			EmptyRec(1);
+
+			# fill new record
+			$line2=$res2.$line2 if($line2);
+			while(($line2)&&(!$rcc2))
+			{
+			    ($res2,$rcc2,$l2)=ReadAdifRec($line2,$l2,1);
+			    $line2=<$LOGFILE2>;
+			}
+			$l2++ if($rcc2);
+		    }
+		    else
+		    {
+			# two records are probably same QSO
+			MergeRecs();
+
+			$rcc1=0;
+			$nerr+=PrintQso(0);		    
+			EmptyRec(0);
+
+			# fill new record1
+			$line=$res.$line if($line);
+			while(($line)&&(!$rcc1))
+			{
+			    ($res,$rcc1,$l)=ReadAdifRec($line,$l,0);
+			    if($file1 ne "-")
+			    {
+				$line=<$LOGFILE>;
+			    }
+			    else 
+			    {
+				$line=<>;
+			    }
+			}
+
+			$l++ if($rcc1);
+
+			$rcc2=0;
+			EmptyRec(1);
+
+			# fill new record
+			$line2=$res2.$line2 if($line2);
+			while(($line2)&&(!$rcc2))
+			{
+			    ($res2,$rcc2,$l2)=ReadAdifRec($line2,$l2,1);
+			    $line2=<$LOGFILE2>;
+			}
+			$l2++ if($rcc2);
+		    }
+		}
+	    }
+	}
+
+    }
+
+    print "$nerr errors found\n" if(($nerr>0)&&(!$opt_q)); 
+    return ($l+$l2);
+}
+
+# search for a QSO from first log if was not found in merging with -M
+sub SearchMatch
+{
+    my $sqsos;
+    my @lqsos;
+    my $q;
+    my $dt;
+    my $x="";
+
+    print "M? ";
+    PrintTxtRec($x,1,$x);
+
+    if($opt_v)
+    {
+	$sqsos=`adifmerg -f $file1 -S CALL=$rec[1]{CALL} -l`;
+	@lqsos = split /\n/, $sqsos;
+	foreach(@lqsos)
+	{
+	    $q=$_;
+	    $q =~ /([1-2]\d\d\d[0-1]\d[0-3]\d)\s([0-2][0-9][0-5][0-9]).*/;
+	    $dt=abs(jday($1,$2)-jday($rec[0]{QSO_DATE},$rec[0]{TIME_ON}));
+	    print "C: $q\n" if($dt<=($opt_t/(24*60)));
+	}
+    }
+
+}
+
+# print QSO data as adif, text or csv and check validity of QSO records
+sub PrintQso
+{
+
+    my $recno=shift;
+    my $serr;
+    my $ne=0;
+    my $prout=0;
+    my @awards;
+    my $awstatus="";
+
+    # convert deprecated records
+    AdifRecTo2($recno);
+
+    # optionally add/delete/fix records
+    AddRec($recno) if($opt_A);
+    DelRec($recno) if($opt_D);
+    FixRec($recno) if($opt_F);
+    MapRec($recno) if($opt_R);
+
+    # add location from grid square 
+    AddLoc($recno) if($opt_d);
+    # calculate distance
+    CalcDist($recno) if($opt_d);
+
+    # optionally add band info from frequency
+    $rec[$recno]{BAND}=Freq2band($rec[$recno]{FREQ})
+	if(($opt_b)&&(!$rec[$recno]{BAND}));
+
+    # check QSO data
+    if(CheckQso($recno))
+    {
+	($ne,$serr)=CheckQso($recno);
+    }
+    else
+    {
+	$serr="";
+    }
+    
+    # print out
+    $prout=0;
+    $prout=1 if(!$opt_S);
+    if((!$srecu)&&($opt_S)&&(exists $rec[$recno]{$srecn}))
+    {
+        # exact match 'REC=VAL'
+	if($srecv)
+	{
+	    $prout=1 if(($rec[$recno]{$srecn} eq $srecv)&&($srecv));
+	}
+	# any value 'REC='
+	else
+	{
+	    $prout=1 if($rec[$recno]{$srecn});
+	} 
+    }
+
+    if(($srecu)&&($srecv)&&($opt_S))
+    {
+	$prout=1 if(($rec[$recno]{$srecn} ge $srecv)&&($rec[$recno]{$srecn} le $srecu));
+    }
+
+    $awstatus="";
+    if($opt_a)
+    {
+	if(($rec[$recno]{CREDIT_GRANTED})||($rec[$recno]{CREDIT_SUBMITTED}))
+	{
+	    @awards=split /,/, $rec[$recno]{CREDIT_SUBMITTED}; 
+	    foreach(@awards)
+	    {
+		$awstatus="S" if($opt_a eq $_);
+	    }
+
+	    @awards=split /,/, $rec[$recno]{CREDIT_GRANTED}; 
+	    foreach(@awards)
+	    {
+		$awstatus=$awstatus."G" if($opt_a eq $_);
+	    }
+	}
+	$prout=0 if(($prout)&&(!$awstatus));
+    }
+
+    $prout=0 
+	if(($rec[$recno]{QSO_COMPLETE} =~ /N/i)&&($srecn ne "QSO_COMPLETE"));
+
+    if($prout)
+    {
+	if(((uc $opt_Q) eq 'A')&&(((uc $rec[$recno]{QSL_SENT}) eq 'N')||((uc $rec[$recno]{QSL_SENT}) eq 'R')))
+	{
+	    if($opt_T)
+	    {
+		Qso2HashT();
+	    }
+	    else
+	    {
+		Qso2Hash();
+	    }
+	}
+	if(((uc $opt_Q) eq 'R')&&((uc $rec[$recno]{QSL_SENT}) eq 'R'))
+	{
+	    if($opt_T)
+	    {
+		Qso2HashT();
+	    }
+	    else
+	    {
+		Qso2Hash();
+	    }
+	}
+	PrintAdifRec($recno) if($opt_o);
+	PrintTxtRec($serr,$recno,$awstatus) if($opt_l);
+	PrintTxtRec($serr,$recno,$awstatus) if(($opt_e)&&($serr));
+	PrintTxtRecL($serr,$recno," ") if($opt_L);
+	PrintCabRec($recno) if($opt_C);
+	PrintTxtRecL($serr,$recno,",") if($opt_x);
+	PrintCsvRec($recno) if($opt_X);
+	PrintTempRec($recno) if(($opt_T)&&(!$opt_Q));
+	Qso2Array() if($opt_s);
+	Qso2Hash2s() if($opt_2);
+	
+	$sqsos++ if($opt_o||$opt_l||(($opt_e)&&($serr))||$opt_L||$opt_C||$opt_x||$opt_s|$opt_X);
+	StatQso($recno);
+
+    }
+
+    return $ne;
+}
+    
+
+# calculate QSO statistics
+sub StatQso
+{
+    my $recno=shift;
+    my $lonlat="";
+
+    # check the first and last times and dates
+    if($rec[$recno]{QSO_DATE})
+    {
+	if($rec[$recno]{QSO_DATE} lt $fdate)
+	{
+	    $fdate=$rec[$recno]{QSO_DATE};
+	    $ftime=$rec[$recno]{TIME_ON};
+	    $ftime=$ftime."00" if(length($ftime)==4);
+	}
+	if($rec[$recno]{QSO_DATE} eq $fdate)
+	{
+	    if($rec[$recno]{TIME_ON} lt $ftime)
+	    {
+		$ftime=$rec[$recno]{TIME_ON};
+		$ftime=$ftime."00" if(length($ftime)==4);
+	    }
+	}
+	if($rec[$recno]{QSO_DATE} gt $ldate)
+	{
+	    $ldate=$rec[$recno]{QSO_DATE};
+	    $ltime=$rec[$recno]{TIME_ON};
+	    $ltime=$ltime."00" if(length($ltime)==4);
+	}
+	else
+	{
+	    if($rec[$recno]{QSO_DATE} eq $ldate)
+	    {
+		if($rec[$recno]{TIME_ON} gt $ltime)
+		{
+		    $ltime=$rec[$recno]{TIME_ON};
+		    $ltime=$ltime."00" if(length($ltime)==4);
+		}
+	    }
+	}
+    }
+    
+    # count bands, modes and QSLs
+    if(exists $bndstat{uc $rec[$recno]{BAND}})
+    {
+	$bndstat{uc $rec[$recno]{BAND}}++;
+    }
+    else
+    {
+	$bndstat{uc $rec[$recno]{BAND}}=1;
+    }
+    if(exists $modstat{uc $rec[$recno]{MODE}})
+    {
+	$modstat{uc $rec[$recno]{MODE}}++;
+    }
+    else
+    {
+	$modstat{uc $rec[$recno]{MODE}}=1;
+    }
+    $nqsls++ if($rec[$recno]{QSL_SENT} eq "Y");
+    $nqslr++ if($rec[$recno]{QSL_RCVD} eq "Y");
+    $neqsls++ if($rec[$recno]{EQSL_QSL_SENT} eq "Y");
+    $neqslr++ if($rec[$recno]{EQSL_QSL_RCVD} eq "Y");
+    $nlqsls++ if($rec[$recno]{LOTW_QSL_SENT} eq "Y");
+    $nlqslr++ if($rec[$recno]{LOTW_QSL_RCVD} eq "Y");
+    if($rec[$recno]{DXCC})
+    {
+	$dxstat{$rec[$recno]{DXCC}}=1 
+	    if(!exists $dxstat{$rec[$recno]{DXCC}});
+	$dxstatc{$rec[$recno]{DXCC}}=1 
+	    if((!exists $dxstatc{$rec[$recno]{DXCC}})&&($rec[$recno]{QSL_RCVD} eq "Y"));
+    }
+    if($rec[$recno]{CQZ})
+    {
+	$cqzstat{$rec[$recno]{CQZ}}=1 
+	    if(!exists $cqzstat{$rec[$recno]{CQZ}});
+    }
+    if($rec[$recno]{ITUZ})
+    {
+	$ituzstat{$rec[$recno]{ITUZ}}=1 
+	    if(!exists $ituzstat{$rec[$recno]{ITUZ}});
+    }
+    if(exists $ctrystat{uc $rec[$recno]{COUNTRY}})
+    {
+	$ctrystat{uc $rec[$recno]{COUNTRY}}++;
+    }
+    else
+    {
+	$ctrystat{uc $rec[$recno]{COUNTRY}}=1;
+    }
+    if($rec[$recno]{CONT})
+    {
+	$contstat{$rec[$recno]{CONT}}=1 
+	    if(!exists $contstat{$rec[$recno]{CONT}});
+    }
+    if($rec[$recno]{IOTA})
+    {
+	$iotastat{$rec[$recno]{IOTA}}=1 
+	    if(!exists $iotastat{$rec[$recno]{IOTA}});
+    }
+    if(exists $rec[$recno]{SOTA})
+    {
+	if($rec[$recno]{SOTA})
+	{
+	    $sotastat{$rec[$recno]{SOTA}}=1 
+		if(!exists $sotastat{$rec[$recno]{SOTA}});
+	}
+    }
+    if($rec[$recno]{GRIDSQUARE})
+    {
+	if(length($rec[$recno]{GRIDSQUARE})>=$gridlen)
+	{
+	    $gridstat{(substr $rec[$recno]{GRIDSQUARE},0,$gridlen)}=1
+		if(!exists $gridstat{(substr $rec[$recno]{GRIDSQUARE},0,$gridlen)});
+	    
+	}
+    }
+    if(($rec[$recno]{LON})&&($rec[$recno]{LAT}))
+    {
+	$lonlat=$rec[$recno]{LON}." ".$rec[$recno]{LAT};
+	$lonlatstat{$lonlat}=1 if(!exists $lonlatstat{$lonlat});
+    }
+    if($rec[$recno]{QSLRDATE})
+    {
+	$lstqsl=($rec[$recno]{QSLRDATE}) 
+	    if($lstqsl lt ($rec[$recno]{QSLRDATE}));
+    }
+    if($rec[$recno]{EQSL_QSLRDATE})
+    {
+	$lsteqsl=($rec[$recno]{EQSL_QSLRDATE}) 
+	    if($lsteqsl lt ($rec[$recno]{EQSL_QSLRDATE}));
+    }
+    if($rec[$recno]{LOTW_QSLRDATE})
+    {
+	$lstlqsl=($rec[$recno]{LOTW_QSLRDATE}) 
+	    if($lstlqsl lt ($rec[$recno]{LOTW_QSLRDATE}));
+    }
+}
+
+
+
+# parse adif header and fill header hash, return rest of line
+sub AdifHead
+{
+    my $line=shift;
+    my $parm;
+    my $dta;
+    my $pos;
+    my $len;
+    my $c;
+
+    # while loop to discard characters before '<'
+    $c=substr $line,0,1;
+    while(($c ne "<")&&(length($line)>0))
+    {
+        $line=substr $line,1,(length($line)-1);
+        $c=substr $line,0,1;
+    }
+
+    return "" if(length($line)==0);
+
+    while($line =~ /^<(\w+):(\d+)(:[ABNSDTML])?>.*/i)
+    {
+        $parm=uc $1;
+        $len=$2;
+        $pos=length($parm)+length($len)+3;
+        $pos+=2 if($3);
+        $dta=substr $line,$pos,$len;
+        $line=substr $line,($pos+$len);
+        
+        if(exists $hed{$parm})
+        {
+             $hed{$parm}=$dta;
+        }
+        else 
+	{
+	    if($parm =~ /^USERDEF\d{1,2}/i)
+	    {
+		if(!$opt_u)
+		{
+		    $hed{$parm}=$dta;
+		
+		    # now $dta can be for example 'ShoeSize,{5:20}' or 
+		    # 'SweaterSize,{S,M,L}'
+		    # 1. add the new field to rec hash with default 'S' type
+		    # if the type is not given
+		    # 2. set the value to "" or 0 is number
+		    if($dta =~ /^(\w+)(\,\{\w+\})?/)
+		    {
+			$rec[0]{$1}="";
+			$rec[1]{$1}="";
+			$typ{$1}="S";
+		    }
+		}
+	    }
+	    else
+	    {
+		if($parm !~ /^APP_\w+_\w+/i)
+		{
+		    print "Unknown parameter $parm = $dta\n";
+		}
+	    }
+	}
+
+        $c=substr $line,0,1;
+        while(($c ne "<")&&(length($line)>0))
+        {
+            $line=substr $line,1,(length($line)-1);
+            $c=substr $line,0,1;
+        }
+    }
+
+    return $line;
+
+}
+
+# read adif record and fill hash
+sub ReadAdifRec
+{
+    my $line=shift;
+    my $l=shift;
+    my $recno=shift;
+    my $recc=0;
+    my $res="";
+
+    print "--[$recno] QSO $l: $line" if($dbug);
+
+    $res=AdifLine($line,$recno);
+    if($res =~ /^<eor>/i)
+    {
+	if($dbug)
+	{
+	    print "--record complete\n";
+	    print "call $rec[$recno]{CALL}\n";
+	    print "time $rec[$recno]{TIME_ON}\n";
+	    print "date $rec[$recno]{QSO_DATE}\n";
+	    print "rst $rec[$recno]{RST_SENT}\n";
+	    print "mode $rec[$recno]{MODE}\n";
+	    print "band $rec[$recno]{BAND}\n";
+	    print "frequency $rec[$recno]{FREQ}\n";
+	}
+	
+	$res="";
+	$recc=1; # record completed
+    }
+
+    return ($res,$recc,$l);
+}
+
+
+# convert deprecated adif 1 records to version 2 
+# GUEST_OP -> OPERATOR
+# VE_PROV -> STATE
+sub AdifRecTo2
+{
+    my $recno=shift;
+
+    if($rec[$recno]{GUEST_OP})
+    {
+	$rec[$recno]{OPERATOR}=$rec[$recno]{GUEST_OP};
+	$rec[$recno]{GUEST_OP}="";
+    }
+
+    if($rec[$recno]{VE_PROV})
+    {
+	$rec[$recno]{STATE}=$rec[$recno]{VE_PROV};
+	$rec[$recno]{VE_PROV}="";
+    }
+
+}
+
+
+# print beginning of Cabrillo file, the values are read from template file
+# $opt_C
+sub PrintCabHead
+{
+    my $CABHEAD;
+    my $line;
+    my $callsign="";
+
+    if(open($CABHEAD,"<",$opt_C))
+    {
+	print "START-OF-LOG: 3.0\n";
+        $line=<$CABHEAD>;
+	while($line)
+        {
+	    print $line if($line =~ /^\w{4,9}(-\w{2,11})?:\s+.*/);
+	    if($line =~ /^CALLSIGN:\s(\w{3,13})/i)
+	    {
+		$callsign=$1;
+	    }
+
+#	    print $line if($line =~ /^\w{4,20}:\s+\w+/);
+	    $line=<$CABHEAD>;
+	}
+    }
+
+    return $callsign;
+}
+
+# print Cabrillo QSO
+sub PrintCabRec
+{
+    my $recno=shift;
+    my $oline="QSO: ";
+    my $pnts=0;
+    my $calc="";
+
+    if($rec[$recno]{FREQ})
+    {
+	if(($rec[$recno]{FREQ}>=1.8)&&($rec[$recno]{FREQ}<=29.7))
+	{
+	    $oline=$oline.sprintf "%5d ", (int 1000*$rec[$recno]{FREQ});
+	}
+	else
+	{
+	    $oline=$oline.f2cabf($rec[$recno]{FREQ})." ";
+	}
+    }
+    else
+    {
+	$oline=$oline.b2cabf(uc $rec[$recno]{BAND})." ";
+    }
+
+    $oline=$oline.m2cab($rec[$recno]{MODE})." ";
+    $oline=$oline.(substr $rec[$recno]{QSO_DATE},0,4)."-";
+    $oline=$oline.(substr $rec[$recno]{QSO_DATE},4,2)."-";
+    $oline=$oline.(substr $rec[$recno]{QSO_DATE},6,2)." ";
+    $oline=$oline.(substr $rec[$recno]{TIME_ON},0,4)." ";
+
+    # use OPERATOR if STATION_CALLSIGN empty or CALLSIGN: from template
+    if($rec[$recno]{STATION_CALLSIGN})
+    {
+	$oline=$oline.(sprintf "%-13.13s ",$rec[$recno]{STATION_CALLSIGN});
+    }
+    else
+    {
+	if($rec[$recno]{OPERATOR})
+	{
+	    $oline=$oline.(sprintf "%-13.13s ",$rec[$recno]{OPERATOR});
+	}
+	else
+	{
+	    $oline=$oline.(sprintf "%-13.13s ",$cabcall);
+	}
+    }
+    $oline=$oline.$rec[$recno]{STX_STRING}." ";
+    $oline=$oline.(sprintf "%-13.13s ",$rec[$recno]{CALL});
+    $oline=$oline.$rec[$recno]{SRX_STRING};
+
+    # add calculated points
+    if($opt_p)
+    {
+	$calc=$opt_p." ".$rec[$recno]{CALL}." ".$rec[$recno]{BAND};
+	$calc=$calc." ".$rec[$recno]{STX_STRING}." ".$rec[$recno]{SRX_STRING};
+	$pnts=`$calc`;
+	$oline=$oline.(sprintf " %-5.2f", $pnts);
+	$tpnts+=$pnts;
+    }
+
+    print "$oline\n";
+}
+
+# frequency to Cabrillo MHz for > 29.7 MHz
+sub f2cabf()
+{
+    my $freq=shift;
+    my @frqs=("   50","  144","  222","  432","  902"," 1.2G"," 2.3G"," 3.4G"," 5.7G","  10G","  24G","  47G","  75G"," 119G"," 142G"," 241G");
+    my @bandl=(50,144,222,420,902,1240,2300,3300,5650,10000,24000,47000,75500,119980,142000,241000);
+    my @bandu=(54,148,225,450,928,1300,2450,3500,5925,10500,24250,47200,81000,120020,149000,250000);
+
+    my $frq="";
+    my $i;
+
+    for($i=0;$i<16;$i++)
+    {
+	$frq=$frqs[$i] if(($freq>=$bandl[$i])&&($freq<=$bandu[$i]));
+    }
+    
+    return $frq;
+
+}
+
+# ADIF band to Cabrillo frequency
+sub b2cabf()
+{
+    my $bnd=shift;
+
+    my %bands=("160M" => " 1800",
+	       "80M"  => " 3500",
+	       "40M"  => " 7000",
+	       "20M"  => "14000",
+	       "15M"  => "21000",
+	       "10M"  => "28000",
+	       "2M"   => "  144",
+	       "70CM" => "  432",
+	       "33CM" => "  920",
+	       "23CM" => " 1.2G",
+	       "13CM" => " 2.3G",
+	       "9CM"  => " 3.4G",
+	       "6CM"  => " 5.7G",
+	       "3CM"  => "  10G",
+	       "1.25CM" => "  24G",
+	       "6MM"  => "  47G",
+	       "4MM"  => "  75G",
+	       "2.5MM" => " 119G",
+	       "2MM"  => " 142G",
+	       "1MM"  => " 300G");
+
+    return $bands{$bnd};
+    
+}
+
+# ADIF to Cabrillo modes: CW, PH, FM or RY
+sub m2cab()
+{
+    my $m=shift;
+    my $modc="";
+
+    if(($m eq "CW")||($m eq "FM"))
+    {
+	$modc=$m;
+    }
+    else
+    {
+	if(($m eq "AM")||($m eq "SSB"))
+	{
+	    $modc="PH";
+	}
+	else
+	{
+	    $modc="RY";
+	}
+    }
+    return $modc;
+} 
+
+
+# compare record 1 and 2 to see which is first in time
+sub CompareRec
+{
+    my $erly=0; # 1=rec earlier that rec2, -1=probably same QSO w/ utc+-3min
+    my $smcall=0; # 1=call signs look similar
+    my $t1;
+    my $t2;
+    my $dt;
+    
+    $t1=$rec[0]{TIME_ON};
+    $t1=$t1."00" if(length($t1)==4);
+    $t2=$rec[1]{TIME_ON};
+    $t2=$t2."00" if(length($t2)==4);
+    $erly=1 if($rec[0]{QSO_DATE}<$rec[1]{QSO_DATE});
+    
+    if((uc $rec[0]{CALL}) eq (uc $rec[1]{CALL}))
+    {
+	$smcall=1;
+    }
+    else
+    {
+	if(length($rec[0]{CALL})>length($rec[1]{CALL}))
+	{
+	    $smcall=1 if($rec[0]{CALL} =~ m!$rec[1]{CALL}!);
+	}
+	if(length($rec[0]{CALL})<length($rec[1]{CALL}))
+	{
+	    $smcall=1 if($rec[1]{CALL} =~ m!$rec[0]{CALL}!);
+	}
+    }
+
+    if(!$smcall)
+    {
+	$erly=1 if(($rec[0]{QSO_DATE}==$rec[1]{QSO_DATE})&&($t1<$t2));
+    }
+    else
+    {
+	# check here if it could be same QSO with time +-$opt_t min
+	$dt=abs(jday($rec[0]{QSO_DATE},$rec[0]{TIME_ON})-
+		jday($rec[1]{QSO_DATE},$rec[1]{TIME_ON}));
+
+	if($dt<=($opt_t/(24*60)))
+	{
+	    if((!$rec[0]{BAND})||(!$rec[1]{BAND}))
+	    {
+		$erly=-1; 
+	    }
+	    else
+	    {
+		$erly=-1 if((uc $rec[0]{BAND}) eq (uc $rec[1]{BAND}));
+	    }
+	}
+    }
+
+    return $erly;
+}
+
+
+# merge two records for same QSO
+# add records from $rec2 but do not overwrite records in $rec, exception
+# when -M switch is used for QSL flags, also CREDIT_SUBMITTED and
+# CREDIT_GRANTED are handeled as award lists
+sub MergeRecs
+{
+    my $recn;
+    my $wloss="";
+    my @awards;
+
+    foreach $recn (keys %typ)
+    {
+	if((!$rec[0]{$recn})&&($rec[1]{$recn}))
+	{
+	    $rec[0]{$recn}=$rec[1]{$recn};
+	    $wloss=$wloss.$recn.":+".($rec[0]{$recn})." " if($opt_v);
+	}
+	else
+	{
+	    if(($recn ne 'TIME_ON')&&($recn ne 'QSO_DATE')&&((uc $rec[0]{$recn}) ne (uc $rec[1]{$recn}))&&($rec[1]{$recn}))
+	    {
+		if(!(($opt_M)&&(MRules($recn,$rec[0]{$recn},$rec[1]{$recn}))))
+		{
+		    $wloss=$wloss.$recn.":+".($rec[0]{$recn}).",-".($rec[1]{$recn})." ";
+		    $dloss++;
+		}
+	    } 
+	}
+
+	if(($opt_M)&&(MRules($recn,$rec[0]{$recn},$rec[1]{$recn})))
+	{
+	    $wloss=$wloss.$recn.":".($rec[0]{$recn})."->".($rec[1]{$recn})." ";
+	    $rec[0]{$recn}=$rec[1]{$recn};
+	    $dloss++;
+	} 
+
+	if(($recn eq "CREDIT_SUBMITTED")||($recn eq "CREDIT_GRANTED"))
+	{
+	    @awards=split /,/, $rec[1]{$recn}; 
+	    foreach(@awards)
+	    {
+		$rec[0]{$recn}=$rec[0]{$recn}.",".$_ 
+		    if(($_)&&($rec[0]{$recn} !~ /$_/i));
+	    }
+	}
+
+    }
+
+    print "L $rec[0]{QSO_DATE} $rec[0]{TIME_ON} $rec[0]{CALL} $wloss\n" 
+	if(($opt_v)&&($wloss));
+}
+
+# rules for merging QSO records with '-M'
+# QSL_RCVD allowed changes
+# 1) N->{Y,R,I,V}
+# 2) R->{Y,V}
+# 3) I->{Y}
+# 4) Y->{V}
+# QSL_SENT allowed changes
+# 1) N->{Y,R,Q,I}
+# 2) R->{Q,Y}
+# 3) Q->{Y}
+sub MRules
+{
+    my $recn=shift;
+    my $ra=uc shift;
+    my $rb=uc shift;
+    my $ok=0;
+
+    if(($recn eq 'QSL_RCVD')||($recn eq 'EQSL_QSL_RCVD')||($recn eq 'LOTW_QSL_RCVD'))
+    {
+	$ok=1 if($ra eq 'N');
+	$ok=1 if(($ra eq 'R')&&(($rb eq 'Y')||($rb eq 'V')));
+	$ok=1 if(($ra eq 'I')&&($rb eq 'Y'));
+	$ok=1 if(($ra eq 'Y')&&($rb eq 'V'));
+    }
+
+    if(($recn eq 'QSL_SENT')||($recn eq 'EQSL_QSL_SENT')||($recn eq 'LOTW_QSL_SENT'))
+    {
+	$ok=1 if($ra eq 'N');
+	$ok=1 if(($ra eq 'R')&&(($rb eq 'Q')||($rb eq 'Y')));
+	$ok=1 if(($ra eq 'Q')&&($rb eq 'Y'));
+    }
+
+    $ok=1 if(($recn eq 'QSL_RCVD_VIA')&&($ra ne 'B')&&($ra ne 'D'));
+    $ok=1 if(($recn eq 'QSL_SENT_VIA')&&($ra ne 'B')&&($ra ne 'D'));
+    $ok=1 if($recn eq 'QSLRDATE');
+    $ok=1 if($recn eq 'QSLSDATE');
+    $ok=1 if($recn eq 'EQSL_QSLRDATE');
+    $ok=1 if($recn eq 'EQSL_QSLSDATE');
+
+    $ok=0 if((!$ra)||(!$rb)||($ra eq $rb));
+
+    return $ok;
+}
+
+# reset record to empty/zero values
+# data types: D date, T time, M multiline, S character/string, N number,
+# L location, B boolean, E enumeration, A award
+sub EmptyRec
+{
+    my $recno=shift; 
+    my $recn; # record name
+
+    foreach $recn (keys %typ)
+    {
+	$rec[$recno]{$recn}="" if($typ{$recn} eq "D");
+	$rec[$recno]{$recn}="" if($typ{$recn} eq "T");
+	$rec[$recno]{$recn}="" if($typ{$recn} eq "M");
+	$rec[$recno]{$recn}="" if($typ{$recn} eq "S");
+	$rec[$recno]{$recn}=0 if($typ{$recn} eq "N");
+	$rec[$recno]{$recn}="" if($typ{$recn} eq "L");
+	$rec[$recno]{$recn}="" if($typ{$recn} eq "B");
+	$rec[$recno]{$recn}="" if($typ{$recn} eq "E");
+	$rec[$recno]{$recn}="" if($typ{$recn} eq "A");
+    }
+
+    print "--[$recno] cleaned\n" if($dbug);
+}
+
+# print adif record
+sub PrintAdifRec
+{
+    my $recno=shift;
+    my $oline="";
+    my $recn; # record name
+
+    $oline="";
+    foreach $recn (sort keys %typ)
+    {
+	$oline=$oline."<".$recn.":".length($rec[$recno]{$recn}).">".($rec[$recno]{$recn}) if($rec[$recno]{$recn});
+    }
+    $oline=$oline."<eor>\n";
+
+    print $oline;
+
+}
+
+# fill array of adif lines for sorting, date, time and call in beginning 
+# of each line
+sub Qso2Array
+{
+    my $oline="";
+    my $recn; # record name
+
+    $oline=$rec[0]{QSO_DATE}.$rec[0]{TIME_ON};
+    $oline=$oline."00" if(length($rec[0]{TIME_ON})==4);
+    $oline=$oline.$rec[0]{CALL} if($rec[0]{CALL});
+
+    foreach $recn (sort keys %typ)
+    {
+	$oline=$oline."<".$recn.":".length($rec[0]{$recn}).">".$rec[0]{$recn} 
+	if($rec[0]{$recn});
+    }
+    $oline=$oline."<eor>\n";
+
+    $qsos[$qi]=$oline;
+    $qi++;
+
+}
+
+# fill hash for duplicate QSOs, warn if duplicates found
+# the hash key is made from call sign, band and mode and it is
+# pointing to date and time values
+sub Qso2Hash2s
+{
+    my $dt=0;
+    my $c=uc $rec[0]{CALL};
+    $c=$c." ".(uc $rec[0]{BAND});
+    $c=$c." ".(uc $rec[0]{MODE});
+
+    if(exists $qso2d{$c})
+    {
+	# check if time is close to QSO in hash
+	$dt=abs(jday($qso2d{$c},$qso2t{$c})-jday($rec[0]{QSO_DATE},$rec[0]{TIME_ON}));
+	if($dt<=($opt_t/(24*60)))
+	{
+	    print "1: ";
+	    print $qso2d{$c};
+	    print " ";
+	    print $qso2t{$c};
+	    print " $c\n";
+	    print "2: ";
+	    print $rec[0]{QSO_DATE};
+	    print " ";
+	    print $rec[0]{TIME_ON};
+	    print " ";
+	    print $rec[0]{CALL};
+	    print " ";
+	    print $rec[0]{BAND};
+	    print " ";
+	    print $rec[0]{MODE};
+	    print "\n";
+	}
+    }
+    else
+    {
+	$qso2d{$c}=$rec[0]{QSO_DATE};
+	$qso2t{$c}=$rec[0]{TIME_ON};
+    }
+
+}
+
+
+# fill hash for QSL labels
+sub Qso2Hash
+{
+    my $l="";
+    my $c;
+    my $rn;
+    my $a="";
+
+    $c=$rec[0]{STATION_CALLSIGN};
+    $c=$rec[0]{OWNER_CALLSIGN} if($rec[0]{OWNER_CALLSIGN});
+ 
+    $rn=$c." ".$rec[0]{CALL};
+    $rn=$rn." ".(uc $rec[0]{MY_GRIDSQUARE}) if($rec[0]{MY_GRIDSQUARE});
+    if($rec[0]{CALL})
+    {
+	if(!exists $qsl{$rn})
+	{
+	    $l=$l."TO: ".($rec[0]{CALL})."  VIA ";
+	    $l=$l.$rec[0]{QSL_VIA} if($rec[0]{QSL_VIA});
+	    $l=$l."\n";
+	    $l=$l."FROM: ".$c;
+	    $l=$l." CQ ".$rec[0]{MY_CQ_ZONE} if($rec[0]{MY_CQ_ZONE});
+	    $l=$l." ITU ".$rec[0]{MY_ITU_ZONE} if($rec[0]{MY_ITU_ZONE});
+	    $l=$l." ".$rec[0]{MY_GRIDSQUARE} if($rec[0]{MY_GRIDSQUARE});
+	    $l=$l." ".$rec[0]{MY_CITY} if($rec[0]{MY_CITY});
+	    $l=$l." ".$rec[0]{MY_CNTY} if($rec[0]{MY_CNTY});
+	    $l=$l." ".$rec[0]{MY_STATE} if($rec[0]{MY_STATE});
+	    $l=$l." ".$rec[0]{MY_COUNTRY} if($rec[0]{MY_COUNTRY});
+	    $l=$l." ".$rec[0]{MY_IOTA} if($rec[0]{MY_IOTA});
+	    if(exists $rec[0]{MY_SOTA})
+	    {
+	        $l=$l." ".$rec[0]{MY_SOTA} if($rec[0]{MY_SOTA});
+	    }
+	    if($rec[0]{SAT_NAME})
+	    {
+		$l=$l." ".$rec[0]{SAT_NAME};
+		$l=$l." ".$rec[0]{SAT_MODE} if($rec[0]{SAT_MODE});
+	    }
+	    $l=$l." ".$rec[0]{TX_PWR}."W" if($rec[0]{TX_PWR});
+	    $l=$l."\n";
+	    $l=$l."Date          UTC      MHz     Mode     RST     QSL  PROP\n";
+	    $qsl{$rn}=$l;
+	}
+	$l=QslDate($rec[0]{QSO_DATE});
+	$l=$l."   ".(substr $rec[0]{TIME_ON},0,4);
+	$l=$l."  ".(sprintf "%7.3f",$rec[0]{FREQ}) if($rec[0]{FREQ});
+	$l=$l."  ".(sprintf "%7.3f",Band2freq($rec[0]{BAND})) if(!$rec[0]{FREQ});
+	$l=$l."    ".(sprintf "%-8.8s",$rec[0]{MODE});
+	$l=$l." ".(sprintf "%3d",$rec[0]{RST_SENT}) if($rec[0]{RST_SENT});
+	$l=$l."    " if(!$rec[0]{RST_SENT});
+	$a="         "; 
+	$a="     PSE " if(uc $rec[0]{QSL_RCVD} eq 'R');
+	$a="     TNX " if(uc $rec[0]{QSL_RCVD} eq 'Y');
+	$l=$l.$a;
+	$l=$l." ".($rec[0]{PROP_MODE}) if($rec[0]{PROP_MODE}); 
+	$l=$l."\n";
+	$qsl{$rn}=$qsl{$rn}.$l;
+	$rec[0]{QSL_SENT}='Y';
+	$rec[0]{QSL_SENT_VIA}='B';
+    }
+}
+
+
+# fill hash for QSL labels using -T template file
+sub Qso2HashT
+{
+    my $l="";
+    my $c;
+    my $rn;
+    my $a="";
+
+    $c=$rec[0]{STATION_CALLSIGN};
+    $c=$rec[0]{OWNER_CALLSIGN} if($rec[0]{OWNER_CALLSIGN});
+ 
+    $rn=$c." ".$rec[0]{CALL};
+    $rn=$rn." ".(uc $rec[0]{MY_GRIDSQUARE}) if($rec[0]{MY_GRIDSQUARE});
+    if($rec[0]{CALL})
+    {
+	if(!exists $qsl{$rn})
+	{
+	    $l=$l."CALL=".($rec[0]{CALL});
+	    if($rec[0]{QSL_VIA})
+	    {
+		$l=$l." QSL_VIA=".$rec[0]{QSL_VIA};
+	    }
+	    else
+	    {
+		$l=$l." QSL_VIA=";
+	    }
+	    $l=$l."\n";
+	    $l=$l."MYCALL=".$c;
+	    $l=$l." MY_CQ_ZONE=".$rec[0]{MY_CQ_ZONE} if($rec[0]{MY_CQ_ZONE});
+	    $l=$l." MY_ITU_ZONE=".$rec[0]{MY_ITU_ZONE} 
+	    if($rec[0]{MY_ITU_ZONE});
+	    $l=$l." MY_GRIDSQUARE=".$rec[0]{MY_GRIDSQUARE} 
+	    if($rec[0]{MY_GRIDSQUARE});
+	    $l=$l." MY_CITY=".spc($rec[0]{MY_CITY}) if($rec[0]{MY_CITY});
+	    $l=$l." MY_CNTY=".spc($rec[0]{MY_CNTY}) if($rec[0]{MY_CNTY});
+	    $l=$l." MY_STATE=".spc($rec[0]{MY_STATE}) if($rec[0]{MY_STATE});
+	    $l=$l." MY_COUNTRY=".spc($rec[0]{MY_COUNTRY}) 
+		if($rec[0]{MY_COUNTRY});
+	    $l=$l." MY_IOTA=".$rec[0]{MY_IOTA} if($rec[0]{MY_IOTA});
+	    if(exists $rec[0]{MY_SOTA})
+	    {
+	        $l=$l." MY_SOTA=".$rec[0]{MY_SOTA} if($rec[0]{MY_SOTA});
+	    }
+	    if($rec[0]{SAT_NAME})
+	    {
+		$l=$l." SAT_NAME=".$rec[0]{SAT_NAME};
+		$l=$l." SAT_MODE=".$rec[0]{SAT_MODE} if($rec[0]{SAT_MODE});
+	    }
+	    $l=$l." TX_PWR=".$rec[0]{TX_PWR}."W" if($rec[0]{TX_PWR});
+	    $l=$l."\n";
+	    $qsl{$rn}=$l;
+	}
+	$l="DATE=".spc(QslDate($rec[0]{QSO_DATE}));
+	$l=$l." TIME_ON=".(substr $rec[0]{TIME_ON},0,4);
+	$l=$l." FREQ=".(sprintf "%-7.3f",$rec[0]{FREQ}) if($rec[0]{FREQ});
+	$l=$l." BAND=".(sprintf "%-7.3f",Band2freq($rec[0]{BAND})) 
+	    if(!$rec[0]{FREQ});
+	$l=$l." MODE=".(sprintf "%-8.8s",$rec[0]{MODE});
+	$l=$l." RST_SENT=".(sprintf "%-3d",$rec[0]{RST_SENT}) 
+	    if($rec[0]{RST_SENT});
+	if(uc $rec[0]{QSL_RCVD} eq 'R')
+	{
+	    $l=$l." QSL=PSE";
+	}
+	else
+	{
+	    if(uc $rec[0]{QSL_RCVD} eq 'Y')
+	    {
+		$l=$l." QSL=TNX";
+	    }
+	    else
+	    {
+		$l=$l." QSL=";
+	    }
+	}
+	if($rec[0]{PROP_MODE})
+	{
+	    $l=$l." PROP_MODE=".($rec[0]{PROP_MODE});
+	}
+	else
+	{
+	    $l=$l." PROP_MODE=";
+	}
+	$l=$l."\n";
+	$qsl{$rn}=$qsl{$rn}.$l;
+    }
+}
+
+
+
+sub QslDate
+{
+    my @month=("JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC");
+    my $d=shift;
+
+    my $s=(substr $d,6,2)." ".$month[(substr $d,4,2)-1]." ".(substr $d,0,4);
+
+    return $s;
+
+}
+
+# replace space with '_'
+sub spc
+{
+    my $s=shift;
+    $s =~ s/\s/_/g;
+
+    return $s;
+}
+
+# print QSL labels from hash
+# The hash %qsl has now lines
+# 1. CALL QSL_VIA
+# 2. MYCALL MY_CQ_ZONE...
+# 3. DATE TIME_ON FREQ/BAND ...QSL
+# 4. DATE TIME_ON FREQ/BAND ...QSL
+# etc. 
+# In addition to standard adif records also MYCALL, DATE and QSL are defined.
+sub PrintQsls
+{
+    my $r;
+    my $i;
+    my $j;
+    my $k;
+    my $line;
+    my @ls;
+    my $pat;
+    my $rep;
+    my @q=("DATE","TIME_ON","BAND","MODE","RST_SENT","PROP_MODE","QSL");
+
+    foreach $r (sort keys %qsl)
+    {
+#	if(0)
+	if($opt_T)
+	{
+	    # split $qsl{$r} to lines, 3. first QSO, 4. second QSO...
+	    @ls=split /\n/,$qsl{$r};
+	    $k=2;
+
+	    for($i=0;$i<@tfile;$i++)
+	    {
+		$line=$tfile[$i];
+		
+		# probably QSO line with date, time, band, mode, rst...
+		if(($line =~ /DATE/)&&($line =~ /QSL/)&&($line =~ /MODE/))
+		{
+		    foreach $recn (@q)
+		    {
+			$pat="$recn=(\\S{1,30})?";
+
+			# search the value from $ls[$k]
+			if($k<@ls)
+			{
+			    if(($recn eq "BAND")&&($ls[$k] =~ /FREQ=(\d{1,5}\.\d{1,5})/))
+			    {
+				$pat="FREQ=(\\d{1,5}\\.\\d{1,5})";
+			    }
+
+			    if($ls[$k] =~ /$pat/m)
+			    {
+				$rep="";
+				$rep=spa($1) if($1);
+				$pat="__".$recn;
+				$line =~ s/$pat/$rep/g;
+			    }
+			}
+			else
+			{
+			    $rep="";
+			    $pat="__".$recn;
+			    $line =~ s/$pat/$rep/g;
+			}
+		    }
+		    $k++;
+		}
+		else
+		{
+		    foreach $recn (keys %typ)
+		    {
+			$pat="$recn=(\\S{1,30})";
+			
+			# search the value from $qsl{$r}
+			if($qsl{$r} =~ /$pat/m)
+			{
+			    $rep=spa($1);
+			    $pat="__".$recn;
+			    $line =~ s/$pat/$rep/g;
+			}
+		    }
+		    $line =~ s/__QSL_VIA//;
+		    if($qsl{$r} =~ /MYCALL=(\S{1,20})/m)
+		    {
+			$rep=$1;
+			$pat="__MYCALL";
+			$line =~ s/$pat/$rep/g;
+		    }
+		    if($qsl{$r} =~ /DATE=(\d{8})/m)
+		    {
+			$rep=QslDate($1);
+			$pat="__DATE";
+			$line =~ s/$pat/$rep/g;
+		    }
+		    if($qsl{$r} =~ /QSL=(\w{3})?/m)
+		    {
+			$rep="";
+			$rep=$1 if($1);
+			$pat="__QSL";
+			$line =~ s/$pat/$rep/g;
+		    }
+		}
+		print $line;
+	    }
+	}
+	else
+	{
+	    print "$qsl{$r}\n";
+	}
+    }
+}
+
+# replace '_' with a space
+sub spa
+{
+    my $s=shift;
+    $s =~ s/_/\ /g;
+
+    return $s;
+}
+
+# print qso array
+sub PrintQsos
+{
+    my $i;
+    my $l;
+    
+    for($i=0;$i<$qi;$i++)
+    {
+	$l=substr $qsos[$i],14;
+	while((substr $l,0,1) ne "<")
+	{
+	    $l=substr $l,1,(length($l)-1);
+	}
+	print $l;
+    }
+}
+
+# print short text file header
+sub PrintTxtHead
+{
+    if((!$opt_d)&&(!$opt_c)&&(!$opt_a))
+    {
+	print "date     utc  band   mode   call        rsts rstr qsls/r eQ Lo prop comment\n";
+    }
+    if($opt_d)
+    {
+	print "date     utc  band   mode   call        rsts rstr qsls/r eQ Lo grid   distance\n";
+    }
+    if($opt_c)
+    {
+	print "date     utc  band   mode   call        rsts rstr qsls/r eQ Lo dxcc  cq itu\n";
+    }
+    if($opt_a)
+    {
+	print "date     utc  band   mode   call        rsts rstr qsls/r eQ Lo award\n";
+    }
+
+}
+
+# print short text record
+sub PrintTxtRec
+{
+    my $serr=shift;
+    my $recno=shift;
+    my $awstatus=shift;
+    my $qsls="";
+    my $oline="";
+    my $newqth=0;
+
+    # check if mycall or qth has changed
+    $newqth=1 if($mycall ne (uc $rec[$recno]{STATION_CALLSIGN}));
+    $newqth=1 if($myloc ne (uc $rec[$recno]{MY_GRIDSQUARE}));
+    $newqth=1 if($myiota ne (uc $rec[$recno]{MY_IOTA}));
+
+    $mycall=uc $rec[$recno]{STATION_CALLSIGN};
+    $myloc=uc $rec[$recno]{MY_GRIDSQUARE};
+    $myiota=uc $rec[$recno]{MY_IOTA};
+
+    if(exists $rec[$recno]{MY_SOTA})
+    {
+	$newqth=1 if($mysota ne (uc $rec[$recno]{MY_SOTA}));
+	$mysota=uc $rec[$recno]{MY_SOTA};
+    }
+    if($newqth&&$opt_v)
+    {
+	print $mycall;
+	print " $rec[$recno]{MY_CITY}" if($rec[$recno]{MY_CITY});
+	print "  $mysota" if($mysota);
+	print "  $myiota" if($myiota);
+	print "  $myloc" if($myloc);
+	print " $rec[$recno]{MY_RIG}" if($rec[$recno]{MY_RIG});
+	print " $rec[$recno]{TX_PWR}W" if($rec[$recno]{TX_PWR});
+	print "\n";
+    }
+
+    if($rec[$recno]{QSO_DATE})
+    {
+	$oline=$serr.$rec[$recno]{QSO_DATE};
+    }
+    else
+    {
+	$oline=$serr."        ";
+    }
+    if($rec[$recno]{TIME_ON})
+    {
+	$oline=$oline." ".(substr $rec[$recno]{TIME_ON},0,4);
+    }
+    else
+    {
+	$oline=$oline."     ";
+    }
+    $oline=$oline.(sprintf " %-6.6s",$rec[$recno]{BAND});
+    $oline=$oline.(sprintf " %-6.6s",$rec[$recno]{MODE});
+    $oline=$oline.(sprintf " %-12.12s",$rec[$recno]{CALL});
+    $oline=$oline.(sprintf " %-3.3s",$rec[$recno]{RST_SENT}) 
+	if($rec[$recno]{RST_SENT});
+    $oline=$oline." -  " if(!$rec[$recno]{RST_SENT});
+    $oline=$oline.(sprintf " %-3.3s  ",$rec[$recno]{RST_RCVD}) 
+	if($rec[$recno]{RST_RCVD});
+    $oline=$oline." -    " if(!$rec[$recno]{RST_RCVD});
+    $oline=$oline.($rec[$recno]{QSL_SENT}) 
+	if($rec[$recno]{QSL_SENT});
+    $oline=$oline."-" if(!$rec[$recno]{QSL_SENT});
+    $oline=$oline.($rec[$recno]{QSL_SENT_VIA}) if($rec[$recno]{QSL_SENT_VIA});
+    $oline=$oline."-" if(!$rec[$recno]{QSL_SENT_VIA});
+    $oline=$oline.($rec[$recno]{QSL_RCVD}) if($rec[$recno]{QSL_RCVD});
+    $oline=$oline."-" if(!$rec[$recno]{QSL_RCVD});
+    $oline=$oline.($rec[$recno]{QSL_RCVD_VIA}) if($rec[$recno]{QSL_RCVD_VIA});
+    $oline=$oline."-" if(!$rec[$recno]{QSL_RCVD_VIA});
+    
+    $oline=$oline." ".($rec[$recno]{EQSL_QSL_SENT}) 
+	if($rec[$recno]{EQSL_QSL_SENT});
+    $oline=$oline." -" if(!$rec[$recno]{EQSL_QSL_SENT});
+    $oline=$oline.($rec[$recno]{EQSL_QSL_RCVD}) 
+	if($rec[$recno]{EQSL_QSL_RCVD});
+    $oline=$oline."-" if(!$rec[$recno]{EQSL_QSL_RCVD});
+    
+    $oline=$oline." ".($rec[$recno]{LOTW_QSL_SENT}) 
+	if($rec[$recno]{LOTW_QSL_SENT});
+    $oline=$oline." -" if(!$rec[$recno]{LOTW_QSL_SENT});
+    $oline=$oline.($rec[$recno]{LOTW_QSL_RCVD}) 
+	if($rec[$recno]{LOTW_QSL_RCVD});
+    $oline=$oline."-" if(!$rec[$recno]{LOTW_QSL_RCVD});
+    
+    if((!$opt_d)&&(!$opt_c)&&(!$opt_a))
+    {
+	$oline=$oline." ".$rec[$recno]{PROP_MODE} if($rec[$recno]{PROP_MODE});
+	$oline=$oline." ".$rec[$recno]{COMMENT} if($rec[$recno]{COMMENT});
+	$oline=$oline." ".$rec[$recno]{NOTES} if($rec[$recno]{NOTES});
+    }
+    if($opt_d)
+    {
+	$oline=$oline.(sprintf " %-8.8s",$rec[$recno]{GRIDSQUARE}) 
+	    if($rec[$recno]{GRIDSQUARE});
+	$oline=$oline."        " if(!$rec[$recno]{GRIDSQUARE});
+	$oline=$oline.(sprintf " %6.0f",$rec[$recno]{DISTANCE}) if($rec[$recno]{DISTANCE});
+    }
+    if($opt_c)
+    {
+	$oline=$oline.(sprintf " %6d",$rec[$recno]{DXCC}) if($rec[$recno]{DXCC});
+	$oline=$oline."       " if(!$rec[$recno]{DXCC});
+	$oline=$oline.(sprintf "  %2d",$rec[$recno]{CQZ}) if($rec[$recno]{CQZ});
+	$oline=$oline."    " if(!$rec[$recno]{CQZ});
+	$oline=$oline.(sprintf " %2d",$rec[$recno]{ITUZ}) if($rec[$recno]{ITUZ});
+	$oline=$oline."   " if(!$rec[$recno]{ITUZ});
+    }
+    if($opt_a)
+    {
+	$oline=$oline." ".$awstatus;
+    }
+
+    $oline="NIL:".$oline if((uc $rec[$recno]{QSO_COMPLETE} eq "NIL")||(uc $rec[$recno]{QSO_COMPLETE} eq "N"));
+
+    print "$oline\n";
+
+} 
+
+
+# print full text record
+sub PrintTxtRecL
+{
+    my $serr=shift;
+    my $recno=shift;
+    my $s=shift;
+    my $oline="";
+    my $recn;
+
+    if($rec[$recno]{QSO_DATE})
+    {
+	if($s eq " ")
+	{
+	    $oline=$serr.$rec[$recno]{QSO_DATE};
+	}
+	else
+	{
+	    $oline=$serr.date2csv($rec[$recno]{QSO_DATE});
+	}
+    }
+    else
+    {
+	$oline=$serr."-";
+    }
+    if($rec[$recno]{TIME_ON})
+    {
+	if($s eq " ")
+	{
+	    $oline=$oline.$s.(substr $rec[$recno]{TIME_ON},0,4);
+	}
+	else
+	{
+	    $oline=$oline.$s.time2csv($rec[$recno]{TIME_ON});
+	}
+    }
+    else
+    {
+	$oline=$oline."-";
+    }
+    
+    foreach $recn (sort keys %typ)
+    {
+	$oline=$oline.$s.$rec[$recno]{$recn} 
+	if(($rec[$recno]{$recn})&&($recn ne "QSO_DATE")&&($recn ne "TIME_ON"));
+    }
+
+    $oline="NIL:".$oline if((uc $rec[$recno]{QSO_COMPLETE} eq "NIL")||(uc $rec[$recno]{QSO_COMPLETE} eq "N"));
+
+
+    print "$oline\n";
+
+}
+
+# print comma-seprated-value (csv) record truncated for SOTA database import
+sub PrintCsvRec
+{
+    my $recno=shift;
+    my $oline="";
+    my $recn;
+
+    if($rec[$recno]{STATION_CALLSIGN})
+    {
+	$oline=$rec[$recno]{STATION_CALLSIGN}.",";
+    }
+    else
+    {
+	$oline="-,";
+    }
+    
+    if($rec[$recno]{QSO_DATE})
+    {
+	$oline=$oline.date2csv($rec[$recno]{QSO_DATE}).",";
+    }
+    else
+    {
+	$oline=$oline."-,";
+    }
+
+    if($rec[$recno]{TIME_ON})
+    {
+	$oline=$oline.(substr $rec[$recno]{TIME_ON},0,4).","; 
+    }
+    else
+    {
+	$oline=$oline."-,";
+    }
+
+    if($rec[$recno]{MY_SOTA})
+    {
+	$oline=$oline.$rec[$recno]{MY_SOTA}.","; 
+    }
+    else
+    {
+	if($rec[$recno]{SOTA})
+	{
+	    $oline=$oline.$rec[$recno]{SOTA}.","; 
+	}
+	else
+	{
+	    $oline=$oline."-,";
+	}
+    }
+
+    if($rec[$recno]{BAND})
+    {
+	$oline=$oline.b2sota($rec[$recno]{BAND}).",";
+    }
+    else
+    {
+	$oline="-,";
+    }
+    
+    if($rec[$recno]{MODE})
+    {
+	$oline=$oline.$rec[$recno]{MODE}.",";
+    }
+    else
+    {
+	$oline="-,";
+    }
+
+    if($rec[$recno]{CALL})
+    {
+	$oline=$oline.$rec[$recno]{CALL}.",";
+    }
+    else
+    {
+	$oline="-,";
+    }
+
+    if($rec[$recno]{RST_SENT})
+    {
+	$oline=$oline.$rec[$recno]{RST_SENT};
+    }
+    $oline=$oline."/";
+    if($rec[$recno]{RST_RCVD})
+    {
+	$oline=$oline.$rec[$recno]{RST_RCVD};
+    }
+
+    print "$oline\n";
+
+}
+
+
+# band to SOTA frequency
+sub b2sota
+{
+    my $bnd=shift;
+
+    my %bands=("2190M" => "VLF",
+	       "560M" => "VLF",
+	       "160M" => "1.8MHz",
+	       "80M"  => "3.5MHz",
+	       "60M"  => "5.0MHz",
+	       "40M"  => "7.0MHz",
+	       "30M"  => "10MHz",
+	       "20M"  => "14MHz",
+	       "17M"  => "18MHz",
+	       "15M"  => "21MHz",
+	       "12M"  => "24MHz",
+	       "10M"  => "28MHz",
+	       "6M"   => "50MHz",
+	       "4M"   => "70MHz",
+	       "2M"   => "144MHz",
+	       "1.25M" => "220MHz",
+	       "70CM" => "433MHz",
+	       "33CM" => "900MHz",
+	       "23CM" => "1240MHz",
+	       "13CM" => "2.3GHz",
+	       "9CM"  => "3.4GHz",
+	       "6CM"  => "5.6GHz",
+	       "3CM"  => "10GHz",
+	       "1.25CM" => "24GHz",
+	       "6MM"  => "MICROWAVE",
+	       "4MM"  => "MICROWAVE",
+	       "2.5MM" => "MICROWAVE",
+	       "2MM"  => "MICROWAVE",
+	       "1MM"  => "MICROWAVE");
+
+    return $bands{$bnd};
+
+}
+
+# print record by replacing adif tags in file given with -T
+# example line: 'QSO with _CALL at _TIME_ON UTC on band _BAND m'
+sub PrintTempRec
+{
+    my $recno=shift;
+    my $recn;
+    my $i=0;
+    my $line;
+    my $pat;
+    my $rep;
+
+    for($i=0;$i<@tfile;$i++)
+    {
+	$line=$tfile[$i];
+	foreach $recn (keys %typ)
+	{
+	    $pat="__".$recn;
+	    if(exists $rec[$recno]{$recn})
+	    {
+		$rep=$rec[$recno]{$recn};
+		$line =~ s/$pat/$rep/g;
+	    }
+	}
+	print $line;
+    }
+}
+
+# parse adif file line and fill record hash, return rest of line
+sub AdifLine
+{
+    my $line=shift;
+    my $recno=shift;
+    my $parm;
+    my $dta;
+    my $pos;
+    my $len;
+    my $c;
+
+    # while loop to discard characters before '<'
+    $c=substr $line,0,1;
+    while(($c ne "<")&&(length($line)>0))
+    {
+        $line=substr $line,1,(length($line)-1);
+        $c=substr $line,0,1;
+    }
+
+    return "" if(length($line)==0);
+
+    while($line =~ /^<(\w+):(\d+)(:[ABNSDTML])?>.*/i)
+    {
+        $parm=uc $1;
+        $len=$2;
+        $pos=length($parm)+length($len)+3;
+        $pos+=2 if($3);
+        $dta=substr $line,$pos,$len;
+        $line=substr $line,($pos+$len);
+        
+        if(exists $rec[$recno]{$parm})
+        {
+             $rec[$recno]{$parm}=$dta;
+         }
+        else 
+	{
+	    if($parm !~ /^APP_\w+_\w+/i)
+	    {
+		print "Unknown parameter $parm = $dta\n";
+		print "Header should not start with \"<\"\n"
+		    if(exists $hed{$parm});
+	    }
+	}
+
+        $c=substr $line,0,1;
+        while(($c ne "<")&&(length($line)>0))
+        {
+            $line=substr $line,1,(length($line)-1);
+            $c=substr $line,0,1;
+        }
+    }
+
+    return $line;
+}
+
+# print header to ADIF file
+sub PrintAdifHead
+{
+    my $oline="";
+    my $recn; # record name
+
+    $hed{PROGRAMID}="adifmerg";
+    $hed{PROGRAMVERSION}=$verno;
+    $hed{ADIF_VER}=$averno;
+
+    print "# http://www.adif.org\n";
+    foreach $recn (sort keys %hed)
+    {
+	$oline="<".$recn.":".length($hed{$recn}).">".($hed{$recn}) 
+	    if($hed{$recn});
+	print "$oline\n";
+    }
+    print "<eoh>\n";
+}
+
+# read in CSV file with mycall,date,utc,sota,freq,mode,call,comment
+# comment is matched for sent/received rst
+# date, time and band are converted from SOTA database format
+sub ReadCsvLog
+{
+    my $file=shift;
+    my $line;
+    my $LOGFILE;
+    my $l=0;
+    my $ok=0;
+    my $ne=0;
+    my $serr=""; # type of error
+    my @csvhead; # csv header array
+    my @csvrec; # csv record array
+    my $i;
+    my $j;
+    my @d;
+    my $comment="";
+
+    my %band = ("VLF"    => "2190M",
+		"1.8MHZ" => "160M",
+		"3.5MHZ" => "80M",
+		"5MHZ"   => "60M",
+		"7MHZ"   => "40M",
+		"10MHZ"  => "30M",
+		"14MHZ"  => "20M",
+		"18MHZ"  => "17M",
+		"21MHZ"  => "15M",
+		"24MHZ"  => "12M",
+		"28MHZ"  => "10M",
+		"50MHZ"  => "6M",
+		"70MHZ"  => "4M",
+		"144MHZ" => "2M",
+ 		"220MHZ" => "1.25M", 
+		"432MHZ" => "70CM",
+		"900MHZ" => "33CM",
+		"1240MHZ" => "23CM",
+		"2.36GHZ" => "13CM",
+		"3.4GHZ" => "9CM",
+		"5.6GHZ" => "6CM",
+		"10GHZ" => "3CM",
+		"24GHZ" => "1.25CM",
+		"MICROWAVE" => "6MM");
+
+
+    if(open($LOGFILE,"<",$file))
+    {
+        $line=<$LOGFILE>; # throw away first line
+	@csvhead=split /,/, $line if($line);
+
+	print "$csvhead[0] $csvhead[1]\n" if($dbug);
+
+        $line=<$LOGFILE>;
+        $ok=1;
+        while($line)
+        {
+	    EmptyRec(0); # clean hash before adding new data
+            print "$l:" if($dbug);
+
+	    @csvrec=split /,/, $line if($line);
+
+	    for($i=0;$i<@csvhead;$i++)
+	    {
+		if(exists $cconv{$csvhead[$i]})
+		{
+		    if($csvhead[$i] eq "Band")
+		    {
+			if(CheckBand($csvrec[$i]))
+			{
+			    $rec[0]{BAND}=$csvrec[$i];
+			}
+			else
+			{
+			    $rec[0]{BAND}=$band{uc $csvrec[$i]};
+			}			
+		    }
+		    else
+		    {
+			if($csvhead[$i] eq "Date")
+			{
+			    $csvrec[$i] =~ m!(\d\d)/(\d\d)/(\d\d\d\d)!;
+			    $rec[0]{QSO_DATE}=$3.$2.$1;  
+			}
+			else
+			{
+			    if($csvhead[$i] eq "Time")
+			    {
+				$csvrec[$i] =~ /(\d\d):(\d\d)/;
+				$rec[0]{TIME_ON}=$1.$2;	
+			    }
+			    else
+			    {
+				if($csvhead[$i] eq "Notes")
+				{
+				    $csvrec[$i] =~ m!([1-5][1-9][1-9]?)/([1-5][1-9][1-9]?)(.*)!;
+				    if($1)
+				    {
+					$rec[0]{RST_SENT}=$1 if($1);
+					$rec[0]{RST_RCVD}=$2 if($2);
+					$rec[0]{COMMENT}=$3 if($3);
+				    }
+				    else
+				    {
+					$rec[0]{COMMENT}=$csvrec[$i];
+				    }
+
+				    @d = split /\s/, $rec[0]{COMMENT};
+				    $comment="";
+				    for($j=0;$j<@d;$j++)
+				    {
+					if(CheckPmode($d[$j]))
+					{
+					    $rec[0]{PROP_MODE}=$d[$j];
+					}
+					else
+					{
+					    if(CheckSat($d[$j]))
+					    {
+						$rec[0]{SAT_NAME}=$d[$j];
+					    }
+					    else
+					    {
+						if(CheckSatMode($d[$j]))
+						{
+						    $rec[0]{SAT_MODE}=$d[$j];
+						}
+						else
+						{
+						    if((CheckGrid($d[$j]))&&(length($d[$j])>=4))
+						    {
+							$rec[0]{GRIDSQUARE}=$d[$j];
+						    }
+						    else
+						    {
+							if(CheckIota($d[$j]))
+							{
+							    $rec[0]{IOTA}=$d[$j];
+							}
+							else
+							{
+							    if(CheckCQZ($d[$j]))
+							    {
+								$d[$j] =~ /^(NA|SA|EU|AF|OC|AS|AN)-(\d{1,2})/;
+								$rec[0]{CONT}=$1;
+								$rec[0]{CQZ}=$2;
+							    }
+							    else
+							    {
+								if(CheckSota($d[$j]))
+								{
+								    $rec[0]{SOTA}=$d[$j] if(exists $rec[0]{SOTA});
+								}
+								else
+								{
+								    if($comment)
+								    {
+									$comment=$comment." ".$d[$j];
+								    }
+								    else
+								    {
+									$comment=$d[$j];
+								    }
+								}
+							    }
+							}
+						    }
+						}
+					    }
+					}
+				    }
+				    
+				    $rec[0]{COMMENT}=$comment;
+
+				}
+				else
+				{
+				    $rec[0]{$cconv{$csvhead[$i]}}=$csvrec[$i];
+				}
+			    }
+			}
+		    }
+		}
+
+	    }
+
+	    if($dbug)
+	    {
+		print "--record complete\n";
+		print "call $rec[0]{CALL}\n";
+		print "time $rec[0]{TIME_ON}\n";
+		print "date $rec[0]{QSO_DATE}\n";
+		print "rst $rec[0]{RST_SENT}\n";
+		print "mode $rec[0]{MODE}\n";
+		print "--\n";
+	    }
+
+	    # print qso with error message
+	    if($opt_l||$opt_o||$opt_L||$opt_x)
+	    {
+		$nerr+=PrintQso(0);
+	    }
+	    
+	    $l++; 
+	    
+            $line=<$LOGFILE>;
+        }
+    }
+
+    print "$nerr errors found\n" if($nerr>0); 
+    return $l;
+}
+
+
+# read text file with date, utc, band, mode, call, rsts, rstr, qsls/r, comment
+sub ReadTxtLog
+{
+    my $file=shift;
+    my $line;
+    my $LOGFILE;
+    my $l=0;
+    my $ok=0;
+    my $ne=0;
+    my $serr=""; # type of error
+    my @d;
+    my $i;
+    my $comment="";
+
+    my $statcall=""; # station call sign
+    my $mygrid=""; # my grid square
+    my $mycq=""; # my CQ zone
+    my $myitu=""; # my ITU zone
+    my $myiota=""; # my IOTA reference
+    my $mysota=""; # my SOTA reference
+    my $myrig=""; # my rig
+    my $txpwr=""; # tx power
+    my $mycounty="";
+    my $mystate="";
+    my $mycity="";
+    my $mycountry="";
+
+    if(open($LOGFILE,"<",$file))
+    {
+        $line=<$LOGFILE>;
+        $ok=1;
+        while($line)
+        {
+	    EmptyRec(0);
+
+	    @d = split /\s+/, $line;
+
+	    if($d[0]&&$d[1]&&$d[2]&&$d[3]&&$d[4]&&$d[5]&&$d[6]&&$d[7]&&$d[8]&&$d[9]&&CheckDate($d[0]))
+	    {
+		$rec[0]{QSO_DATE}=$d[0];
+		$rec[0]{TIME_ON}=$d[1];
+		if(CheckBand($d[2]))
+		{
+		    $rec[0]{BAND}=$d[2];
+		}
+		else
+		{
+		    $rec[0]{FREQ}=$d[2];
+		    $rec[0]{BAND}=Freq2band($d[2]);
+		}
+		$rec[0]{MODE}=$d[3];
+		$rec[0]{CALL}=$d[4];
+		$rec[0]{RST_SENT}=$d[5] if($d[5] ne "-");
+		$rec[0]{RST_RCVD}=$d[6] if($d[6] ne "-");
+		$rec[0]{QSL_SENT}=substr $d[7],0,1 
+		    if((substr $d[7],0,1) ne "-"); 
+		$rec[0]{QSL_SENT_VIA}=substr $d[7],1,1 
+		    if((substr $d[7],1,1) ne "-"); 
+
+		$rec[0]{QSL_RCVD}=substr $d[7],2,1 
+		    if((substr $d[7],2,1) ne "-"); 
+		$rec[0]{QSL_RCVD_VIA}=substr $d[7],3,1 
+		    if((substr $d[7],3,1) ne "-"); 
+
+		$rec[0]{EQSL_QSL_SENT}=substr $d[8],0,1 
+		    if((substr $d[8],0,1) ne "-");
+		$rec[0]{EQSL_QSL_RCVD}=substr $d[8],1,1 
+		    if((substr $d[8],1,1) ne "-");
+		$rec[0]{LOTW_QSL_SENT}=substr $d[9],0,1 
+		    if((substr $d[9],0,1) ne "-");
+		$rec[0]{LOTW_QSL_RCVD}=substr $d[9],1,1 
+		    if((substr $d[9],1,1) ne "-");
+
+		# check if rest of the line has useful data like propagation 
+		# mode, satellite name or locator - rest is added to comment 
+		# record
+		$comment=Notes2Adif($line);
+
+		$rec[0]{COMMENT}=$comment;
+	    
+		if($dbug)
+		{
+		    print "--record complete\n";
+		    print "call $rec[0]{CALL}\n";
+		    print "time $rec[0]{TIME_ON}\n";
+		    print "date $rec[0]{QSO_DATE}\n";
+		    print "rst $rec[0]{RST_SENT}\n";
+		    print "mode $rec[0]{MODE}\n";
+		    print "--\n";
+		}
+
+		# add my station info if available
+		$rec[0]{STATION_CALLSIGN}=$statcall if($statcall);
+		$rec[0]{MY_GRIDSQUARE}=$myloc if($myloc);
+		$rec[0]{MY_CQ_ZONE}=$mycq if($mycq);
+		$rec[0]{MY_ITU_ZONE}=$myitu if($myitu);
+		$rec[0]{MY_RIG}=$myrig if($myrig);
+		$rec[0]{TX_PWR}=$txpwr if($txpwr);
+		$rec[0]{MY_CITY}=$mycity if($mycity);
+		$rec[0]{MY_CNTY}=$mycounty if($mycounty);
+		$rec[0]{MY_COUNTRY}=$mycountry if($mycountry);
+		$rec[0]{MY_STATE}=$mystate if($mystate);
+
+		if(exists $rec[0]{MY_SOTA})
+		{
+		    $rec[0]{MY_SOTA}=$mysota if($mysota);
+		}	
+
+		# print qso with error message
+		if($opt_l||$opt_o||$opt_L||$opt_x||$opt_X)
+		{
+		    $nerr+=PrintQso(0);
+		}
+	    }
+	    else
+	    {
+		# check for my call, locator etc.
+		if($d[0])
+		{
+		    $statcall=$d[0];
+		    ($myloc,$mycq,$mysota,$myitu,$myrig,$txpwr,$mycounty,$mystate,$mycity,$mycountry)=MyNotes2Adif($line);
+		}
+	    }
+	$l++;
+	$line=<$LOGFILE>;
+	}
+    }
+    
+    print "$nerr errors found\n" if($nerr>0); 
+    return $l;
+}
+
+# fill adif records from the notes 
+sub Notes2Adif
+{
+    my $comment="";
+    my $i;
+    my $line=shift;
+    my @d;
+
+    @d = split /\s+/, $line;
+    for($i=10;$i<@d;$i++)
+    {
+	if(CheckPmode($d[$i]))
+	{
+	    $rec[0]{PROP_MODE}=$d[$i];
+	}
+	else
+	{
+	    if(CheckSat($d[$i]))
+	    {
+		$rec[0]{SAT_NAME}=$d[$i];
+	    }
+	    else
+	    {
+		if(CheckSatMode($d[$i]))
+		{
+		    $rec[0]{SAT_MODE}=$d[$i];
+		}
+		else
+		{
+		    if((CheckGrid($d[$i]))&&(length($d[$i])>=4))
+		    {
+			$rec[0]{GRIDSQUARE}=$d[$i];
+		    }
+		    else
+		    {
+			if(CheckIota($d[$i]))
+			{
+			    $rec[0]{IOTA}=$d[$i];
+			}
+			else
+			{
+			    if(CheckCQZ($d[$i]))
+			    {
+				$d[$i] =~ /^(NA|SA|EU|AF|OC|AS|AN)-(\d{1,2})/;
+				$rec[0]{CONT}=$1;
+				$rec[0]{CQZ}=$2;
+			    }
+			    else
+			    {
+				if(CheckSota($d[$i]))
+				{
+				    $rec[0]{SOTA}=$d[$i] if(exists $rec[0]{SOTA});
+				}
+				else
+				{
+				    if(CheckVia($d[$i]))
+				    {
+					$rec[0]{QSL_VIA}=CheckVia($d[$i]);
+				    }
+				    else
+				    {
+					if(CheckRig($d[$i]))
+					{
+					    $rec[0]{RIG}=$d[$i];
+					}
+					else
+					{
+					    if(CheckPwr($d[$i]))
+					    {
+						$rec[0]{RX_PWR}=CheckPwr($d[$i]);
+					    }
+					    else
+					    {
+						if($d[$i] =~ /I(\d{1,2})/i)
+						{
+						    $rec[0]{ITUZ}=$1;
+						}
+						else
+						{
+						    if($d[$i] =~ /QSL/i)
+						    {
+							$rec[0]{QSL_SENT}="R";
+						    }
+						    else
+						    {
+							if($d[$i] =~ /BURO/i)
+							{
+							    $rec[0]{QSL_SENT_VIA}="B";
+							}
+							else
+							{
+							    if($d[$i] =~ /NIL/i)
+							    {
+								$rec[0]{QSO_COMPLETE}="NIL";
+							    }
+							    else
+							    {
+								if($comment)
+								{
+								    $comment=$comment." ".$d[$i];
+								}
+								else
+								{
+								    $comment=$d[$i];
+								}
+							    }
+							}
+						    }
+						}
+					    }
+					}
+				    }
+				}
+			    }
+			}
+		    }
+		}
+	    }
+	}
+    }
+
+    return $comment;
+}
+
+# fill adif records from the my QTH and call notes 
+sub MyNotes2Adif
+{
+    my $i;
+    my @d;
+    my $line=shift; 
+    my $myloc="";
+    my $mycq=0;
+    my $mysota="";
+    my $myitu=0;
+    my $myrig="";
+    my $txpwr=0;
+    my $mycounty="";
+    my $mystate="";
+    my $mycity="";
+    my $mycountry="";
+
+    @d = split /\s+/, $line;
+
+    for($i=1;$i<@d;$i++)
+    {
+	if((CheckGrid($d[$i]))&&(length($d[$i])>=4))
+	{
+	    $myloc=$d[$i];
+	}
+	else
+	{
+	    if(CheckIota($d[$i]))
+	    {
+		$myiota=$d[$i];
+	    }
+	    else
+	    {
+		if(CheckCQZ($d[$i]))
+		{
+		    $d[$i] =~ /^(NA|SA|EU|AF|OC|AS|AN)-(\d{1,2})/;
+		    #$mycont=$1;
+		    $mycq=$2;
+		}
+		else
+		{
+		    if(CheckSota($d[$i]))
+		    {
+			$mysota=$d[$i];
+		    }
+		    else
+		    {
+			if(CheckRig($d[$i]))
+			{
+			    $myrig=$d[$i];
+			}
+			else
+			{
+			    if(CheckPwr($d[$i]))
+			    {
+				$txpwr=CheckPwr($d[$i]);
+			    }
+			    else
+			    {
+				if($d[$i] =~ /I(\d{1,2})/i)
+				{
+				    $myitu=$1;
+				}
+				else
+				{
+				    if($d[$i] =~ /ci([A-Z]\w+(-\w+)?)/)
+				    {
+					$mycity=$1;
+					$mycity =~ s/_/\ /g
+				    }
+				    else
+				    {
+					if($d[$i] =~ /st([A-Z]\w+(-\w+)?)/)
+					{
+					    $mystate=$1;
+					    $mystate =~ s/_/\ /g
+					}
+					else
+					{
+					    if($d[$i] =~ /cy([A-Z]\w+(-\w+)?)/)
+
+					    {
+						$mycounty=$1;
+						$mycounty =~ s/_/\ /g
+					    }
+					    else
+					    {
+						if($d[$i] =~ /co([A-Z]\w+(-\w+)?)/)
+						{
+						    $mycountry=$1;
+						    $mycountry =~ s/_/\ /g
+						}
+					    }
+					}
+				    }
+				}
+			    }
+			}
+		    }
+		}
+	    }
+	}
+    }
+
+    return ($myloc,$mycq,$mysota,$myitu,$myrig,$txpwr,$mycounty,$mystate,$mycity,$mycountry);
+
+}
+
+# add new records but do not overwrite existing records
+sub AddRec
+{
+    my $recno=shift;
+    my ($recn,$recv);
+
+    foreach(@arecs)
+    {
+	($recn,$recv)=split /=/, $_;
+	if(exists $rec[$recno]{$recn})
+	{
+	    if(!$rec[$recno]{$recn})
+	    {
+		$rec[$recno]{$recn}=$recv;
+	    }
+	    else
+	    {
+		if($rec[$recno]{$recn} !~ /$recv/i)
+		{
+		    $rec[$recno]{$recn}=$rec[$recno]{$recn}.",".$recv
+			if(($recn eq "CREDIT_SUBMITTED")||($recn eq "CREDIT_GRANTED"));
+		}
+	    }
+	}
+    }
+}
+
+# delete existing records
+sub DelRec
+{
+    my $recno=shift;
+    foreach(@drecs)
+    {
+	if(exists $rec[$recno]{$_})
+	{
+	    if($rec[$recno]{$_})
+	    {
+		if($typ{$_} eq "N")
+		{
+		    $rec[$recno]{$_}=0;
+		}
+		else
+		{
+		    $rec[$recno]{$_}="";
+		}
+	    }
+	}
+    }
+}
+
+# fix records with bad value
+sub FixRec
+{
+    my $recno=shift;
+    my ($recn,$rold,$rnew);
+
+    foreach(@frecs)
+    {
+	($recn,$rold,$rnew)=split /=/, $_;
+	if(exists $rec[$recno]{$recn})
+	{
+	    $rec[$recno]{$recn}=$rnew if($rec[$recno]{$recn} eq $rold);
+	}
+    }
+}
+
+# remap record to an other 
+sub MapRec
+{
+    my $recno=shift;
+    my ($recna,$recnb);
+
+    foreach(@mrecs)
+    {
+	($recna,$recnb)=split /=/, $_;
+	if((exists $rec[$recno]{$recna})&&(exists $rec[$recno]{$recnb}))
+	{
+	    if($rec[$recno]{$recnb})
+	    {
+		$rec[$recno]{$recna}=$rec[$recno]{$recnb};
+		if($typ{$recnb} ne "N")
+		{
+		    $rec[$recno]{$recnb}="";
+		}
+		else
+		{
+		    $rec[$recno]{$recnb}=0;
+		}
+	    }
+	}
+    }
+}
+
+
+
+# add location if grid square is known
+# precision depends on length of grid square 2, 4, 6 or 8
+sub AddLoc
+{
+    my $recno=shift;
+    if((!$rec[$recno]{LAT})&&(!$rec[$recno]{LON})&&($rec[$recno]{GRIDSQUARE}))
+    {
+	($rec[$recno]{LON},$rec[$recno]{LAT})=Grid2Loc($rec[$recno]{GRIDSQUARE}) 
+	    if(CheckGrid($rec[$recno]{GRIDSQUARE}));
+    }
+    if((!$rec[$recno]{MY_LAT})&&(!$rec[$recno]{MY_LON})&&($rec[$recno]{MY_GRIDSQUARE}))
+    {
+	($rec[$recno]{MY_LON},$rec[$recno]{MY_LAT})=Grid2Loc($rec[$recno]{MY_GRIDSQUARE}) 
+	    if(CheckGrid($rec[$recno]{MY_GRIDSQUARE}));
+    }
+
+}
+
+# calculate distance if MY_LON, MY_LAT, LON and LAT are known
+# from DXBearing.pm by Dirk Koopman G1TLH
+sub CalcDist
+{
+    my $recno=shift;
+    my $pi=3.14159265358979;
+    my $er=6371; # earth radius
+    my $d=0;
+    my $ok=1;
+
+    $ok=0 if(!CheckLoc($rec[$recno]{LAT}));
+    $ok=0 if(!CheckLoc($rec[$recno]{LON}));
+    $ok=0 if(!CheckLoc($rec[$recno]{MY_LAT}));
+    $ok=0 if(!CheckLoc($rec[$recno]{MY_LON}));
+    
+    if(($ok)&&($rec[$recno]{LAT} ne $rec[$recno]{MY_LAT})&&($rec[$recno]{LON} ne $rec[$recno]{MY_LON}))
+    {
+	my $hn=Loc2Rad($rec[$recno]{MY_LAT});
+	my $he=Loc2Rad($rec[$recno]{MY_LON});
+	my $n=Loc2Rad($rec[$recno]{LAT});
+	my $e=Loc2Rad($rec[$recno]{LON});
+
+	my $co=cos($he-$e)*cos($hn)*cos($n)+sin($hn)*sin($n);
+	my $ca=$co ? atan(abs(sqrt(1-$co*$co)/$co)) : $pi;
+	$ca=$pi-$ca if($co<0);
+	$d=$er*$ca;
+	$rec[$recno]{DISTANCE}=sprintf "%.3f",$d;
+    }
+}
+
+# convert location to decimal radians
+sub Loc2Rad
+{
+    my $pi=3.14159265358979;
+    my $l=shift;
+    $l=uc $l;
+    my $d=0;
+
+    if($l =~ /^([EWNS])(\d\d\d)\s(\d\d\.\d\d\d)/)
+    {
+	$d=$2+$3/60;
+	$d=-$d if(($1 eq 'W')||($1 eq 'S'));
+    };
+
+    $d*=$pi/180;
+
+    return $d;
+}
+
+#check if QSO data looks ok
+sub CheckQso()
+{
+    my $recno=shift;
+    my $serr="";
+    my $nerr=0;
+    my $cntry="";
+    my $cq="";
+    my $itu="";
+    my $cont="";
+    my $ctry="";
+
+    print "--[$recno] checking data\n" if($dbug);
+
+    if(!CheckDate($rec[$recno]{QSO_DATE}))
+    {
+	$serr=$serr."date?";
+	$nerr++;
+    }
+    if(!CheckUtc($rec[$recno]{TIME_ON}))
+    {
+	$serr=$serr."utc?";
+	$nerr++;
+    }
+    if(!CheckBand($rec[$recno]{BAND}))
+    {
+	$serr=$serr."band?";
+	$nerr++;
+    }
+    if(!CheckMode($rec[$recno]{MODE}))
+    {
+	$serr=$serr."mode?";
+	$nerr++;
+    }
+    if($rec[$recno]{PROP_MODE})
+    {
+	if(!CheckPmode($rec[$recno]{PROP_MODE}))
+	{
+	    $serr=$serr."pmode?";
+	    $nerr++;
+	}
+    }
+    if($rec[$recno]{RST_SENT})
+    {
+	if(!CheckRst($rec[$recno]{RST_SENT}))
+	{
+	    $serr=$serr."rsts?";
+	    $nerr++;
+	}
+    }
+    if($rec[$recno]{RST_RCVD})
+    {
+	if(!CheckRst($rec[$recno]{RST_RCVD}))
+	{
+	    $serr=$serr."rstr?";
+	    $nerr++;
+	}
+    }
+    if($rec[$recno]{QSL_RCVD})
+    {
+	if(!CheckQslr($rec[$recno]{QSL_RCVD}))
+	{
+	    $serr=$serr."qslr?";
+	    $nerr++;
+	}
+    }
+    if($rec[$recno]{QSL_SENT})
+    {
+	if(!CheckQsls($rec[$recno]{QSL_SENT}))
+	{
+	    $serr=$serr."qsls?";
+	    $nerr++;
+	}
+    }
+    if($rec[$recno]{LAT})
+    {
+	if(!CheckLoc($rec[$recno]{LAT}))
+	{
+	    $serr=$serr."loc?";
+	    $nerr++;
+	}
+    }
+    if($rec[$recno]{LON})
+    {
+	if(!CheckLoc($rec[$recno]{LON}))
+	{
+	    $serr=$serr."loc?";
+	    $nerr++;
+	}
+    }
+    if($rec[$recno]{MY_LAT})
+    {
+	if(!CheckLoc($rec[$recno]{MY_LAT}))
+	{
+	    $serr=$serr."loc?";
+	    $nerr++;
+	}
+    }
+    if($rec[$recno]{MY_LON})
+    {
+	if(!CheckLoc($rec[$recno]{MY_LON}))
+	{
+	    $serr=$serr."loc?";
+	    $nerr++;
+	}
+    }
+    if($rec[$recno]{GRIDSQUARE})
+    {
+	if(!CheckGrid($rec[$recno]{GRIDSQUARE}))
+	{
+	    $serr=$serr."grid?";
+	    $nerr++;
+	}
+    }
+    if($rec[$recno]{MY_GRIDSQUARE})
+    {
+	if(!CheckGrid($rec[$recno]{MY_GRIDSQUARE}))
+	{
+	    $serr=$serr."grid?";
+	    $nerr++;
+	}
+    }
+    if($rec[$recno]{IOTA})
+    {
+	if(!CheckIota($rec[$recno]{IOTA}))
+	{
+	    $serr=$serr."iota?";
+	    $nerr++;
+	}
+    }
+    if($rec[$recno]{SAT_NAME})
+    {
+	if(!CheckSat($rec[$recno]{SAT_NAME}))
+	{
+	    $serr=$serr."sat?";
+	    $nerr++;
+	}
+    }
+    if($rec[$recno]{SAT_MODE})
+    {
+	if(!CheckSatMode($rec[$recno]{SAT_MODE}))
+	{
+	    $serr=$serr."smode?";
+	    $nerr++;
+	}
+    }
+    if(exists $rec[$recno]{SOTA})
+    {
+	if($rec[$recno]{SOTA})
+	{
+	    if(!CheckSota($rec[$recno]{SOTA}))
+	    {
+		$serr=$serr."sota?";
+		$nerr++;
+	    }
+	}
+    }
+    if(exists $rec[$recno]{MY_SOTA})
+    {
+	if($rec[$recno]{MY_SOTA})
+	{
+	    if(!CheckSota($rec[$recno]{MY_SOTA}))
+	    {
+		$serr=$serr."sota?";
+		$nerr++;
+	    }
+	}
+    }
+    if($opt_c)
+    {
+	$cntry=`dxcc $rec[$recno]{CALL}`;
+	if($cntry =~ /.*Country\sName:\s+(\w+)(\s\w+)?.*/i)
+	{
+	    $ctry=$1;
+	    if($2)
+	    {
+		$ctry=$ctry.$2 if($2 !~ /WAZ/);
+	    }
+	    if($1 eq "Unknown")
+	    {
+		$serr=$serr."call?";
+		$nerr++;
+	    }
+	    else
+	    {
+		if($rec[$recno]{COUNTRY})
+		{
+		    if($rec[$recno]{COUNTRY} ne $ctry)
+		    {
+			$serr=$serr."cntry?";
+			$nerr++;
+		    }
+		}
+		else
+		{
+		    $rec[$recno]{COUNTRY}=$ctry;
+		}
+		$cq=$1 if($cntry =~ /.*WAZ\sZone:\s+(\d{1,2}).*/i);
+		$cq=1*$cq;
+		$itu=$1 if($cntry =~ /.*ITU\sZone:\s+(\d{1,2}).*/i);
+		$itu=1*$itu;
+		$cont=$1 if($cntry =~ /.*Continent:\s+(\w\w).*/i);
+		if($rec[$recno]{CQZ})
+		{
+		    if($rec[$recno]{CQZ}!=$cq)
+		    {
+			$serr=$serr."cq?";
+			$nerr++;
+		    }
+		}
+		else
+		{
+		    $rec[$recno]{CQZ}=$cq;
+		}
+		if($rec[$recno]{ITUZ})
+		{
+		    if($rec[$recno]{ITUZ}!=$itu)
+		    {
+			$serr=$serr."itu?";
+			$nerr++;
+		    }
+		}
+		else
+		{
+		    $rec[$recno]{ITUZ}=$itu;
+		}
+		if($rec[$recno]{CONT})
+		{
+		    if($rec[$recno]{CONT} ne $cont)
+		    {
+			$serr=$serr."cont?";
+			$nerr++;
+		    }
+		}
+		else
+		{
+		    $rec[$recno]{CONT}=$cont;
+		}
+	    }
+	}
+	# check also STATION_CALLSIGN if exists
+	if($rec[$recno]{STATION_CALLSIGN})
+	{
+	    $cntry=`dxcc $rec[$recno]{STATION_CALLSIGN}`;
+	    if($cntry =~ /.*Country\sName:\s+(\w+)(\s\w+)?.*/i)
+	    {
+		$ctry=$1;
+		if($2)
+		{
+		    $ctry=$ctry.$2 if($2 !~ /WAZ/);
+		}
+		if($1 eq "Unknown")
+		{
+		    $serr=$serr."mycall?";
+		    $nerr++;
+		}
+		else
+		{
+		    if($rec[$recno]{MY_COUNTRY})
+		    {
+			if($rec[$recno]{MY_COUNTRY} ne $ctry)
+			{
+			    $serr=$serr."mycntry?";
+			    $nerr++;
+			}
+		    }
+		    else
+		    {
+			$rec[$recno]{MY_COUNTRY}=$ctry;
+		    }
+		    $cq=$1 if($cntry =~ /.*WAZ\sZone:\s+(\d{1,2}).*/i);
+		    $cq=1*$cq;
+		    $itu=$1 if($cntry =~ /.*ITU\sZone:\s+(\d{1,2}).*/i);
+		    $itu=1*$itu;
+		    $cont=$1 if($cntry =~ /.*Continent:\s+(\w\w).*/i);
+		    if($rec[$recno]{MY_CQ_ZONE})
+		    {
+			if($rec[$recno]{MY_CQ_ZONE}!=$cq)
+			{
+			    $serr=$serr."mycq?";
+			    $nerr++;
+			}
+		    }
+		    else
+		    {
+			$rec[$recno]{MY_CQ_ZONE}=$cq;
+		    }
+		    if($rec[$recno]{MY_ITU_ZONE})
+		    {
+			if($rec[$recno]{MY_ITU_ZONE}!=$itu)
+			{
+			    $serr=$serr."myitu?";
+			    $nerr++;
+			}
+		    }
+		    else
+		    {
+			$rec[$recno]{MY_ITU_ZONE}=$itu;
+		    }
+		    
+		}
+	    }
+	}
+    }
+
+    return ($nerr,$serr); 
+
+}
+
+
+# calculate Julian day
+# http://en.wikipedia.org/wiki/Julian_day
+sub jday()
+{
+    my $qsod=shift; # QSO_DATE
+    my $qsot=shift; # TIME_ON
+
+    my $ye=substr $qsod,0,4;
+    my $mo=substr $qsod,4,2;
+    my $da=substr $qsod,6,2;
+    my $hh=substr $qsot,0,2;
+    my $mi=substr $qsot,2,2;
+    my $se=0;
+
+    $se=substr $qsot,4,2 if(length($qsot)==6);
+
+    use integer;
+    
+    my $a=(14-$mo)/12;
+    my $y=$ye+4800-$a;
+    my $m=$mo+12*$a-3;
+
+    my $jday=$da+(153*$m+2)/5+365*$y+$y/4-$y/100+$y/400-32045;
+    
+    no integer;
+    
+    $jday+=($hh-12.0)/24.0+$mi/1440.0+$se/86400.0;
+
+    return $jday;
+}
+
+
+# test if valid date
+sub CheckDate()
+{
+    my $date=shift;
+    my $ok=0;
+    my $year;
+    my $month;
+    my $day;
+
+    if($date =~ /([1-2]\d\d\d)([0-1]\d)([0-3]\d)/)
+    {
+	$year=$1;
+	$month=$2;
+	$day=$3;
+
+	if(($month==1)||($month==3)||($month==5)||($month==7)||($month==8)||($month==10)||($month==12))
+	{
+	    $ok=1 if(($day>=1)&&($day<=31));
+	}
+	if(($month==4)||($month==6)||($month==9)||($month==11))
+	{
+	    $ok=1 if(($day>=1)&&($day<=30));
+	}
+	if($month==2)
+	{
+	    $ok=1 if(($day>=1)&&($day<=29)&&($year%2==0));
+	    $ok=1 if(($day>=1)&&($day<=28)&&($year%2!=0));
+	}
+	$ok=0 if(($year<1930)||($year>2020));
+    }
+
+    return $ok;
+}
+
+# test if valid UTC
+sub CheckUtc()
+{
+    my $utc=shift;
+    my $ok=0;
+    my $h=0;
+    my $m=0;
+    my $s=0;
+
+    if($utc =~ /([0-2][0-9])([0-5][0-9])([0-5][0-9])?/)
+    {
+	$h=$1;
+	$m=$2;
+	$s=$3 if($3);
+
+	if(($h>=0)&&($h<=23)&&($m>=0)&&($m<=59))
+	{
+	    if($s)
+	    {
+		$ok=1 if(($s>=0)&&($s<=59));
+	    }
+	    else
+	    {
+		$ok=1;
+	    }
+	};
+    }
+    return $ok;
+}
+
+# test if valid RS(T)
+sub CheckRst()
+{
+    my $rst=shift;
+    my $ok=0;
+
+    $ok=1 if($rst =~ /^[1-5][1-9][1-9]?.*/);
+
+    return $ok;
+}
+
+# test if band looks ok
+sub CheckBand()
+{
+    my $band=shift;
+    my $ok=0;
+
+    $band=uc $band;
+    foreach(@bands) 
+    {
+	$ok=1 if($band eq $_); 	
+    }
+
+    return $ok;
+}
+
+# test if mode looks ok
+sub CheckMode()
+{
+
+    my $mode=shift;
+    my $ok=0;
+    $mode=uc $mode;
+
+    foreach(@modes) 
+    {
+	$ok=1 if($mode eq $_); 	
+    }
+
+    return $ok;
+}
+
+# test if propagation mode looks ok
+sub CheckPmode()
+{
+
+    my $pmode=shift;
+    my $ok=0;
+    $pmode=uc $pmode;
+
+    foreach(@pmodes) 
+    {
+	$ok=1 if($pmode eq $_); 	
+    }
+
+    return $ok;
+}
+
+# QSL_RCVD needs to be Y, N, R, I or V
+sub CheckQslr()
+{
+    my $q=shift;
+    my $ok=0;
+    $q=uc $q;
+
+    $ok=1 if(($q eq "Y")||($q eq "N")||($q eq "R")||($q eq "I")||($q eq "V"));
+
+    return $ok;
+} 
+
+# QSL_SENT needs to be Y, N, R, Q or I
+sub CheckQsls()
+{
+    my $q=shift;
+    my $ok=0;
+    $q=uc $q;
+
+    $ok=1 if(($q eq "Y")||($q eq "N")||($q eq "R")||($q eq "Q")||($q eq "I"));
+
+    return $ok;
+} 
+
+# check location XDDD MM.MMM
+sub CheckLoc()
+{
+    my $l=shift;
+    $l=uc $l;
+    my $ok=0;
+
+    if($l =~ /^([EWNS])(\d\d\d)\s(\d\d\.\d\d\d)/)
+    {
+	$ok=1 if(($2>=0)&&($2<=180)&&($3>=0)&&($3<=59.999));
+    };
+
+    return $ok;
+}
+
+# check IOTA CC-XXX
+sub CheckIota()
+{
+    my $l=shift;
+    $l=uc $l;
+    my $ok=0;
+
+    $ok=1 if($l =~ /^(NA|SA|EU|AF|OC|AS|AN)-(\d\d\d)/);
+
+    return $ok;
+}
+
+# check SOTA C/CC-XXX
+sub CheckSota()
+{
+    my $l=shift;
+    $l=uc $l;
+    my $ok=0;
+
+    $ok=1 if($l =~ /^(9H|DL|DM|E7|EA1|EA2|EA3|EA4|EA5|EA8|EI|F|G|GD|GI|GM|GW|HA|HB|HB0|HL|LA|LX|OD|OE|OH|OK|ON|OZ|PA|S2|S5|SP|SM|SV|TK|UT|VE1|VE2|VE7|VP8|W0|W1|W2|W3|W5|W6|W7|YO|Z3|ZS)\/(\w\w)-(\d\d\d)/);
+
+    return $ok;
+}
+
+# check CQ-zone and continent CC-X or CC-XX
+sub CheckCQZ()
+{
+    my $l=shift;
+    $l=uc $l;
+    my $ok=0;
+
+    if($l =~ /^(NA|SA|EU|AF|OC|AS|AN)-(\d{1,2})/)
+    {
+	$ok=1 if(($2>=1)&&($2<=40));
+    }
+
+    return $ok;
+}
+
+# check ITU-zone
+sub CheckITUZ()
+{
+    my $l=shift;
+    my $ok=0;
+
+    if($l =~ /^\d{1,2}$/)
+    {
+	$ok=1 if(($l>=1)&&($l<=75));
+    }
+
+    return $ok;
+}
+
+
+
+# check satellite name
+sub CheckSat()
+{
+
+    my $sat=shift;
+    my $ok=0;
+    $sat=uc $sat;
+
+    foreach(@sats) 
+    {
+	$ok=1 if($sat eq $_); 	
+    }
+
+    return $ok;
+}
+
+# check satellite mode U/V etc.
+# 15m H, 10m T, 2m V, 70cm U, 24cm L, 13cm S, 6cm C, 3cm X, 1.5cm K
+sub CheckSatMode()
+{
+
+    my $s=shift;
+    my $ok=0;
+    $s=uc $s;
+
+    $ok=1 if($s =~ /^(H|T|V|U|L|S|C|X|K)\/(H|T|V|U|L|S|C|X|K)/);
+
+    return $ok;
+}
+
+# check rig name
+sub CheckRig()
+{
+    my $rig=shift;
+    my $ok=0;
+
+    $rig=uc $rig;
+    foreach(@rigs) 
+    {
+	$ok=1 if($rig eq $_); 	
+    }
+
+    return $ok;
+}
+
+# check QSL via
+sub CheckVia()
+{
+    my $qslvia=shift;
+    my $via="";
+
+    if($qslvia =~ /^via(.+)/i)
+    {
+	$via=$1;
+    }
+
+    return $via;
+}
+
+# check power
+sub CheckPwr()
+{
+    my $pwrs=shift;
+    my $pwr=0;
+
+    if($pwrs =~ /^(\d{1,3}(\.\d{1,3})?)W/i)
+    {
+	$pwr=$1;
+    }
+
+    return $pwr;
+}
+
+# check Maidenhead grid square AA00BB11CC
+# http://en.wikipedia.org/wiki/Maidenhead_Locator_System
+sub CheckGrid
+{
+    my $g=shift;
+    $g=uc $g;
+    my $ok=0;
+
+    if($g =~ /^[A-R][A-R](.*)/)
+    {
+	if($1)
+	{
+	    if($1 =~ /^\d\d(.*)/)
+	    {
+		if($1)
+		{
+		    if($1 =~ /^[A-X][A-X](.*)/)
+		    {
+			if($1)
+			{
+			    if($1 =~ /^\d\d(.*)/)
+			    {
+				if($1)
+				{
+				    $ok=1 if($1 =~ /^[A-X][A-X]/)
+				}
+				else
+				{
+				    $ok=1;
+				}
+			    } 
+			}
+			else
+			{
+			    $ok=1;
+			}
+		    }
+		}
+		else
+		{
+		    $ok=1;
+		}		
+	    }
+	}
+	else
+	{
+	    $ok=1;
+	}
+    }
+
+    return $ok;
+}
+
+# convert grid square to location in the center of the square
+# XDDD MM.MMM
+sub Grid2Loc 
+{
+    my $g=shift;
+    $g=uc $g;
+    my $lon=0;
+    my $lat=0;
+    my $lons="W";
+    my $lats="S";
+
+    if($g =~ /([A-R])([A-R])(.*)/)
+    {
+	$lon=20*(ord($1)-ord('A'));
+	$lat=10*(ord($2)-ord('A'));
+	if($3)
+	{
+	    if($3 =~ /(\d)(\d)(.*)/)
+	    {
+		$lon+=2*$1;
+		$lat+=$2;
+		if($3)
+		{
+		    if($3 =~ /([A-X])([A-X])(.*)/)
+		    {
+			$lon+=((ord($1)-ord('A'))/12);
+			$lat+=((ord($2)-ord('A'))/24);
+			if($3 =~ /(\d)(\d)(.*)/)
+			{
+			    $lon+=$1/120;
+			    $lat+=$2/240;
+			    if($3 =~ /([A-X])([A-X])/)
+			    {
+				$lon+=(ord($1)-ord('A')+0.5)/(24*120);
+				$lat+=(ord($2)-ord('A')+0.5)/(24*240);
+			    }
+			    else
+			    {
+				$lon+=0.5/120;
+				$lat+=0.5/240;
+			    }
+			}
+			else
+			{
+			    $lon+=0.5/12;
+			    $lat+=0.5/24;
+			}
+		    }
+		}
+		else
+		{
+		    $lon+=1;
+		    $lat+=0.5;
+		}
+	    }
+	}
+	else
+	{
+	    $lon+=10;
+	    $lat+=5;
+	}
+    }
+ 
+    $lon-=180;
+    $lat-=90;
+    $lons="E" if($lon>=0);
+    $lats="N" if($lat>=0);
+    $lon=abs $lon;
+    $lat=abs $lat;
+    $lons=$lons.sprintf "%03d ", (int $lon);
+    $lats=$lats.sprintf "%03d ", (int $lat);
+    $lons=$lons.sprintf "%06.3f", (60*($lon-(int $lon)));
+    $lats=$lats.sprintf "%06.3f", (60*($lat-(int $lat)));
+
+    return ($lons,$lats);
+}
+
+# convert frequency in MHz's to band
+sub Freq2band()
+{
+
+    my $freq=shift;
+    my $band="";
+    my $i;
+
+    for($i=0;$i<@bands;$i++)
+    {
+	$band=$bands[$i] if(($freq>=$bandl[$i])&&($freq<=$bandu[$i]));
+    }
+    
+    return $band;
+}
+
+# convert band to frequency
+sub Band2freq()
+{
+    my $b=uc shift;
+    my $f="";
+    my $i;
+
+    for($i=0;$i<@bands;$i++)
+    {
+	$f=$bandf[$i] if($b eq $bands[$i]);
+    }
+
+    return $f;
+}
+
+# date to csv string
+sub date2csv
+{
+    my $d=shift;
+    my $s=(substr $d,6,2)."/".(substr $d,4,2)."/".(substr $d,0,4);
+
+    return $s;
+}
+
+# time to csv string
+sub time2csv
+{
+    my $t=shift;
+    my $s=(substr $t,0,2).":".(substr $t,2,2);
+    $s=$s.":".(substr $t,4,2) if(length($t)==6);
+
+    return $s;
+}
+
+
+# print info on the log file
+sub PrintInfo
+{
+    my $nqso=shift;
+    my $bnd;
+    my $mode;
+    my $ctry;
+    my $dxx;
+    my $lonlat;
+    my $lond;
+    my $latd;
+    my $ndx=0;
+    my $ndxc=0;
+    my $ncq=0;
+    my $nitu=0;
+    my $ncont=0;
+    my $ngrid=0;
+    my $niota=0;
+    my $nsota=0;
+    my $nlonlat=0;
+
+    print "DXCC:\n" if($opt_v);
+    foreach $dxx (sort {$a <=> $b} keys %dxstat)
+    {
+	print "$dxx " if(($opt_v)||($opt_q eq 'dxcc'));
+	$ndx++;
+    }
+    foreach $dxx (keys %dxstatc)
+    {
+	$ndxc++;
+    }
+    print "\nCQ ZONE:\n" if($opt_v);
+    foreach $dxx (sort {$a <=> $b} keys %cqzstat)
+    {
+	print "$dxx " if(($opt_v)||($opt_q eq 'cqz'));
+	$ncq++;
+    }
+    print "\nITU ZONE:\n" if($opt_v);
+    foreach $dxx (sort {$a <=> $b} keys %ituzstat)
+    {
+	print "$dxx " if(($opt_v)||($opt_q eq 'ituz'));
+	$nitu++;
+    }
+    print "\nCONTINENTS:\n" if($opt_v);
+    foreach $dxx (sort keys %contstat)
+    {
+	print "$dxx " if(($opt_v)||($opt_q eq 'cont'));
+	$ncont++;
+    }
+    print "\nIOTA:\n" if($opt_v);
+    foreach $dxx (sort keys %iotastat)
+    {
+	print "$dxx " if(($opt_v)||($opt_q eq 'iota'));
+	$niota++;
+    }
+    if(exists $rec[0]{SOTA})
+    {
+	print "\nSOTA:\n" if($opt_v);
+	foreach $dxx (sort keys %sotastat)
+	{
+	    print "$dxx " if(($opt_v)||($opt_q eq 'sota'));
+	    $nsota++;
+	}
+    }
+    print "\nGRID SQUARES:\n" if($opt_v);
+    foreach $dxx (sort keys %gridstat)
+    {
+	print "$dxx " if(($opt_v)||($opt_q =~ /grid[s68]/));
+	$ngrid++;
+    }
+    print "\n" if($opt_v);
+
+    if(!$opt_q)
+    {
+	print "$nqso QSOs $sqsos shown, $ndx DXCCs with $ndxc confirmed\n";
+	print "$ncq CQ zones, $nitu ITU zones, $ncont continents, $niota IOTAs";
+	print ", $nsota SOTAs" if(exists $rec[0]{SOTA});
+	print " and $ngrid grid squares\n";
+	print "$nqsls QSLs sent, $nqslr QSLs received, $neqsls eQSL sent, ";
+	print "$neqslr received, $nlqsls LoTW QSL sent, $nlqslr received\n";
+	print "dates ";
+	print date2csv($fdate);
+	print " ";
+	print time2csv($ftime);
+	print " - ";
+	print date2csv($ldate);
+	print " ";
+	print time2csv($ltime);
+	print "\n";
+	if($lstqsl ne "11000101")
+	{
+	    print "last QSL ";
+	    print date2csv($lstqsl);
+	    print "\n";
+	}
+	if($lsteqsl ne "11000101")
+	{
+	    print "last eQSL ";
+	    print date2csv($lsteqsl);
+	    print "\n";
+	}
+	if($lstlqsl ne "11000101")
+	{
+	    print "last LoTW QSL ";
+	    print date2csv($lstlqsl);
+	    print "\n";
+	}
+    }
+
+    if(($opt_v)&&(!$opt_q))
+    {
+	foreach $bnd (@bands)
+	{
+	    print (sprintf "%-8.8s   %5d\n", $bnd, $bndstat{$bnd}) if(exists $bndstat{$bnd});
+	}
+	foreach $mode (sort keys %modstat)
+	{
+	    print (sprintf "%-8.8s   %5d\n", $mode, $modstat{$mode});
+	}
+    }
+
+    if($opt_q eq 'bands')
+    {
+	foreach $bnd (@bands)
+	{
+	    print $bnd." ".$bndstat{$bnd}." " if(exists $bndstat{$bnd});
+	}
+	print "\n";
+    }
+
+    if($opt_q eq 'modes')
+    {
+	foreach $mode (sort keys %modstat)
+	{
+	    print $mode." ".$modstat{$mode}." ";
+	}
+	print "\n";
+    }
+
+    if($opt_q eq 'country')
+    {
+	foreach $ctry (sort keys %ctrystat)
+	{
+	    print $ctry." ".$ctrystat{$ctry}."\n";
+	}
+	print "\n";
+    }
+
+    if($opt_q eq 'lonlat')
+    {
+	foreach $lonlat (sort keys %lonlatstat)
+	{
+	    print "$lonlat\n";
+	}
+    }
+
+    if($opt_q eq 'lonlatd')
+    {
+	foreach $lonlat (sort keys %lonlatstat)
+	{
+	    $lonlat = uc $lonlat;
+	    $lonlat =~ /([EW])(\d\d\d)\s(\d\d)\.(\d\d\d)\s([SN])(\d\d\d)\s(\d\d)\.(\d\d\d)/;
+	    $lond=$2+($3+$4/1000)/60;
+	    $lond=-$lond if($1 eq 'W');
+	    $latd=$6+($7+$8/1000)/60;
+	    $latd=-$latd if($5 eq 'W');
+
+	    print "$lond $latd\n";
+	}
+    }
+
+
+
+# print query results
+    if($opt_q)
+    {
+	my $p;
+	my $l;
+	my @qpars=split /,/, $opt_q;
+
+	foreach $p (@qpars)
+	{
+	    print $fdate." ".$ftime." " if($p eq 'firstqso');
+	    print $lstqsl." " if($p eq 'lastqsl');
+	    print $lsteqsl." " if($p eq 'lasteqsl');
+	    print $lstlqsl." " if($p eq 'lastlqsl');
+	    print $ldate." ".$ltime." " if($p eq 'lastqso');
+	    if($p eq 'llastqsl')
+	    {
+		$l=(substr $lstlqsl,0,4)."-".(substr $lstlqsl,4,2)."-";
+		$l=$l.(substr $lstlqsl,6,2)." ";
+		print $l;
+	    }
+	    if($p eq 'llastqso')
+	    {
+		$l=(substr $ldate,0,4)."-".(substr $ldate,4,2)."-";
+		$l=$l.(substr $ldate,6,2)." ";
+		print $l;
+	    } 
+	    if($p eq 'llastqsot')
+	    {
+		$l=(substr $ltime,0,2).":".(substr $ltime,2,2).":";
+		$l=$l.(substr $ltime,4,2)." ";
+		print $l;
+	    } 
+	    print "$ncont " if($p eq 'ncont');
+	    print "$ncq " if($p eq 'ncq');
+	    print "$ndx " if($p eq 'ndxcc');
+	    print "$neqslr " if($p eq 'neqslr');
+	    print "$neqsls " if($p eq 'neqsls');
+	    print "$ngrid " if($p eq 'ngrid');
+	    print "$nitu " if($p eq 'nitu');
+	    print "$nlqslr " if($p eq 'nlqslr');
+	    print "$nlqsls " if($p eq 'nlqsls');
+	    print "$nqslr " if($p eq 'nqslr');
+	    print "$nqsls " if($p eq 'nqsls');
+	    print "$nqso " if($p eq 'nqso');
+	    print "$nerr " if($p eq 'nerr');
+	    print "$niota " if($p eq 'niota');
+	    print "$nsota " if($p eq 'nsota');
+	}
+	print "\n";
+    }
+
+}
+
+
+# print version
+sub printversion 
+{
+    my $x;
+    my $n;
+
+    print "adifmerg version $verno, ";
+    print "Jaakko Koivuniemi, OH7BF\n";
+    if($opt_v)
+    {
+	print "Known records\n";
+	foreach $x (sort keys %typ)
+	{
+	    print $x." ";
+	}
+	print "\n";
+	$n=@modes;
+	print "$n known modes\n";
+	foreach $x (@modes)
+	{
+	    print $x." ";
+	}
+	print "\n";
+	$n=@pmodes;
+	print "$n known propagation modes\n";
+	foreach $x (@pmodes)
+	{
+	    print $x." ";
+	}
+	print "\n";
+	$n=@sats;
+	print "$n known satellites\n";
+	foreach $x (@sats)
+	{
+	    print $x." ";
+	}
+	print "\n";
+	$n=@bands;
+	print "$n known bands\n";
+	foreach $x (@bands)
+	{
+	    print $x." ";
+	}
+	print "\n";
+	$n=@rigs;
+	print "$n known rigs\n";
+	foreach $x (sort @rigs)
+	{
+	    print $x." ";
+	}
+	print "\n";
+	print "Known csv records\n";
+	foreach $x (sort keys %cconv)
+	{
+	    print $x.",";
+	}
+	print "\n";
+
+    }
+
+    exit;
+}
+
+# print usage message
+sub printusage 
+{    
+    print "usage: adifmerg -f file [-m file|-M file] [-b] [-d] [-c] [-i] [-u] [-a award] [-o|-s|-x|-X|-l|-L|-e|-C file|T -file] [-A rec] [-D rec] [-S rec] [-F rec] [-R rec] [-t min] [-p script] [-q query] [-Q all|requested] [-2] [-h] [-v] [-V]\n";
+    exit;
+}
+

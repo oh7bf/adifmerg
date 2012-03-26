@@ -1,0 +1,60 @@
+#!/usr/bin/perl -w
+# Update ADIF file QSO records from LoTW.
+
+use strict;
+my $login="my0call";
+my $pswd="";
+
+if(!$ARGV[0])
+{
+    print "Usage: lqsoget file [yyyy-mm-dd]\n";
+    exit;
+}
+
+my $fname=$ARGV[0];
+my $fname2=$fname."_new.adi";
+
+# check that file can be read
+my ($nqso,$nqsl)=split /\s+/, `adifmerg -f $fname -q nqso,nlqslr`;
+
+if($nqso<1)
+{
+    print "--file not found or is empty, create new.adi\n";
+
+    exit;
+}
+else
+{
+    print "--file ok\n";
+}
+
+my $lastqso="";
+my $lastqsot="";
+
+if(!$ARGV[1])
+{
+    $lastqso=`adifmerg -f $fname -q llastqso`;
+    $lastqso =~ s/\s//g; 
+    $lastqsot=`adifmerg -f $fname -q llastqsot`;
+    $lastqsot =~ s/\s//g; 
+}
+else
+{
+    $lastqso=$ARGV[1];
+}
+
+my $lq="https://p1k.arrl.org/lotwuser/lotwreport.adi"; 
+$lq=$lq."?login=$login\&password=$pswd\&qso_query=1\&qso_qsl=no";
+$lq=$lq."\&qso_startdate=$lastqso";
+$lq=$lq."\&qso_starttime=$lastqsot" if($lastqsot);
+$lq=$lq."\&qso_qsldetail=yes";
+$lq=$lq."\&qso_withown=yes";
+
+print "--send query to LoTW date $lastqso time $lastqsot \n";
+
+`wget '$lq' -q -O - | adifmerg -f - -s | adifmerg -f - -A LOTW_QSL_SENT=Y -R LOTW_QSLRDATE=QSLRDATE,LOTW_QSL_RCVD=QSL_RCVD -o | adifmerg -f - -m $fname -o > $fname2`;
+
+my ($nqso2,$nqsl2)=split /\s+/, `adifmerg -f $fname2 -q nqso,nlqslr`;
+
+print "--QSO $nqso -> $nqso2, QSL $nqsl -> $nqsl2\n";
+

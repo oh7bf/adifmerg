@@ -1,0 +1,6 @@
+
+eqslfilt	- script to remap QSL_SENT to EQSL_QSL_SENT and to add 
+		EQSL_QSL_RCVD=Y
+
+
+

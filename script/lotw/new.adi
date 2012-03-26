@@ -1,0 +1,6 @@
+# http://www.adif.org
+<ADIF_VER:5>2.2.3
+<PROGRAMID:8>adifmerg
+<PROGRAMVERSION:8>20090521
+<eoh>
+<BAND:3>23M<CALL:5>no0call<MODE:2>CW<QSO_DATE:8>19290101<TIME_ON:4>0000<eor>
