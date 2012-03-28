@@ -5,7 +5,7 @@ SYNOPSIS
     adifmerg -f file [-m file|-M file] [-b] [-d] [-c] [-i] [-u] [-a award]
     [-o|-s|-x|-X|-l|-L|-e|-C file|-T file] [-A record] [-D record] [-S
     record] [-F record] [-R record] [-t min] [-p script] [-q query] [-Q
-    all|requested] [-2] [-h] [-v] [-V]
+    all|requested] [-2] [-N] [-h] [-v] [-V]
 
 DESCRIPTION
     The input log file type is recognized from the '.adi', '.adif', '.csv'
@@ -194,6 +194,9 @@ OPTIONS
     -2 search for duplicate QSOs, here -t can be used to change time range,
     default is 24 hours
 
+    -N print also QSOs with QSO_COMPLETE=NIL or N, by default these QSOs are
+    not printed
+
     -h display a short help text
 
     -v verbose
@@ -340,11 +343,11 @@ EXAMPLE
     adifmerg -f mylog.adi -Q r -o > newlog.adi
 
 DIAGNOSTICS
-    The *adifmerg* has been tested with perl v5.8.5. You may need to adapt
+    The *adifmerg* has been tested with perl v5.10.1. You may need to adapt
     the script to your environment.
 
 BUGS
-    THROB and PHONE modes are not defined in Adif 2.2.6. See the web page
+    THROB and PHONE modes are not defined in Adif 2.2.7. See the web page
     below. Program breaks if CALL, TIME_ON or QSO_DATE is missing.
 
 AUTHORS

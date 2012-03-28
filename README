@@ -16,6 +16,7 @@ doc			- manual page
 README    		- this file
 script/contest		- contest scripts
 script/eqslcc		- eQSLcc scripts
+script/log              - logging scripts
 script/lotw		- LoTW scripts
 script/util		- utility scripts
 test/runtest		- test routine 

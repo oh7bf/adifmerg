@@ -1,0 +1,20 @@
+#!/usr/bin/perl -w
+# Search ADIF-file to find matching call signs. 
+# 
+
+use strict;
+my $path=""; # path to log file
+my $alog=""; # ADIF log file
+
+if(!$ARGV[0])
+{
+    print "Usage: checkqso CALL1 ... CALLN\n";
+    exit;
+}
+
+my $fname=$path.$alog;
+
+foreach (@ARGV)
+{
+    print `adifmerg -f $fname -S CALL=$_ -l -v`;
+}

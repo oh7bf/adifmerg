@@ -7,8 +7,8 @@ adifmerg -  convert, check and merge ADIF files
 B<adifmerg> B<-f> file [B<-m> file|B<-M> file] [B<-b>] [B<-d>] [B<-c>] [B<-i>] 
 [B<-u>] [B<-a> award] [B<-o>|B<-s>|B<-x>|B<-X>|B<-l>|B<-L>|B<-e>|B<-C> file|B<-T> file] 
 [B<-A> record] [B<-D> record] [B<-S> record] [B<-F> record] [B<-R> record] 
-[B<-t> min] [B<-p> script] [B<-q> query] [B<-Q> all|requested] [B<-2>] [B<-h>]
-[B<-v>] [B<-V>]
+[B<-t> min] [B<-p> script] [B<-q> query] [B<-Q> all|requested] [B<-2>] 
+[B<-N>] [B<-h>] [B<-v>] [B<-V>]
 
 =head1 DESCRIPTION
 
@@ -200,6 +200,9 @@ the resulting file, if B<-Q> switch is used the QSL record tags are printed
 B<-2> search for duplicate QSOs, here B<-t> can be used to change time range, 
 default is 24 hours
 
+B<-N> print also QSOs with QSO_COMPLETE=NIL or N, by default these QSOs are 
+not printed
+
 B<-h> display a short help text
 
 B<-v> verbose
@@ -347,12 +350,12 @@ adifmerg -f mylog.adi -Q r -o > newlog.adi
 
 =head1 DIAGNOSTICS
 
-The I<adifmerg> has been tested with perl v5.8.5. You may need to adapt 
+The I<adifmerg> has been tested with perl v5.10.1. You may need to adapt 
 the script to your environment. 
 
 =head1 BUGS
 
-THROB and PHONE modes are not defined in Adif 2.2.6. See the web page below.
+THROB and PHONE modes are not defined in Adif 2.2.7. See the web page below.
 Program breaks if CALL, TIME_ON or QSO_DATE is missing.
 
 =head1 AUTHORS

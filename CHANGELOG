@@ -1,10 +1,13 @@
-Sun Nov 14 20:39:06 CET 2010
+Wed Mar 28 20:26:40 CEST 2012
 Jaakko Koivuniemi, OH7BF
 
 CHANGE LOG
 ==========
 
 DATE            DESCRIPTION
+2012 Mar 28     -S REC=! for empty/zero fields
+2012 Mar 27     add ADIF 2.2.7 modes
+2012 Mar 27     -N print also QSO_COMPLETE=NIL/N QSOs, normally not printed
 2010 Nov 14	-T template file for output, also QSL printing with -Q	
 2010 Aug 14     text files description to manual
 2010 Aug 13	txt log my comments ciCity, coCountry, cyCounty, stState

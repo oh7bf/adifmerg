@@ -1,0 +1,9 @@
+
+checkqso    Search call signs from ADIF-log file, for example after receiving 
+            QSL cards type 
+
+            checkqso CALL1 CALL2... > qslYYYYMMDD.txt
+
+            This file is then edited to select the QSOs corresponding to the
+            dates and times on the cards. The file can then be converted to
+            ADIF and merged with the main log file.
