@@ -1,10 +1,13 @@
-Wed Mar 28 20:26:40 CEST 2012
+Fri Apr 27 21:37:03 CEST 2012
 Jaakko Koivuniemi, OH7BF
 
 CHANGE LOG
 ==========
 
 DATE            DESCRIPTION
+2012 Apr 27     read Cabrillo logs
+2012 Apr 27     -l -v print frequency instead of band 
+2012 Apr 22     complain if file does not exists or is not readable
 2012 Mar 28     -S REC=! for empty/zero fields
 2012 Mar 27     add ADIF 2.2.7 modes
 2012 Mar 27     -N print also QSO_COMPLETE=NIL/N QSOs, normally not printed

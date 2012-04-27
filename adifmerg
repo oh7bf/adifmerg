@@ -3,7 +3,7 @@
 #                                                                             
 # Merge and convert ADIF files.
 #
-# This program was written by Jaakko Koivuniemi OH7BF on March 28 2012.  
+# This program was written by Jaakko Koivuniemi OH7BF on April 27 2012.  
 # Copyright (C) 2008-2012 Jaakko Koivuniemi.
 #
 # This program is free software; you can redistribute it and/or
@@ -22,9 +22,9 @@ use strict;
 use POSIX;
 use Getopt::Std;
 
-use subs qw/AddLoc AddRec AdifHead AdifLine AdifRecTo2 b2cabf b2sota Band2freq CalcDist CheckBand CheckCQZ CheckDate CheckGrid CheckIota CheckITUZ CheckLoc CheckMode CheckPmode CheckPwr CheckQslr CheckQsls CheckQso CheckRig CheckRst CheckSat CheckSatMode CheckSota CheckUtc CheckVia CompareRec date2csv DelRec EmptyRec f2cabf FixRec Freq2band Grid2Loc jday Loc2Rad m2cab MapRec MergeRecs MRules MyNotes2Adif Notes2Adif PrintAdifHead PrintAdifRec PrintCabHead PrintCabRec PrintCsvRec PrintInfo PrintQsls PrintQso PrintQsos PrintTxtHead PrintTxtRec PrintTxtRecL printusage printversion QslDate Qso2Array Qso2Hash Qso2HashT Qso2Hash2s ReadAdifLog ReadAdifRec ReadCsvLog ReadTxtLog SearchMatch StatQso time2csv/;
+use subs qw/AddLoc AddRec AdifHead AdifLine AdifRecTo2 b2cabf b2sota Band2freq CalcDist CheckBand CheckCQZ CheckDate CheckGrid CheckIota CheckITUZ CheckLoc CheckMode CheckPmode CheckPwr CheckQslr CheckQsls CheckQso CheckRig CheckRst CheckSat CheckSatMode CheckSota CheckUtc CheckVia CompareRec date2csv DelRec EmptyRec f2cabf FixRec Freq2band Grid2Loc jday Loc2Rad m2cab MapRec MergeRecs MRules MyNotes2Adif Notes2Adif PrintAdifHead PrintAdifRec PrintCabHead PrintCabRec PrintCsvRec PrintInfo PrintQsls PrintQso PrintQsos PrintTxtHead PrintTxtRec PrintTxtRecL printusage printversion QslDate Qso2Array Qso2Hash Qso2HashT Qso2Hash2s ReadAdifLog ReadAdifRec ReadCabLog ReadCsvLog ReadTxtLog SearchMatch StatQso time2csv/;
 
-my $verno="20120328";
+my $verno="20120427";
 my $averno="2.2.7";
 
 # general debugging switch
@@ -509,12 +509,21 @@ $opt_Q=uc (substr $opt_Q,0,1) if($opt_Q);
 # check if point calculation script can be called
 `$opt_p`|| die("Script $opt_p not found\n") if($opt_p);
 
-my $file1; # main file
-my $file2; # optional file for merging
+my $file1=""; # main file
+my $file2=""; # optional file for merging
 
 $file1=$opt_f;
+if($file1 ne '-')
+{
+    ((-e $file1)&&(-r $file1)) || die("Can not read $file1.\n");
+}
+
 $file2=$opt_m if($opt_m);
 $file2=$opt_M if($opt_M);
+if($file2)
+{
+    ((-e $file2)&&(-r $file2)) || die("Can not read $file2.\n");
+}
 
 # print header for ADIF file unless reading ADIF-file, in that case print
 # only after reading the header first 
@@ -624,7 +633,16 @@ if($opt_f)
 		}
 		else
 		{
-		    print "$file1 unknown suffix\n";
+		    # cabrillo file
+		    if($file1 =~ /\w+\.cbr$/i)
+		    {
+			$nqso=ReadCabLog($file1);
+			PrintInfo($nqso) if($opt_i);
+		    }
+		    else
+		    {
+			print "$file1 unknown suffix\n";
+		    }
 		}
 	    }
 	}
@@ -940,7 +958,6 @@ sub SearchMatch
 # print QSO data as adif, text or csv and check validity of QSO records
 sub PrintQso
 {
-
     my $recno=shift;
     my $serr;
     my $ne=0;
@@ -1511,6 +1528,150 @@ sub m2cab()
 	}
     }
     return $modc;
+} 
+
+# read Cabrillo log
+sub ReadCabLog
+{
+    my $file=shift;
+    my $line;
+    my $LOGFILE;
+    my @d;
+    my $contest="";
+    my $cpos;
+    my $nex;
+    my $nqso=0;
+    my $nerr;
+    my $i;
+    my $txexc;
+    my $rxexc;
+
+    if(open($LOGFILE,"<",$file))
+    {
+        $line=<$LOGFILE>;
+        while($line)
+        {
+	    print $line if($opt_v);
+	    EmptyRec(0);
+	    @d=split /\s+/, $line;
+
+	    if($d[0]=~/^CONTEST:/)
+	    {
+		$contest=$d[1] if($d[1]);
+		for($i=2;$i<@d;$i++)
+		{
+		    $contest=$contest." ".$d[$i];
+		}
+	    }
+	    elsif($d[0]=~/^QSO:/)
+	    {
+		$rec[0]{CONTEST_ID}=$contest if($contest);
+		$rec[0]{FREQ}=$d[1]/1000;
+		$rec[0]{BAND}=Freq2band($d[1]/1000);
+		$rec[0]{MODE}=cab2m($d[2]);
+		$d[3]=~s/\-//g;
+		$rec[0]{QSO_DATE}=$d[3];
+		$rec[0]{TIME_ON}=$d[4];
+		$rec[0]{STATION_CALLSIGN}=$d[5];
+
+		# probable position of contacted call sign
+		$cpos=int((@d-5)/2)+5;
+		# number of exchange fields
+		$nex=$cpos-6;
+		$rec[0]{CALL}=$d[$cpos];
+	
+		# check if RST number in exchange, usually next after CALL
+		if(CheckRst($d[6]))
+		{
+		    if(CheckRst($d[$cpos+1]))
+		    {
+			$rec[0]{RST_SENT}=$d[6];
+			$rec[0]{RST_RCVD}=$d[$cpos+1];
+			# in this case the next could be serial number
+			if($nex>1)
+			{
+			    if($d[7]=~/\d{3,4}/)
+			    {
+				if($d[$cpos+2]=~/\d{3,4}/)
+				{
+				    $rec[0]{STX}=$d[7];
+				    $rec[0]{SRX}=$d[$cpos+2];
+				}
+			    }
+			}
+		    }
+		}
+		# check if grid square
+		elsif(CheckGrid($d[6]))
+		{
+		    if(CheckGrid($d[$cpos+1]))
+		    {
+			$rec[0]{MY_GRIDSQUARE}=$d[6];
+			$rec[0]{GRIDSQUARE}=$d[$cpos+1];
+		    }
+		}
+		# check if serial number
+		elsif($d[6]=~/^\d{3,4}$/)
+		{
+		    if($d[$cpos+1]=~/^\d{3,4}$/)
+		    {
+			$rec[0]{STX}=$d[6];
+			$rec[0]{SRX}=$d[$cpos+1];
+		    }
+		}
+	
+		# make transmitted string
+		$txexc="";
+		$txexc=$d[6] if($nex>0);
+		for($i=7;$i<$nex+6;$i++)
+		{
+		    $txexc=$txexc." ".$d[$i];
+		}
+		$rec[0]{STX_STRING}=$txexc;
+
+		# make received string
+		$rxexc="";
+		$rxexc=$d[$cpos+1] if($nex>0);
+		for($i=$cpos+2;$i<$cpos+$nex+1;$i++)
+		{
+		    $rxexc=$rxexc." ".$d[$i];
+		}
+		$rec[0]{SRX_STRING}=$rxexc;
+
+		$nqso++;
+
+		# print qso with error message
+		if($opt_l||$opt_o||$opt_L||$opt_x||$opt_X)
+		{
+		    $nerr+=PrintQso(0);
+		}
+	    }
+	$line=<$LOGFILE>;
+	}
+    }
+    return $nqso;
+}
+
+# Cabrillo modes: CW, PH, FM or RY to ADIF
+sub cab2m()
+{
+    my $m=shift;
+    my $moda="unknown";
+
+    if(($m eq "CW")||($m eq "FM"))
+    {
+	$moda=$m;
+    }
+    elsif($m eq "PH")
+    {
+	$moda="SSB";
+    }
+    elsif($m eq "RY")
+    {
+	$moda="RTTY";
+    }
+
+    return $moda;
 } 
 
 
@@ -2159,7 +2320,14 @@ sub PrintTxtRec
     {
 	$oline=$oline."     ";
     }
-    $oline=$oline.(sprintf " %-6.6s",$rec[$recno]{BAND});
+    if(($opt_v)&&($rec[$recno]{FREQ}))
+    {
+	$oline=$oline.(sprintf " %6.3f",$rec[$recno]{FREQ});
+    }
+    else
+    {
+	$oline=$oline.(sprintf " %-6.6s",$rec[$recno]{BAND});
+    }
     $oline=$oline.(sprintf " %-6.6s",$rec[$recno]{MODE});
     $oline=$oline.(sprintf " %-12.12s",$rec[$recno]{CALL});
     $oline=$oline.(sprintf " %-3.3s",$rec[$recno]{RST_SENT}) 
@@ -2397,8 +2565,8 @@ sub b2sota
 	       "560M" => "VLF",
 	       "160M" => "1.8MHz",
 	       "80M"  => "3.5MHz",
-	       "60M"  => "5.0MHz",
-	       "40M"  => "7.0MHz",
+	       "60M"  => "5MHz",
+	       "40M"  => "7MHz",
 	       "30M"  => "10MHz",
 	       "20M"  => "14MHz",
 	       "17M"  => "18MHz",
@@ -2859,7 +3027,7 @@ sub ReadTxtLog
 	    else
 	    {
 		# check for my call, locator etc.
-		if($d[0])
+		if(($d[0])&&($d[0]!~/date/i))
 		{
 		    $statcall=$d[0];
 		    ($myloc,$mycq,$mysota,$myitu,$myrig,$txpwr,$mycounty,$mystate,$mycity,$mycountry)=MyNotes2Adif($line);

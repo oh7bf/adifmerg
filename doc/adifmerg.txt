@@ -8,10 +8,10 @@ SYNOPSIS
     all|requested] [-2] [-N] [-h] [-v] [-V]
 
 DESCRIPTION
-    The input log file type is recognized from the '.adi', '.adif', '.csv'
-    or '.txt' suffix in the file name. If the file comes from standard input
-    with option '-f -', it is assumed to be ADIF file. The output is either
-    ADIF, csv or simple text.
+    The input log file type is recognized from the '.adi', '.adif', '.cbr',
+    '.csv' or '.txt' suffix in the file name. If the file comes from
+    standard input with option '-f -', it is assumed to be ADIF file. The
+    output is either ADIF, csv or simple text.
 
     Two ADIF files can be merged to one. In this case the output is sorted
     in ascending time order if both of the input files are already sorted.
