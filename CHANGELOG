@@ -1,10 +1,12 @@
-Fri Apr 27 21:37:03 CEST 2012
+Fri May  4 21:24:55 CEST 2012
 Jaakko Koivuniemi, OH7BF
 
 CHANGE LOG
 ==========
 
 DATE            DESCRIPTION
+2012 May 4      qsorep to keep local ADIF-log repository
+2012 Apr 30     read csv, txt or cbr from standard input with -f -csv etc 
 2012 Apr 27     read Cabrillo logs
 2012 Apr 27     -l -v print frequency instead of band 
 2012 Apr 22     complain if file does not exists or is not readable

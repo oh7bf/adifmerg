@@ -1,0 +1,974 @@
+#!/usr/bin/perl -w 
+###############################################################################
+#                                                                             
+# QSO repository for logging with ADIF-files.
+#
+# This program was written by Jaakko Koivuniemi OH7BF on May 1 2012.  
+# Copyright (C) 2012 Jaakko Koivuniemi.
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+#############################################################################
+
+use strict;
+use Getopt::Std;
+use Term::ReadLine;
+use POSIX qw(strftime);
+
+use subs qw/add cards create edittxt edtmp export info list logsplit merge printhelp printhistory printversion printusage readfilter qsl qso resetvars timenow utcnow updatelotwd/;
+
+my $verno="20120501"; # YYYYMMDD
+
+# change this if the logs are not in home directory
+my $path=$ENV{"HOME"}."/"; 
+
+my $dbg=0; # 1=debug messages
+
+# variable hash
+my %vars = ("EQSLFILE" => "",
+	    "EQSLFILTER" => "",
+	    "LOGFILE" => "",
+	    "LOGFILTER" => "",
+	    "LOTWFILE" => "",
+	    "LOTWFILTER" => "",
+	    "LOTWUSER" => "",
+	    "LOTWPASS" => "",
+	    "LOTWREADDATE" => "",
+	    "QSLFILTER" => "",
+	    "QSOFILTER" => "",
+	    "TYPE" => ""
+           );
+
+# options: -c command, -h help, -V version, -v verbose
+our ($opt_c,$opt_h,$opt_l,$opt_v,$opt_V);
+
+$opt_l="";$opt_c="";$opt_h=0;$opt_V=0;$opt_v=0;
+
+getopts('l:c:hvV');
+
+if($opt_V)
+{
+    print "qsorep v. $verno, Jaakko Koivuniemi OH7BF\n";
+    exit;
+}
+
+printusage() if(($opt_h)||(!$opt_l));
+
+my $lpath=$path.$opt_l; # path to ADIF-logs
+my $cpath=$lpath."/.qsorep/"; # configuration directory
+my $histfile=$cpath."history"; # history file
+my $apath=$lpath."/adif/"; # ADIF directory
+my $cabpath=$lpath."/cabrillo/"; # Cabrillo directory
+my $tpath=$lpath."/txt/"; # text directory
+my $epath=$lpath."/eqsl/"; # eQSL directory
+my $ltwpath=$lpath."/lotw/"; # LoTW directory
+my $cardpath=$lpath."/cards/"; # cards directory
+my $csvpath=$lpath."/csv/"; # CSV directory
+my $filtpath=$lpath."/filter/"; # filter directory
+
+my $ans="";
+if(!(-d $lpath))
+{
+    print "Directory does not exists. Create $lpath and subdirectories [yN]?";
+    $ans=<>;
+    if($ans=~/Y/i)
+    {
+	`mkdir $lpath`;
+	`mkdir $cpath`;
+	`touch $histfile`;
+	`mkdir $apath`;
+	`mkdir $cabpath`;
+	`mkdir $tpath`;
+	`mkdir $epath`;
+	`mkdir $ltwpath`;
+	`mkdir $cardpath`;
+	`mkdir $csvpath`;
+	`mkdir $filtpath`;
+
+	# create some common filters
+	`echo "| adifmerg -f - -o" > $filtpath/dummy`;
+	`echo "| adifmerg -f - -s | adifmerg -f - -A LOTW_QSL_SENT=Y -R LOTW_QSLRDATE=QSLRDATE,LOTW_QSL_RCVD=QSL_RCVD -F MODE=THROB=THRB,MODE=PHONE=SSB -o" > $filtpath/lotwqsoin`;
+	`echo "| adifmerg -f - -s | adifmerg -f - -A LOTW_QSL_RCVD=Y,LOTW_QSL_SENT=Y -R LOTW_QSLRDATE=QSLRDATE -o" > $filtpath/lotwqslin`;
+	`echo "| adifmerg -f - -u -o | adifmerg -f - -u -o" > $filtpath/lotwqsout`;
+	`echo "| adifmerg -f - -R EQSL_QSL_SENT=QSL_SENT -A EQSL_QSL_RCVD=Y -o -u" > $filtpath/eqslqsoin`;
+	`echo "| adifmerg -f -csv -o" > $filtpath/csv2adif`;
+	`echo "| adifmerg -f -txt -o" > $filtpath/txt2adif`;
+	`echo "| adifmerg -f -cbr -o" > $filtpath/cbr2adif`;
+	`chmod go-wrx $cpath`;
+    }
+    else
+    {
+	exit;
+    }
+} 
+
+$dbg=1 if($opt_v); # verbosed debug messages
+
+# check if adifmerg can be used
+`adifmerg -V`|| die("adifmerg not found\n");
+
+# check if editor is found
+my $ed=$ENV{"EDITOR"}." -V";
+`$ed`|| die("EDITOR is not set\n");
+$ed=$ENV{"EDITOR"}; # editor
+
+
+my $line="-";
+my @hist; # history of commands
+my $hi=0; # history index
+
+if(!open(LGF,">>",$histfile))
+{
+}
+else 
+{
+    print LGF timenow();
+    print LGF "\n";
+    close(LGF);
+}
+
+if($opt_c)
+{
+    docmd($opt_c);
+}
+else
+{
+    my $term=Term::ReadLine->new("qsorep");
+    my $prompt="log:";
+    my $OUT=$term->OUT || \*STDOUT;
+
+    while(defined($_=$term->readline($prompt)))
+    {
+	$hist[$hi]="$_\n";
+	if(open(LGF,">>",$histfile))
+	{
+	    print LGF "$_\n";
+	    close(LGF);
+	}
+	$hi++;
+	exit if(($_ eq "quit")||($_ eq "exit"));
+	$term->addhistory($_) if /\S/;
+	docmd($_);
+    }
+}
+
+# manipulate ADIF-files
+sub docmd
+{
+    my $cmd=shift;
+    my @cm=split /\s+/,$cmd;
+    if(@cm==1)
+    {
+	if($cmd =~ /^list/i)
+	{
+	    list("");
+	}
+	elsif($cmd =~ /^history/i)
+	{
+	    printhistory(0);
+	}
+	elsif($cmd =~ /^version/i)
+	{
+	    printversion();
+	}
+	elsif($cmd =~/^help/i)
+	{
+	    printhelp("");
+	}
+    }
+    elsif(@cm>1)
+    {
+	my $fname=$cm[0];
+	my $par1="";
+	$par1=$cm[2] if($cm[2]);
+	my $par2="";
+	$par2=$cm[3] if($cm[3]);
+	if($cm[1]=~/^add/i)
+	{
+	    add($fname);
+	}
+	elsif($cm[1]=~/^cards/i)
+	{
+	    cards($fname);
+	}
+	elsif($cm[1]=~/^create/i)
+	{
+	    create($fname,$par1,$par2);
+	}
+	elsif($cm[1]=~/^edit/i)
+	{
+	    edit($fname,$par1);
+	}
+	elsif($cm[1]=~/^export/i)
+	{
+	    export($fname,$par1,$par2);
+	}
+	elsif($cm[1]=~/^help/i)
+	{
+	    printhelp($fname);
+	}
+	elsif($cm[1]=~/^history/i)
+	{
+	    printhistory($fname);			
+	}
+	elsif($cm[1]=~/^info/i)
+	{
+	    info($fname,$par1);
+	}
+	elsif($cm[1]=~/^list/i)
+	{
+	    list($fname,$par1,$par2);
+	}
+	elsif($cm[1]=~/^merge/i)
+	{
+	    merge($fname);
+	}
+	elsif($cm[1]=~/^qsl/i)
+	{
+	    qsl($fname,$par1);
+	}
+	elsif($cm[1]=~/^qso/i)
+	{
+	    qso($fname,$par1);
+	}
+	elsif($cm[1]=~/^split/i)
+	{
+	    logsplit($fname,$par1);
+	}
+	else
+	{
+	    print "Nothing done.\n" 
+		if($cmd!~/exit|quit/);
+	}
+    }
+}
+
+
+# add QSOs to ADIF-file
+sub add
+{
+    my $fname=shift;
+    $fname=$apath.$fname.".adi";
+
+    if((-e $fname)&&(-r $fname))
+    {
+	my $c="adifmerg -f ".$fname." -l -v > /tmp/qsorep.txt";
+	`$c`;
+	$c="echo ".utcnow()." >> /tmp/qsorep.txt";
+	`$c`;
+	editmp(13);
+	$c="adifmerg -f /tmp/qsorep.txt -o > /tmp/qsorep.adi";
+	`$c`;
+	$c="cp -i /tmp/qsorep.adi $fname";
+	`$c`;
+    }
+    else
+    {
+	print "File not found: $fname\n";
+    }
+
+}
+
+# produce QSL-cards in PDF-file 
+sub cards
+{
+
+}
+
+# edit temporary text file /tmp/qsorep.txt
+sub editmp
+{
+    my $col=shift;
+    my $c="cat /tmp/qsorep.txt | wc -l";
+    my $lno=`$c`;
+    chop $lno;
+    my $edt=$ed." +$lno,$col /tmp/qsorep.txt";
+    my $status=system($edt);
+}
+
+# edit text file
+sub edittxt
+{
+    my $dfile=shift;
+    my $edt=$ed." ".$dfile;
+    my $status=system($edt);
+}
+
+
+# export ADIF-file in an other format
+# the type can be 'cab', 'csv', 'eqsl', 'lotw' or 'txt'
+sub export
+{
+    my $fname=shift;
+    my $par1=shift;
+    my $par2=shift;
+    my $file=$apath.$fname.".adi"; # file with path
+    my $ofile;
+    my $c="";
+
+    if($par1 eq "cab")
+    {
+    }
+    elsif($par1 eq "csv")
+    {
+	$ofile=$csvpath.$fname.".csv";
+	$c="adifmerg -f $file -X > $ofile";
+	`$c`;
+    }
+    elsif($par1 eq "eqsl")
+    {
+    }
+    elsif($par1 eq "lotw")
+    {
+    }
+    elsif($par1 eq "txt")
+    {
+	$ofile=$tpath.$fname.".txt";
+	$c="adifmerg -f $file -l -v > $ofile";
+	`$c`;
+    }
+}
+
+# create new ADIF-file
+# the type can be 'eqsl', 'log' or 'lotw'
+sub create
+{
+    my $fname=shift;
+    my $par1=shift;
+    my $par2=shift;
+    my $cfile=$cpath.$fname; # log configuration file
+    my $file=$apath.$fname.".adi"; # file with path
+    my $c="";
+
+    if(-e $file)
+    {
+	print "$file already exists.\n";
+	return;
+    }
+
+    if($par1 eq "log")
+    {
+	# create configuration file
+	if(open(CNF,">",$cfile))
+	{
+	    print CNF "# log configuration file, can be edited also later\n";
+	    print CNF "# the rules define from where new QSOs and QSLs are added\n";
+	    print CNF "TYPE=log\n";
+	    print CNF "# QSOs to be merged\n";
+	    print CNF "QSOFILE=\n";
+	    print CNF "# QSOs filter\n";
+	    print CNF "QSOFILTER=\n";
+	    print CNF "# QSLs to be merged\n";
+	    print CNF "QSLFILE=\n";
+	    print CNF "# QSLs filter\n";
+	    print CNF "QSLFILTER=\n";
+	    close(CNF);
+	}
+
+	# edit description file
+	edittxt($cfile);
+
+	# create empty ADIF-log
+	$c="echo '# add QSOs below in format' > /tmp/qsorep.txt";
+	`$c`;
+	$c="echo '# YYYYMMDD HHMM BAND/FREQ MODE CALL RSTS RSTR ---- -- -- PROPAGATION COMMMENT' >> /tmp/qsorep.txt";
+	`$c`;
+	$c="echo | adifmerg -f - -l -v >> /tmp/qsorep.txt";
+	`$c`;
+
+	# edit ADIF-log
+	editmp(1);
+	$c="adifmerg -f /tmp/qsorep.txt -o > /tmp/qsorep.adi";
+	`$c`;
+	$c="cp /tmp/qsorep.adi $file";
+	`$c`;
+    }
+    elsif($par1 eq "lotw")
+    {
+	# create configuration file
+	if(open(CNF,">",$cfile))
+	{
+	    print CNF "# log description file\n";
+	    print CNF "TYPE=lotw\n";
+	    print CNF "# last date LoTW was read, automatically updated\n";
+	    print CNF "LOTWREADDATE=\n";
+	    print CNF "# LoTW username\n";
+	    print CNF "LOTWUSER=\n";
+	    print CNF "# LoTW passwd\n";
+	    print CNF "LOTWPASS=\n";
+	    print CNF "# incoming QSO filter\n";
+	    print CNF "QSOFILTER=lotwqsoin\n";
+	    print CNF "# incoming QSL filter\n";
+	    print CNF "QSLFILTER=lotwqslin\n";
+	    close(CNF);
+	}
+	# edit configuration file
+	edittxt($cfile);
+
+	readlotw($fname);
+    }
+    elsif($par1 eq "eqsl")
+    {
+	# create configuration file
+	if(open(CNF,">",$cfile))
+	{
+	    print CNF "# log description file\n";
+	    print CNF "TYPE=eqsl\n";
+	    print CNF "# incoming QSO filter\n";
+	    print CNF "QSOFILTER=eqslqsoin\n";
+	    print CNF "# incoming QSL filter\n";
+	    print CNF "QSLFILTER=eqsoqslin\n";
+	    close(CNF);
+	}
+	# edit configuration file
+	edittxt($cfile);
+
+	readeqsl($fname);
+    }
+}
+
+# edit ADIF-file
+sub edit
+{
+    my $fname=shift;
+    my $par1=shift;
+    my $cfile=$cpath.$fname; # log configuration file
+    my $c;
+    $fname=$apath.$fname.".adi";
+
+    if((-e $fname)&&(-r $fname))
+    {
+	if($par1 eq "config")
+	{
+	    # edit configuration file
+	    edittxt($cfile);
+	}
+	else
+	{
+	    $c="adifmerg -f ".$fname." -l -v > /tmp/qsorep.txt";
+	    `$c`;
+#	my $status=system($ed);
+	    editmp(1);
+	    $c="adifmerg -f /tmp/qsorep.txt -o > /tmp/qsorep.adi";
+	    `$c`;
+	    if($par1 eq "diff")
+	    {
+		$c="adifmerg -f $fname -l -v | diff - /tmp/qsorep.txt";
+		print `$c`;
+	    }
+	    $c="cp -i /tmp/qsorep.adi $fname";
+	    `$c`;
+	}
+    }
+    else
+    {
+	print "File not found: $fname\n";
+    }
+}
+
+
+# print info on ADIF-file
+sub info
+{
+    my $fname=shift;
+    my $par1=shift;
+    my $c="adifmerg -f ".$apath.$fname.".adi -i";
+    $c=$c." -v" if($par1 eq "verbosed");
+    print `$c`;
+}
+
+# list QSOs in log file
+sub list
+{
+    my $fname=shift;
+    my $par1=shift;
+    my $par2=shift;
+
+    if($fname)
+    {
+	my $c="adifmerg -f ".$apath.$fname.".adi -l";
+	if($par1)
+	{
+	    if($par1=~/verb/i)
+	    {
+		$c=$c." -v";
+	    }
+	    elsif($par1=~/[=!]/)
+	    {
+		$c=$c." -S ".$par1 if($par1);
+	    }
+	}
+	if($par2)
+	{
+	    if($par2=~/verb/i)
+	    {
+		$c=$c." -v";
+	    }
+	    elsif($par2=~/[=!]/)
+	    {
+		$c=$c." -S ".$par2 if($par2);
+	    }
+	}
+	$c=$c." | less";
+	print `$c`;
+    }
+    else
+    {
+	print `ls $apath`;
+    }
+}
+
+# split log to smaller logs
+sub logsplit
+{
+    my $fname=shift;
+    my $par1=shift;
+    my $cfile=$cpath.$fname; # log configuration file
+    my $c;
+    $fname=$apath.$fname.".adi";
+
+    if((-e $fname)&&(-r $fname))
+    {
+	print `adifmerg -f $fname -q $par1`;
+    }
+    else
+    {
+	print "File not found: $fname\n";
+    }
+
+}
+
+# merge logs
+sub merge
+{
+}
+
+# print help
+sub printhelp 
+{
+    my $cmd=shift;
+
+    if($cmd)
+    {
+	if($cmd=~/^add/i)
+	{
+	    print "Add QSOs to ADIF-file.\n";
+	    print "file add\n";
+	}
+	if($cmd=~/^cards/i)
+	{
+	    print "Produce PDF-file of QSL-cards.\n";
+	    print "file cards template\n";
+	}
+	if($cmd=~/^create/i)
+	{
+	    print "Create and fill new ADIF-file.\n";
+	    print "file create eqsl|log|lotw [file]\n";
+	}
+	if($cmd=~/^edit/i)
+	{
+	    print "Edit ADIF-file.\n";
+	    print "file edit [config|diff]\n";
+	}
+	if($cmd=~/^export/i)
+	{
+	    print "Export ADIF-file to an other format.\n";
+	    print "file export cab|csv|eqsl|lotw|txt [file]\n";
+	}
+	if($cmd=~/^info/i)
+	{
+	    print "Print summary on ADIF-file.\n";
+	    print "file info [verbosed]\n";
+	}
+	if($cmd=~/^help/i)
+	{
+	    print "Show help text for a command.\n";
+	    print "[command] help\n";
+	}
+	if($cmd=~/^history/i)
+	{
+	    print "Print history of commands. Optionally number of last commands.\n";
+	    print "[number] history\n";
+	}
+	if($cmd=~/^merge/i)
+	{
+	    print "Merge QSOs to file.\n";
+	    print "file merge file [test]\n";
+	}
+	if($cmd=~/^list/i)
+	{
+	    print "Print QSOs from file.\n";
+	    print "[file] list [verbosed] [selection]\n";
+	}
+	if($cmd=~/^qsl/i)
+	{
+	    print "Update QSLs in file.\n";
+	    print "file qsl [diff]\n";
+	}
+	if($cmd=~/^qso/i)
+	{
+	    print "Update QSOs in file.\n";
+	    print "file qso [diff]\n";
+	}
+	if($cmd=~/^split/i)
+	{
+	    print "Split QSOs to separate files.\n";
+	    print "file split field\n";
+	}
+	if($cmd=~/^version/i)
+	{
+	    print "Print version.\n";
+	}
+    }
+    else
+    {
+	print "file add\n";
+	print "file cards\n";
+	print "file create eqsl|log|lotw [file]\n";
+	print "file edit [config|diff]\n";
+	print "file export cab|csv|eqsl|lotw|txt [file]\n";
+	print "file info [verbosed]\n";
+	print "[command] help\n";
+	print "[number] history\n";
+	print "file list [verbosed] [selection]\n";
+	print "file merge file [test]\n";
+	print "file qsl [diff]\n";
+	print "file qso [diff]\n";
+	print "version\n";
+	print "Use 'command help' to see more options.\n";
+    }
+}
+
+# print history of commands
+sub printhistory
+{
+    my $nhist=shift;
+
+    if($nhist)
+    {
+	my $s=@hist-$nhist;
+	$s=0 if($s<0);
+	for(my $i=$s;$i<@hist;$i++)
+	{
+	    print "$i $hist[$i]";
+	}
+    }
+    else
+    {
+	for(my $i=0;$i<@hist;$i++)
+	{
+	    print "$i $hist[$i]";
+	}
+    }
+}
+
+# print version
+sub printversion
+{    
+    print "qsorep v. $verno, Jaakko Koivuniemi OH7BF\n";
+}
+
+
+# print usage message
+sub printusage 
+{    
+    print "usage: qsorep -l logdir [-c command] [-h] [-v] [-V]\n";
+    exit;
+}
+
+# update QSLs in ADIF-file
+sub qsl
+{
+    my $fname=shift;
+    my $par1=shift;
+    my $file=$apath.$fname.".adi";
+    my @calls;
+    my $qsos="";
+    my $ans="";
+    my $c="";
+
+    readvars($fname);
+    if($vars{TYPE} eq "log")
+    {
+	print "Calls:";
+	$ans=<>;
+	@calls=split /\s+/,$ans;
+
+	# write file of possible QSOs
+	if(@calls)
+	{
+	    if(open(TMP,">","/tmp/qsorep.txt"))
+	    {
+		print TMP "# possible matching QSOs found from log\n";
+		print TMP "# remove extra QSOs from below and set QSL flags to ??YB\n";
+		foreach(@calls)
+		{
+		    print TMP "# $_\n";
+		    $qsos=`adifmerg -f $file -S CALL=$_ -l -v`;
+		    $qsos=~s/([\-YNRQI])([\-BDEM])([\-YNRIV])([\-BDEM])/$1$2YB/g;
+		    print TMP $qsos;
+		}
+		close(TMP);
+	    }
+	    
+	    $ans="e";
+	    while($ans eq "e")
+	    {
+		edittxt("/tmp/qsorep.txt");
+		`adifmerg -f /tmp/qsorep.txt -o | adifmerg -f - -s > /tmp/qsorep.adi`;
+		print `adifmerg -f $file -M /tmp/qsorep.adi -v`;
+		print "Cancel, edit again or merge[Cem]?";
+		$ans=<>;
+		chop $ans;
+	    }
+	    if($ans eq "m")
+	    {
+		`adifmerg -f $file -M /tmp/qsorep.adi -o > /tmp/$fname.adi`;
+		$c="cp -i /tmp/$fname.adi $file";
+		`$c`;
+	    }
+	}
+    }
+    elsif($vars{TYPE} eq "lotw")
+    {
+	my $qslsince=`adifmerg -f $file -q llastqsl`;
+	$qslsince=~s/\s//g; 
+
+	my $lq="https://p1k.arrl.org/lotwuser/lotwreport.adi";
+	$lq=$lq."?login=$vars{LOTWUSER}\&password=$vars{LOTWPASS}\&qso_query=1";
+	$lq=$lq."\&qso_qslsince=$qslsince";
+	$lq=$lq."\&qso_qsldetail=yes";
+	$lq=$lq."\&qso_withown=yes";
+
+	$c="wget '$lq' -q -O - ";
+	my $c="wget '$lq' -q -O - ".readfilter($vars{QSLFILTER})." | adifmerg -f - -m $file -o -v > /tmp/qsorep.adi";
+
+	print "$c\n" if($dbg);
+	`$c`;
+
+	if($par1 eq "diff")
+	{
+	    $c="adifmerg -f /tmp/qsorep.adi -l -v > /tmp/qsorep.txt";
+	    `$c`;
+	    $c="adifmerg -f $file -l -v | diff - /tmp/qsorep.txt";
+	    print `$c`;
+	}
+	
+	my ($nqso,$nqsl)=split /\s+/, `adifmerg -f $file -q nqso,nlqslr`;
+	my ($nqso2,$nqsl2)=split /\s+/, `adifmerg -f /tmp/qsorep.adi -q nqso,nlqslr`;
+	print "--QSO $nqso -> $nqso2, QSL $nqsl -> $nqsl2\n";
+
+	$c="cp -i /tmp/qsorep.adi $file";
+	print `$c`;
+
+#| adifmerg -f - -s | adifmerg -f - -A LOTW_QSL_RCVD=Y,LOTW_QSL_SENT=Y -R LOTW_QSLRDATE=QSLRDATE -o | adifmerg -f - -m $fname -o -v > $fname2`;
+
+    }
+}
+
+# update QSOs in ADIF-file
+sub qso
+{
+    my $fname=shift;
+    my $par1=shift;
+    my $file=$apath.$fname.".adi";
+
+    readvars($fname);
+    if($vars{TYPE} eq "lotw")
+    {
+	my $lq="https://p1k.arrl.org/lotwuser/lotwreport.adi"; 
+	$lq=$lq."?login=$vars{LOTWUSER}\&password=$vars{LOTWPASS}\&qso_query=1\&qso_qsl=no";
+	$lq=$lq."\&qso_qsorxsince=".$vars{LOTWREADDATE} 
+	if($vars{LOTWREADDATE}=~/\d\d\d\d\-\d\d\-\d\d/);
+	$lq=$lq."\&qso_qsldetail=yes";
+	$lq=$lq."\&qso_withown=yes";
+
+	print "$lq\n" if($dbg);
+
+	my $c="wget '$lq' -q -O - ".readfilter($vars{QSOFILTER})." | adifmerg -f - -m $file -o -v > /tmp/qsorep.adi";
+
+	print "$c\n" if($dbg);
+	`$c`;
+
+	if($par1 eq "diff")
+	{
+	    $c="adifmerg -f /tmp/qsorep.adi -l -v > /tmp/qsorep.txt";
+	    `$c`;
+	    $c="adifmerg -f $file -l -v | diff - /tmp/qsorep.txt";
+	    print `$c`;
+	}
+
+	my ($nqso,$nqsl)=split /\s+/, `adifmerg -f $file -q nqso,nlqslr`;
+	my ($nqso2,$nqsl2)=split /\s+/, `adifmerg -f /tmp/qsorep.adi -q nqso,nlqslr`;
+	print "--QSO $nqso -> $nqso2, QSL $nqsl -> $nqsl2\n";
+
+	$c="cp -i /tmp/qsorep.adi $file";
+	`$c`;
+# FIX ME: update when the file was not overwritten 
+	updatelotwd($fname); 
+    }
+}
+
+# read eQSL
+sub readeqsl
+{
+    my $fname=shift;
+    my $file=$apath.$fname.".adi";
+    my $c;
+    my $filt="";
+
+    readvars($fname);
+
+    print "Downloaded ADIF-file from eQSL:";
+    my $dfile=<>;
+    chop $dfile;
+
+    if((-e $dfile)&&(-r $dfile))
+    {
+	if($filt=readfilter($vars{QSOFILTER}))
+	{
+	    $c="cat ".$dfile." ".$filt." >".$file;
+	    print "$c\n";
+	    `$c`;
+	}
+	else
+	{
+	    print "filter $vars{QSOFILTER} not found.\n";
+	}
+    }
+    else
+    {
+	print "$dfile not found.\n";
+    }
+}
+
+# read filter
+sub readfilter
+{
+    my $filtname=shift;
+    my $c="cat ".$filtpath.$filtname;
+    my $filt=`$c`;
+
+    chop $filt;
+
+    return $filt;
+}
+
+# read LoTW
+sub readlotw
+{
+    my $fname=shift;
+    my $file=$apath.$fname.".adi";
+    
+    readvars($fname);
+
+    my $lq="https://p1k.arrl.org/lotwuser/lotwreport.adi"; 
+    $lq=$lq."?login=$vars{LOTWUSER}\&password=$vars{LOTWPASS}\&qso_query=1\&qso_qsl=no";
+    $lq=$lq."\&qso_qsorxsince=".$vars{LOTWREADDATE} 
+    if($vars{LOTWREADDATE}=~/\d\d\d\d\-\d\d\-\d\d/);
+    $lq=$lq."\&qso_qsldetail=yes";
+    $lq=$lq."\&qso_withown=yes";
+
+    print "$lq\n";
+
+    my $c="wget '$lq' -q -O - ".readfilter($vars{QSOFILTER})." > $file";
+
+    print "$c\n";
+    `$c`;
+
+#| adifmerg -f - -s | adifmerg -f - -A LOTW_QSL_SENT=Y -R LOTW_QSLRDATE=QSLRDATE,LOTW_QSL_RCVD=QSL_RCVD -o > $file`;
+
+    updatelotwd($fname);
+
+}
+
+# read variables for the file
+sub readvars
+{
+    my $fname=shift;
+    my $cfile=$cpath.$fname; # configuration file
+    my $line="";
+
+    resetvars(); # empty hash
+
+    # read variables
+    if(open(VAF,"<",$cfile))
+    {
+	while($line=<VAF>)
+	{
+	    if($line=~/(\w{3,12})=(\S+)/)
+	    {
+		if(exists $vars{$1})
+		{
+		    $vars{$1}=$2;
+		}
+	    }
+	}
+	close(VAF);
+    }
+    else
+    {
+	print "Could not read $cfile .\n";
+    }
+}
+
+# reset variables to empty values
+sub resetvars
+{
+    my $var;
+
+    foreach $var (keys %vars)
+    {
+	$vars{$var}="";
+    }
+}
+
+# time stamp now, e.g. '2011-03-04 10:02:45'
+sub timenow
+{
+    my $t=strftime "%F %T", localtime;
+    return $t;
+}
+
+# UTC date now, e.g. '2011-03-04'
+sub utcdate
+{
+    my $t=strftime "%Y-%m-%d", gmtime;
+    return $t;
+}
+
+# UTC now, e.g. '20110304 1002'
+sub utcnow
+{
+    my $t=strftime "%Y%m%d %H%M", gmtime;
+    return $t;
+}
+
+# update LoTW last time read date in configuration file
+sub updatelotwd
+{
+    my $fname=shift;
+    my $cfile=$cpath.$fname; # configuration file
+    my $c="cat $cfile";
+    my $cf=`$c`;
+    my $d=utcdate();
+
+    $cf=~s/LOTWREADDATE=.*/LOTWREADDATE=$d/m;
+
+#    print $cf;
+
+    # update configuration file
+    if(open(CNF,">",$cfile))
+    {
+	    print CNF $cf;
+	    close(CNF);
+    }
+}
