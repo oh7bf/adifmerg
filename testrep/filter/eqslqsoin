@@ -1,0 +1,1 @@
+| adifmerg -f - -R EQSL_QSL_SENT=QSL_SENT -A EQSL_QSL_RCVD=Y -o -u

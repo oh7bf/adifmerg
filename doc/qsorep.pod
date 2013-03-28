@@ -1,19 +1,36 @@
 =head1 NAME
 
-qsorep -  logging with ADIF-files
+qsorep -  QSO repository with ADIF-files
 
 =head1 SYNOPSIS
 
-B<qsorep> [B<-c> command] [B<-h>] [B<-v>] [B<-V>]
+B<qsorep> B<-l> repdir [B<-c> command] [B<-h>] [B<-v>] [B<-V>]
 
 =head1 DESCRIPTION
 
-The B<qsorep> can be used to add or edit QSOs in an ADIF-file. The log can 
-be merged with the main log file. New QSOs and QSLs from LoTW can be fetched
-and merged. Production of QSL labels or QSL cards is possible. Use for
-example B<git> to track changes in the log files.
+The B<qsorep> can be used to add or edit QSOs in an ADIF-file repository. 
+The repository directory needs to be given with the option B<-l>. If the 
+directory does not exist, a new repository is created. The repository has
+subdirectories for the ADIF logs and produced QSL cards. There are
+separate directories for the exported Cabrillo logs, csv-files, eQSL logs
+and LoTW logs. The filter subdirectory has all the filters to manipulate
+the log files. For example to I<txt2adif> has a single line
+
+| adifmerg -f -txt -o
+
+meaning that text is read from the standard input and ADIF-data is written
+to standard output. It is necessary to create own custom filters to the
+filter directory.
+
+The configuration files for each ADIF-log is hidden into directory
+.qsorep/ .
+
+Production of QSL labels or QSL cards is possible. 
+Use for example B<git> to track changes in the log files.
 
 =head1 OPTIONS
+
+B<-l> directory for repository
 
 B<-c> execute command string
 
@@ -25,44 +42,113 @@ B<-V> print version
 
 =head1 COMMANDS
 
+Add new QSOs to an ADIF-log file from terminal
 
+I<file> B<add>
+
+Create a new log file. The file type 'eqsl', 'log' or 'lotw' determines how
+new QSOs and QSLs are added to the log. Optionally the file can created
+from file2.
+
+I<file> B<create> eqsl|log|lotw [path/file2] [filter [parameters]]
+
+A I<filter> can be used to modify the ADIF-file and I<parameters> can be passed 
+to the adifmerg(1).
+
+Edit ADIF-log or its configuration file. With the I<diff> option the diff(1) 
+is used to show the difference to the original file.
+
+I<file> B<edit> [config|diff]
+
+Export ADIF-log as Cabrillo, csv, eQSL, LoTW, template filled or text file.
+The 'file2' is given as a template for the 'cab' or 'temp' options.
+
+I<file> B<export> cab|csv|eqsl|lotw|temp|txt [file2]
+
+Print short or verbosed info on the logfile.
+
+I<file> B<info> [verbosed]
+
+Print help on command.
+
+[B<command>] B<help>
+
+Print history of commands.
+
+[number] B<history>
+
+List logfiles or print log on the screen. The QSOs can be selected with for 
+example 'CALL=DX0ABC'.
+
+I<file> B<list> [verbosed] [selection]
+
+Merge file2 to file.
+
+I<file> B<merge> file2 [diff|test]
+
+Add QSLs to file.
+
+I<file> B<qsl> [diff]
+
+Add QSOs to file.
+
+I<file> B<qso> [diff]
+
+Sort logfile to ascending time order.
+
+I<file> B<sort>
+
+Split logfile into smaller logs with a set, e.g. 'bands'.
+
+I<file> B<split> set
+
+Print qsorep(1) version.
+
+B<version>
 
 =head1 EXAMPLE
 
 Create initial local copy of LoTW QSOs
 
-I<lotw> B<create> B<LoTW>
+I<lotwin> B<create> I<lotw>
 
 Print info on the I<lotw.adi> file
 
-I<lotw> B<info>
+I<lotwin> B<info> I<verbosed>
 
-Update received QSLs from LoTW and merge them to the main log file
+Update received QSLs from LoTW 
 
-I<lotw> B<qsl> B<merge>
+I<lotw> B<qsl> I<diff>
 
-Edit main log file
+Create new log for downloaded SOTA QSOs, use filter sotaMY0CALL and select 
+QSOs on date 20120821
 
-I<log> B<edit>
+I<20120821SOTAREF> B<create> I<log> /home/my0call/Download/mylog.csv sotaMY0CALL -S QSO_DATE=20120821
 
-Add QSO to I<mycall> log file
+Export the file for signing and uploading to LoTW
 
-I<mycall> B<add> ZX9ABC 14.0432 CW 599/449 John
+I<20120821SOTAREF> B<export> I<lotw>
+
+Update QSOs
+
+I<20120821SOTAREF> B<merge> /home/my0call/Download/newlog.csv I<diff>
+
+Edit main log file I<my0call>
+
+I<my0call> B<edit> I<diff>
+
+Note that some information can be lost in editing.
+
+Add a QSO to the log file
+
+I<my0call> B<add>
 
 Add QSOs from received paper QSL cards by call signs and merge with the main
 log file
 
-I<qsl> B<add> AB9XYZ CD8ZYX ...
+I<my0callqslr> B<qsl> I<diff>
 
-I<qsl> B<merge> B<test>
-
-I<qsl> B<merge>
-
-Print QSL card file and mark the cards as sent in the main log
-
-I<qsl> B<card> 
-
-I<qsl> B<merge>
+I<my0call> B<merge> I<my0callqslr>
 
 =head1 DIAGNOSTICS
 

@@ -3,7 +3,7 @@
 #                                                                             
 # QSO repository for logging with ADIF-files.
 #
-# This program was written by Jaakko Koivuniemi OH7BF on May 1 2012.  
+# This program was written by Jaakko Koivuniemi OH7BF on October 24 2012.  
 # Copyright (C) 2012 Jaakko Koivuniemi.
 #
 # This program is free software; you can redistribute it and/or
@@ -23,9 +23,9 @@ use Getopt::Std;
 use Term::ReadLine;
 use POSIX qw(strftime);
 
-use subs qw/add cards create edittxt edtmp export info list logsplit merge printhelp printhistory printversion printusage readfilter qsl qso resetvars timenow utcnow updatelotwd/;
+use subs qw/add create edittxt edtmp export info list logsplit merge printhelp printhistory printversion printusage readfilter qsl qso resetvars timenow utcnow updatelotwd writecabtemp/;
 
-my $verno="20120501"; # YYYYMMDD
+my $verno="20121024"; # YYYYMMDD
 
 # change this if the logs are not in home directory
 my $path=$ENV{"HOME"}."/"; 
@@ -35,10 +35,12 @@ my $dbg=0; # 1=debug messages
 # variable hash
 my %vars = ("EQSLFILE" => "",
 	    "EQSLFILTER" => "",
+	    "EQSLOUT" => "",
 	    "LOGFILE" => "",
 	    "LOGFILTER" => "",
 	    "LOTWFILE" => "",
 	    "LOTWFILTER" => "",
+	    "LOTWOUT" => "",
 	    "LOTWUSER" => "",
 	    "LOTWPASS" => "",
 	    "LOTWREADDATE" => "",
@@ -120,7 +122,6 @@ my $ed=$ENV{"EDITOR"}." -V";
 `$ed`|| die("EDITOR is not set\n");
 $ed=$ENV{"EDITOR"}; # editor
 
-
 my $line="-";
 my @hist; # history of commands
 my $hi=0; # history index
@@ -169,7 +170,7 @@ sub docmd
     {
 	if($cmd =~ /^list/i)
 	{
-	    list("");
+	    list("","");
 	}
 	elsif($cmd =~ /^history/i)
 	{
@@ -191,17 +192,20 @@ sub docmd
 	$par1=$cm[2] if($cm[2]);
 	my $par2="";
 	$par2=$cm[3] if($cm[3]);
+	my $par3="";
+	$par3=$cm[4] if($cm[4]);
+	my $res="";
+        for(my $i=5;$i<@cm;$i++)
+	{
+	    $res=$res." ".$cm[$i];	  
+	}		
 	if($cm[1]=~/^add/i)
 	{
 	    add($fname);
 	}
-	elsif($cm[1]=~/^cards/i)
-	{
-	    cards($fname);
-	}
 	elsif($cm[1]=~/^create/i)
 	{
-	    create($fname,$par1,$par2);
+	    create($fname,$par1,$par2,$par3,$res);
 	}
 	elsif($cm[1]=~/^edit/i)
 	{
@@ -229,7 +233,7 @@ sub docmd
 	}
 	elsif($cm[1]=~/^merge/i)
 	{
-	    merge($fname);
+	    merge($fname,$par1,$par2);
 	}
 	elsif($cm[1]=~/^qsl/i)
 	{
@@ -242,6 +246,10 @@ sub docmd
 	elsif($cm[1]=~/^split/i)
 	{
 	    logsplit($fname,$par1);
+	}
+	elsif($cm[1]=~/^sort/i)
+	{
+	    logsort($fname);
 	}
 	else
 	{
@@ -277,12 +285,6 @@ sub add
 
 }
 
-# produce QSL-cards in PDF-file 
-sub cards
-{
-
-}
-
 # edit temporary text file /tmp/qsorep.txt
 sub editmp
 {
@@ -304,18 +306,41 @@ sub edittxt
 
 
 # export ADIF-file in an other format
-# the type can be 'cab', 'csv', 'eqsl', 'lotw' or 'txt'
+# the type can be 'cab', 'csv', 'eqsl', 'lotw', 'temp' or 'txt'
 sub export
 {
     my $fname=shift;
     my $par1=shift;
     my $par2=shift;
     my $file=$apath.$fname.".adi"; # file with path
+    my $file2="";
+    my $ans="";
     my $ofile;
     my $c="";
 
-    if($par1 eq "cab")
+    readvars($fname);
+
+    if(($par1 eq "cab")&&($par2 ne ""))
     {
+	$file2=$cabpath.$par2.".txt";
+	$ofile=$cabpath.$fname.".cbr";
+	$c="adifmerg -f $file -C $file2 > $ofile";
+	if(-e $file2)
+	{
+	    `$c`;
+	}
+	else
+	{
+	    print "Template $par2 does not exists. Create it[Ny]?";
+	    $ans=<>;
+	    chop $ans;
+	    if($ans eq "y")
+	    {
+		writecabtemp($file2);
+		edittxt($file2);
+		`$c`;
+	    }
+	}
     }
     elsif($par1 eq "csv")
     {
@@ -325,9 +350,29 @@ sub export
     }
     elsif($par1 eq "eqsl")
     {
+	$ofile=$epath.$fname."_eqsl.adi";
+	$c="adifmerg -f $file -o ".readfilter($vars{EQSLOUT})." > $ofile";
+	if(readfilter($vars{EQSLOUT}))
+	{
+	    `$c`;
+	}
+	else
+	{
+	    print "filter $vars{EQSLOUT} not found\n";
+	}
     }
     elsif($par1 eq "lotw")
     {
+	$ofile=$ltwpath.$fname."_lotw.adi";
+	$c="adifmerg -f $file -o ".readfilter($vars{LOTWOUT})." > $ofile";
+	if(readfilter($vars{LOTWOUT}))
+	{
+	    `$c`;
+	}
+	else
+	{
+	    print "filter $vars{LOTWOUT} not found\n";
+	}
     }
     elsif($par1 eq "txt")
     {
@@ -344,6 +389,8 @@ sub create
     my $fname=shift;
     my $par1=shift;
     my $par2=shift;
+    my $par3=shift;
+    my $res=shift;
     my $cfile=$cpath.$fname; # log configuration file
     my $file=$apath.$fname.".adi"; # file with path
     my $c="";
@@ -370,26 +417,46 @@ sub create
 	    print CNF "QSLFILE=\n";
 	    print CNF "# QSLs filter\n";
 	    print CNF "QSLFILTER=\n";
+	    print CNF "# LoTW out filter\n";
+	    print CNF "LOTWOUT=lotwqsout\n";
+	    print CNF "# eQSL out filter\n";
+	    print CNF "EQSLOUT=dummy\n";
 	    close(CNF);
 	}
 
-	# edit description file
+	# edit configuration file
 	edittxt($cfile);
 
-	# create empty ADIF-log
-	$c="echo '# add QSOs below in format' > /tmp/qsorep.txt";
-	`$c`;
-	$c="echo '# YYYYMMDD HHMM BAND/FREQ MODE CALL RSTS RSTR ---- -- -- PROPAGATION COMMMENT' >> /tmp/qsorep.txt";
-	`$c`;
-	$c="echo | adifmerg -f - -l -v >> /tmp/qsorep.txt";
-	`$c`;
+	if($par2 eq "")
+	{
+	    # create empty ADIF-log
+	    $c="echo '# add QSOs below in format' > /tmp/qsorep.txt";
+	    `$c`;
+	    $c="echo '# YYYYMMDD HHMM BAND/FREQ MODE CALL RSTS RSTR ---- -- -- PROPAGATION COMMMENT' >> /tmp/qsorep.txt";
+	    `$c`;
+	    $c="echo | adifmerg -f - -l -v >> /tmp/qsorep.txt";
+	    `$c`;
 
-	# edit ADIF-log
-	editmp(1);
-	$c="adifmerg -f /tmp/qsorep.txt -o > /tmp/qsorep.adi";
-	`$c`;
-	$c="cp /tmp/qsorep.adi $file";
-	`$c`;
+	    # edit ADIF-log
+	    editmp(1);
+	    $c="adifmerg -f /tmp/qsorep.txt -o > /tmp/qsorep.adi";
+	    `$c`;
+	    $c="cp /tmp/qsorep.adi $file";
+	    `$c`;
+	}
+	else
+	{
+	    if((-e $par2)&&(-r $par2))
+	    {
+		$c="adifmerg -f $par2 -o ".readfilter($par3)." $res > $file";
+		print "$c\n";
+		`$c`;
+	    }
+	    else
+	    {
+		print "File $par2 can not be read.\n"; 
+	    }
+	}
     }
     elsif($par1 eq "lotw")
     {
@@ -491,6 +558,7 @@ sub list
     my $fname=shift;
     my $par1=shift;
     my $par2=shift;
+    my $status;
 
     if($fname)
     {
@@ -518,7 +586,7 @@ sub list
 	    }
 	}
 	$c=$c." | less";
-	print `$c`;
+	$status=system($c);
     }
     else
     {
@@ -531,24 +599,102 @@ sub logsplit
 {
     my $fname=shift;
     my $par1=shift;
-    my $cfile=$cpath.$fname; # log configuration file
+    my $file=$apath.$fname.".adi"; # ADIF-file to split
+    my @set;
+    my $ofile="";
+    my $s="";
     my $c;
-    $fname=$apath.$fname.".adi";
+    my $i=0;
 
-    if((-e $fname)&&(-r $fname))
-    {
-	print `adifmerg -f $fname -q $par1`;
-    }
-    else
-    {
-	print "File not found: $fname\n";
-    }
+    my %sets=("bands" => "BAND", 
+	      "cont" => "CONT", 
+	      "country" => "COUNTRY",
+	      "cqz" => "CQZ",
+	      "dxcc" => "DXCC",
+	      "grids" => "GRIDSQUARE",
+	      "grid6" => "GRIDSQUARE",
+	      "grid8" => "GRIDSQUARE",
+	      "grid10" => "GRIDSQUARE",
+	      "iota" => "IOTA",
+	      "ituz" => "ITUZ",
+	      "modes" => "MODE",
+	      "props" => "PROP_MODE",
+	      "sota" => "SOTA",
+	      "stations" => "STATION_CALLSIGN"
+	);
 
+    if($par1 ne "")
+    {
+	if((-e $file)&&(-r $file))
+	{
+	    @set=split /\s+/,`adifmerg -f $file -q $par1`;
+	    $i=0;
+	    foreach $s (@set)
+	    {
+		$c="adifmerg -f $file -S $sets{$par1}=$s -o > ";
+		$s=~s/\//_/g;
+		$ofile=$apath.$fname."_".$s.".adi";
+		$c=$c.$ofile;
+		if(($par1 ne "bands")&&($par1 ne "modes")&&($par1 ne "props"))
+		{
+		    `$c`;
+		#    print "$c\n";
+		}
+		elsif($i%2==0)
+		{
+		    `$c`;
+		#    print "$c\n";
+		}
+		$i++;
+	    }
+	}
+	else
+	{
+	    print "File not found: $fname\n";
+	}
+    }
 }
 
 # merge logs
 sub merge
 {
+    my $fname=shift;
+    my $par1=shift;
+    my $par2=shift;
+    my $file=$apath.$fname.".adi";
+    my $file2=$apath.$par1.".adi";
+    my $c="";
+
+    if(!(-e $file)||!(-r $file))
+    {
+	print "Can not read $file.\n"; 
+    }
+    elsif(!(-e $file2)||!(-r $file2))
+    {
+	print "Can not read $file2.\n"; 
+    }
+    else
+    {
+	if($par2 eq "test")
+	{
+	    $c="adifmerg -f $file -m $file2 -v";
+	    print `$c`;
+	}
+	else
+	{
+	    $c="adifmerg -f $file -m $file2 -o -v > /tmp/qsorep.adi";
+	    `$c`;
+	    if($par2 eq "diff")
+	    {
+		$c="adifmerg -f /tmp/qsorep.adi -l -v > /tmp/qsorep.txt";
+		`$c`;
+		$c="adifmerg -f $file -l -v | diff - /tmp/qsorep.txt";
+		print `$c`;
+	    }
+	    $c="cp -i /tmp/qsorep.adi $file";
+	    `$c`;
+	}
+    }
 }
 
 # print help
@@ -563,15 +709,11 @@ sub printhelp
 	    print "Add QSOs to ADIF-file.\n";
 	    print "file add\n";
 	}
-	if($cmd=~/^cards/i)
-	{
-	    print "Produce PDF-file of QSL-cards.\n";
-	    print "file cards template\n";
-	}
 	if($cmd=~/^create/i)
 	{
-	    print "Create and fill new ADIF-file.\n";
-	    print "file create eqsl|log|lotw [file]\n";
+	    print "Create and fill new ADIF-file. The file type 'eqsl', 'log' or 'lotw' determines how new QSLs and QSOs are added to the file. Absolute path needs to be given for file2 and it needs to have correct suffix (e.g. '.csv'). The parameters at the end of the line can be used to filter the data, for example
+'-S QSODATE=20120821'\n";
+	    print "file create eqsl|log|lotw [path/file2] [filter [parameters]]\n";
 	}
 	if($cmd=~/^edit/i)
 	{
@@ -581,7 +723,7 @@ sub printhelp
 	if($cmd=~/^export/i)
 	{
 	    print "Export ADIF-file to an other format.\n";
-	    print "file export cab|csv|eqsl|lotw|txt [file]\n";
+	    print "file export cab|csv|eqsl|lotw|temp|txt [file2]\n";
 	}
 	if($cmd=~/^info/i)
 	{
@@ -600,8 +742,8 @@ sub printhelp
 	}
 	if($cmd=~/^merge/i)
 	{
-	    print "Merge QSOs to file.\n";
-	    print "file merge file [test]\n";
+	    print "Merge file2 QSOs to file1.\n";
+	    print "file1 merge file2 [diff|test]\n";
 	}
 	if($cmd=~/^list/i)
 	{
@@ -620,8 +762,13 @@ sub printhelp
 	}
 	if($cmd=~/^split/i)
 	{
-	    print "Split QSOs to separate files.\n";
-	    print "file split field\n";
+	    print "Split QSOs to separate files. One of the adifmerg sets like 'bands' or 'grids' can be used as splitting criteria.\n";
+	    print "file split set\n";
+	}
+	if($cmd=~/^sort/i)
+	{
+	    print "Sort QSOs in file.\n";
+	    print "file sort\n";
 	}
 	if($cmd=~/^version/i)
 	{
@@ -631,17 +778,18 @@ sub printhelp
     else
     {
 	print "file add\n";
-	print "file cards\n";
-	print "file create eqsl|log|lotw [file]\n";
+	print "file create eqsl|log|lotw [path/file2] [filter [parameters]]\n";
 	print "file edit [config|diff]\n";
-	print "file export cab|csv|eqsl|lotw|txt [file]\n";
+	print "file export cab|csv|eqsl|lotw|temp|txt [file2]\n";
 	print "file info [verbosed]\n";
 	print "[command] help\n";
 	print "[number] history\n";
-	print "file list [verbosed] [selection]\n";
-	print "file merge file [test]\n";
+	print "[file] list [verbosed] [selection]\n";
+	print "file merge file2 [diff|test]\n";
 	print "file qsl [diff]\n";
 	print "file qso [diff]\n";
+	print "file sort\n";
+	print "file split set\n";
 	print "version\n";
 	print "Use 'command help' to see more options.\n";
     }
@@ -680,7 +828,7 @@ sub printversion
 # print usage message
 sub printusage 
 {    
-    print "usage: qsorep -l logdir [-c command] [-h] [-v] [-V]\n";
+    print "usage: qsorep -l repdir [-c command] [-h] [-v] [-V]\n";
     exit;
 }
 
@@ -752,7 +900,14 @@ sub qsl
 	my $c="wget '$lq' -q -O - ".readfilter($vars{QSLFILTER})." | adifmerg -f - -m $file -o -v > /tmp/qsorep.adi";
 
 	print "$c\n" if($dbg);
-	`$c`;
+	if(readfilter($vars{QSLFILTER}))
+	{
+	    `$c`;
+	}
+	else
+	{
+	    print "filter $vars{QSLFILTER} not found\n";
+	}
 
 	if($par1 eq "diff")
 	{
@@ -768,8 +923,6 @@ sub qsl
 
 	$c="cp -i /tmp/qsorep.adi $file";
 	print `$c`;
-
-#| adifmerg -f - -s | adifmerg -f - -A LOTW_QSL_RCVD=Y,LOTW_QSL_SENT=Y -R LOTW_QSLRDATE=QSLRDATE -o | adifmerg -f - -m $fname -o -v > $fname2`;
 
     }
 }
@@ -796,7 +949,14 @@ sub qso
 	my $c="wget '$lq' -q -O - ".readfilter($vars{QSOFILTER})." | adifmerg -f - -m $file -o -v > /tmp/qsorep.adi";
 
 	print "$c\n" if($dbg);
-	`$c`;
+	if(readfilter($vars{QSOFILTER}))
+	{
+	    `$c`;
+	}
+	else
+	{
+	    print "filter $vars{QSOFILTER} not found\n";
+	}
 
 	if($par1 eq "diff")
 	{
@@ -850,14 +1010,19 @@ sub readeqsl
     }
 }
 
-# read filter
+# read filter, return "" (empty) if no filter found
 sub readfilter
 {
     my $filtname=shift;
-    my $c="cat ".$filtpath.$filtname;
-    my $filt=`$c`;
-
-    chop $filt;
+    my $file=$filtpath.$filtname;
+    my $c="cat ".$file;
+    my $filt="";
+    
+    if((-e $file)&&(-r $file))
+    {
+	$filt=`$c`;
+	chop $filt;
+    }
 
     return $filt;
 }
@@ -882,11 +1047,16 @@ sub readlotw
     my $c="wget '$lq' -q -O - ".readfilter($vars{QSOFILTER})." > $file";
 
     print "$c\n";
-    `$c`;
 
-#| adifmerg -f - -s | adifmerg -f - -A LOTW_QSL_SENT=Y -R LOTW_QSLRDATE=QSLRDATE,LOTW_QSL_RCVD=QSL_RCVD -o > $file`;
-
-    updatelotwd($fname);
+    if(readfilter($vars{QSOFILTER}))
+    {
+	`$c`;
+	updatelotwd($fname);
+    }
+    else
+    {
+	print "filter $vars{QSOFILTER} not found.\n";
+    }
 
 }
 
@@ -931,6 +1101,26 @@ sub resetvars
     }
 }
 
+# sort logs
+sub logsort
+{
+    my $fname=shift;
+    my $file=$apath.$fname.".adi";
+    my $c="";
+
+    if(!(-e $file)||!(-r $file))
+    {
+	print "Can not read $file.\n"; 
+    }
+    else
+    {
+	$c="adifmerg -f $file -s > /tmp/qsorep.adi";
+	`$c`;
+	$c="cp -i /tmp/qsorep.adi $file";
+	`$c`;
+    }
+}
+
 # time stamp now, e.g. '2011-03-04 10:02:45'
 sub timenow
 {
@@ -972,3 +1162,93 @@ sub updatelotwd
 	    close(CNF);
     }
 }
+
+# write empty cabrillo template file
+sub writecabtemp
+{
+    my $file=shift;
+
+    if(open(CAF,">",$file))
+    {
+	    print CAF "#
+# Example template for Cabrillo 3.0 contest log for adifmerg.
+# Note that one space after ':' is required in Cabrillo 3.0.
+
+# The callsign used during the contest.
+CALLSIGN: MY0CALL 
+
+# ASSISTED or NON-ASSISTED 
+CATEGORY-ASSISTED: 
+
+# Band: ALL, 160M, 80M, 40M, 20M, 15M, 10M, 6M, 2M, 222, 432, 902, 1.2G 
+CATEGORY-BAND: 
+
+# Mode: SSB, CW, RTTY, MIXED 
+CATEGORY-MODE: 
+
+# Operator: SINGLE-OP, MULTI-OP, CHECKLOG 
+CATEGORY-OPERATOR: 
+
+# Power: HIGH, LOW, QRP 
+CATEGORY-POWER: 
+
+# Station: FIXED, MOBILE, PORTABLE, ROVER, EXPEDITION, HQ, SCHOOL 
+CATEGORY-STATION: 
+
+# Time: 6-HOURS, 12-HOURS, 24-HOURS 
+CATEGORY-TIME: 
+
+# Transmitter: ONE, TWO, LIMITED, UNLIMITED, SWL 
+CATEGORY-TRANSMITTER: 
+
+# Overlay: ROOKIE, TB-WIRES, NOVICE-TECH, OVER-50 
+CATEGORY-OVERLAY: 
+
+# Integer number
+CLAIMED-SCORE: 
+
+# Name of the radio club with which the score should be aggregated.
+CLUB: 
+
+# Contest: AP-SPRINT, ARRL-10, ARRL-160, ARRL-DX-CW, ARRL-DX-SSB, ARRL-SS-CW,
+# ARRL-SS-SSB, ARRL-UHF-AUG, ARRL-VHF-JAN, ARRL-VHF-JUN, ARRL-VHF-SEP, 
+# ARRL-RTTY, BARTG-RTTY, CQ-160-CW, CQ-160-SSB, CQ-WPX-CW, CQ-WPX-RTTY,
+# CQ-WPX-SSB, CQ-VHF, CQ-WW-CW, CQ-WW-RTTY, CQ-WW-SSB, DARC-WAEDC-CW,
+# DARC-WAEDC-RTTY, DARC-WAEDC-SSB, FCG-FQP, IARU-HF, JIDX-CW, JIDX-SSB,
+# NAQP-CW, NAQP-RTTY, NAQP-SSB, NA-SPRINT-CW, NA-SPRINT-SSB, NCCC-CQP,
+# NEQP, OCEANIA-DX-CW, OCEANIA-DX-SSB, RDXC, RSGB-IOTA, SAC-CW, SAC-SSB,
+# STEW-PERRY, TARA-RTTY 
+CONTEST: 
+
+# Move to adifmerg
+CREATED-BY: adifmerg
+
+# Optional email address
+EMAIL: 
+
+LOCATION: 
+
+# Operator name
+NAME: 
+
+# Maximum 4 address lines.
+ADDRESS: 
+ADDRESS: 
+ADDRESS: 
+ADDRESS: 
+
+# A space-delimited list of operator callsign(s). 
+OPERATORS:  
+
+# Offtime yyyy-mm-dd nnnn yyyy-mm-dd nnnn 
+# OFFTIME: 
+
+# Soapbox comments.
+SOAPBOX: 
+SOAPBOX: 
+SOAPBOX: ";
+	    close(CAF);
+    }
+
+}
+

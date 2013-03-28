@@ -1,0 +1,1 @@
+| adifmerg -f - -s | adifmerg -f - -A LOTW_QSL_RCVD=Y,LOTW_QSL_SENT=Y -R LOTW_QSLRDATE=QSLRDATE -o

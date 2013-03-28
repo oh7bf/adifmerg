@@ -1,10 +1,12 @@
-Fri May  4 21:24:55 CEST 2012
+Thu Mar 28 12:27:22 CET 2013
 Jaakko Koivuniemi, OH7BF
 
 CHANGE LOG
 ==========
 
 DATE            DESCRIPTION
+2013 Mar 28     add testrep for qsorep
+2012 Oct 24     update list of SOTA associations
 2012 May 4      qsorep to keep local ADIF-log repository
 2012 Apr 30     read csv, txt or cbr from standard input with -f -csv etc 
 2012 Apr 27     read Cabrillo logs

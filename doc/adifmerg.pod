@@ -133,7 +133,13 @@ I<nqso> number of QSOs
 
 I<nsota> number of SOTAs
 
+I<nstation> number of stations
+
+I<props> list of propagation modes
+
 I<sota> list of SOTAs
+
+I<stations> list of stations
 
 =head1 OPTIONS
 

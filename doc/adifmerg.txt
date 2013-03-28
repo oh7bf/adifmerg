@@ -128,7 +128,13 @@ DESCRIPTION
 
     *nsota* number of SOTAs
 
+    *nstation* number of stations
+
+    *props* list of propagation modes
+
     *sota* list of SOTAs
+
+    *stations* list of stations
 
 OPTIONS
     -f read in ADIF, text or csv files

@@ -124,24 +124,41 @@
 .\" ========================================================================
 .\"
 .IX Title "QSOREP 1"
-.TH QSOREP 1 "2012-04-27" "version 20120427" "Hamradio"
+.TH QSOREP 1 "2012-10-24" "version 20121024" "Hamradio"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
 .nh
 .SH "NAME"
-qsorep \-  logging with ADIF\-files
+qsorep \-  QSO repository with ADIF\-files
 .SH "SYNOPSIS"
 .IX Header "SYNOPSIS"
-\&\fBqsorep\fR [\fB\-c\fR command] [\fB\-h\fR] [\fB\-v\fR] [\fB\-V\fR]
+\&\fBqsorep\fR \fB\-l\fR repdir [\fB\-c\fR command] [\fB\-h\fR] [\fB\-v\fR] [\fB\-V\fR]
 .SH "DESCRIPTION"
 .IX Header "DESCRIPTION"
-The \fBqsorep\fR can be used to add or edit QSOs in an ADIF-file. The log can 
-be merged with the main log file. New QSOs and QSLs from LoTW can be fetched
-and merged. Production of \s-1QSL\s0 labels or \s-1QSL\s0 cards is possible. Use for
-example \fBgit\fR to track changes in the log files.
+The \fBqsorep\fR can be used to add or edit QSOs in an ADIF-file repository. 
+The repository directory needs to be given with the option \fB\-l\fR. If the 
+directory does not exist, a new repository is created. The repository has
+subdirectories for the \s-1ADIF\s0 logs and produced \s-1QSL\s0 cards. There are
+separate directories for the exported Cabrillo logs, csv-files, eQSL logs
+and LoTW logs. The filter subdirectory has all the filters to manipulate
+the log files. For example to \fItxt2adif\fR has a single line
+.PP
+| adifmerg \-f \-txt \-o
+.PP
+meaning that text is read from the standard input and ADIF-data is written
+to standard output. It is necessary to create own custom filters to the
+filter directory.
+.PP
+The configuration files for each ADIF-log is hidden into directory
+\&.qsorep/ .
+.PP
+Production of \s-1QSL\s0 labels or \s-1QSL\s0 cards is possible. 
+Use for example \fBgit\fR to track changes in the log files.
 .SH "OPTIONS"
 .IX Header "OPTIONS"
+\&\fB\-l\fR directory for repository
+.PP
 \&\fB\-c\fR execute command string
 .PP
 \&\fB\-h\fR display a short help text
@@ -151,42 +168,112 @@ example \fBgit\fR to track changes in the log files.
 \&\fB\-V\fR print version
 .SH "COMMANDS"
 .IX Header "COMMANDS"
+Add new QSOs to an ADIF-log file from terminal
+.PP
+\&\fIfile\fR \fBadd\fR
+.PP
+Create a new log file. The file type 'eqsl', 'log' or 'lotw' determines how
+new QSOs and QSLs are added to the log. Optionally the file can created
+from file2.
+.PP
+\&\fIfile\fR \fBcreate\fR eqsl|log|lotw [path/file2] [filter [parameters]]
+.PP
+A \fIfilter\fR can be used to modify the ADIF-file and \fIparameters\fR can be passed 
+to the \fIadifmerg\fR\|(1).
+.PP
+Edit ADIF-log or its configuration file. With the \fIdiff\fR option the \fIdiff\fR\|(1) 
+is used to show the difference to the original file.
+.PP
+\&\fIfile\fR \fBedit\fR [config|diff]
+.PP
+Export ADIF-log as Cabrillo, csv, eQSL, LoTW, template filled or text file.
+The 'file2' is given as a template for the 'cab' or 'temp' options.
+.PP
+\&\fIfile\fR \fBexport\fR cab|csv|eqsl|lotw|temp|txt [file2]
+.PP
+Print short or verbosed info on the logfile.
+.PP
+\&\fIfile\fR \fBinfo\fR [verbosed]
+.PP
+Print help on command.
+.PP
+[\fBcommand\fR] \fBhelp\fR
+.PP
+Print history of commands.
+.PP
+[number] \fBhistory\fR
+.PP
+List logfiles or print log on the screen. The QSOs can be selected with for 
+example 'CALL=DX0ABC'.
+.PP
+\&\fIfile\fR \fBlist\fR [verbosed] [selection]
+.PP
+Merge file2 to file.
+.PP
+\&\fIfile\fR \fBmerge\fR file2 [diff|test]
+.PP
+Add QSLs to file.
+.PP
+\&\fIfile\fR \fBqsl\fR [diff]
+.PP
+Add QSOs to file.
+.PP
+\&\fIfile\fR \fBqso\fR [diff]
+.PP
+Sort logfile to ascending time order.
+.PP
+\&\fIfile\fR \fBsort\fR
+.PP
+Split logfile into smaller logs with a set, e.g. 'bands'.
+.PP
+\&\fIfile\fR \fBsplit\fR set
+.PP
+Print \fIqsorep\fR\|(1) version.
+.PP
+\&\fBversion\fR
 .SH "EXAMPLE"
 .IX Header "EXAMPLE"
 Create initial local copy of LoTW QSOs
 .PP
-\&\fIlotw\fR \fBcreate\fR \fBLoTW\fR
+\&\fIlotwin\fR \fBcreate\fR \fIlotw\fR
 .PP
 Print info on the \fIlotw.adi\fR file
 .PP
-\&\fIlotw\fR \fBinfo\fR
+\&\fIlotwin\fR \fBinfo\fR \fIverbosed\fR
 .PP
-Update received QSLs from LoTW and merge them to the main log file
+Update received QSLs from LoTW
 .PP
-\&\fIlotw\fR \fBqsl\fR \fBmerge\fR
+\&\fIlotw\fR \fBqsl\fR \fIdiff\fR
 .PP
-Edit main log file
+Create new log for downloaded \s-1SOTA\s0 QSOs, use filter sotaMY0CALL and select 
+QSOs on date 20120821
 .PP
-\&\fIlog\fR \fBedit\fR
+\&\fI20120821SOTAREF\fR \fBcreate\fR \fIlog\fR /home/my0call/Download/mylog.csv sotaMY0CALL \-S QSO_DATE=20120821
 .PP
-Add \s-1QSO\s0 to \fImycall\fR log file
+Export the file for signing and uploading to LoTW
 .PP
-\&\fImycall\fR \fBadd\fR \s-1ZX9ABC\s0 14.0432 \s-1CW\s0 599/449 John
+\&\fI20120821SOTAREF\fR \fBexport\fR \fIlotw\fR
+.PP
+Update QSOs
+.PP
+\&\fI20120821SOTAREF\fR \fBmerge\fR /home/my0call/Download/newlog.csv \fIdiff\fR
+.PP
+Edit main log file \fImy0call\fR
+.PP
+\&\fImy0call\fR \fBedit\fR \fIdiff\fR
+.PP
+Note that some information can be lost in editing.
+.PP
+Add a \s-1QSO\s0 to the log file
+.PP
+\&\fImy0call\fR \fBadd\fR
 .PP
 Add QSOs from received paper \s-1QSL\s0 cards by call signs and merge with the main
 log file
 .PP
-\&\fIqsl\fR \fBadd\fR \s-1AB9XYZ\s0 \s-1CD8ZYX\s0 ...
+\&\fImy0callqslr\fR \fBqsl\fR \fIdiff\fR
 .PP
-\&\fIqsl\fR \fBmerge\fR \fBtest\fR
-.PP
-\&\fIqsl\fR \fBmerge\fR
-.PP
-Print \s-1QSL\s0 card file and mark the cards as sent in the main log
-.PP
-\&\fIqsl\fR \fBcard\fR
-.PP
-\&\fIqsl\fR \fBmerge\fR
+\&\fImy0call\fR \fBmerge\fR \fImy0callqslr\fR
 .SH "DIAGNOSTICS"
 .IX Header "DIAGNOSTICS"
 The \fIqsorep\fR has been tested with perl v5.10.1. You may need to adapt 

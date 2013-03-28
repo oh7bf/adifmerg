@@ -3,8 +3,8 @@
 #                                                                             
 # Merge and convert ADIF files.
 #
-# This program was written by Jaakko Koivuniemi OH7BF on April 30 2012.  
-# Copyright (C) 2008-2012 Jaakko Koivuniemi.
+# This program was written by Jaakko Koivuniemi OH7BF on February 20 2013.  
+# Copyright (C) 2008-2013 Jaakko Koivuniemi.
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@ use Getopt::Std;
 
 use subs qw/AddLoc AddRec AdifHead AdifLine AdifRecTo2 b2cabf b2sota Band2freq CalcDist CheckBand CheckCQZ CheckDate CheckGrid CheckIota CheckITUZ CheckLoc CheckMode CheckPmode CheckPwr CheckQslr CheckQsls CheckQso CheckRig CheckRst CheckSat CheckSatMode CheckSota CheckUtc CheckVia CompareRec date2csv DelRec EmptyRec f2cabf FixRec Freq2band Grid2Loc jday Loc2Rad m2cab MapRec MergeRecs MRules MyNotes2Adif Notes2Adif PrintAdifHead PrintAdifRec PrintCabHead PrintCabRec PrintCsvRec PrintInfo PrintQsls PrintQso PrintQsos PrintTxtHead PrintTxtRec PrintTxtRecL printusage printversion QslDate Qso2Array Qso2Hash Qso2HashT Qso2Hash2s ReadAdifLog ReadAdifRec ReadCabLog ReadCsvLog ReadTxtLog SearchMatch StatQso time2csv/;
 
-my $verno="20120430";
+my $verno="20130220";
 my $averno="2.2.7";
 
 # general debugging switch
@@ -460,6 +460,8 @@ my $gridlen=4; # length of grid square in statistics
 my %lonlatstat; # longitude/latitude statistics 
 my %iotastat; # IOTA statistics
 my %sotastat; # SOTA statistics
+my %stationstat; # station statistics
+my %propstat; # propagation statistics
 my $dloss=0; # possible data loss during merging
 
 my @qsos; # array of parsed adif lines with time in beginning for sorting
@@ -558,6 +560,9 @@ my $srecu="";
 if($opt_S)
 {
     ($srecn,$srecv,$srecu)=split /[=,]/, $opt_S;
+    $gridlen=6 if(($srecn eq "GRIDSQUARE")&&(length($srecv)==6));
+    $gridlen=8 if(($srecn eq "GRIDSQUARE")&&(length($srecv)==8));
+    $gridlen=10 if(($srecn eq "GRIDSQUARE")&&(length($srecv)==10));
 }
 
 my @frecs;
@@ -1001,7 +1006,14 @@ sub PrintQso
         # exact match 'REC=VAL'
 	if(($srecv)&&($srecv ne "!"))
 	{
-	    $prout=1 if(($rec[$recno]{$srecn} eq $srecv)&&($srecv));
+	    if($srecn ne "GRIDSQUARE")
+	    {
+		$prout=1 if(($rec[$recno]{$srecn} eq $srecv)&&($srecv));
+	    }
+	    else
+	    {
+		$prout=1 if(((substr $rec[$recno]{$srecn},0,$gridlen) eq $srecv)&&($srecv));
+	    }
 	}
 
 	else
@@ -1152,6 +1164,14 @@ sub StatQso
     {
 	$modstat{uc $rec[$recno]{MODE}}=1;
     }
+    if(exists $propstat{uc $rec[$recno]{PROP_MODE}})
+    {
+	$propstat{uc $rec[$recno]{PROP_MODE}}++;
+    }
+    else
+    {
+	$propstat{uc $rec[$recno]{PROP_MODE}}=1 if($rec[$recno]{PROP_MODE});
+    }
     $nqsls++ if($rec[$recno]{QSL_SENT} eq "Y");
     $nqslr++ if($rec[$recno]{QSL_RCVD} eq "Y");
     $neqsls++ if($rec[$recno]{EQSL_QSL_SENT} eq "Y");
@@ -1192,6 +1212,11 @@ sub StatQso
     {
 	$iotastat{$rec[$recno]{IOTA}}=1 
 	    if(!exists $iotastat{$rec[$recno]{IOTA}});
+    }
+    if($rec[$recno]{STATION_CALLSIGN})
+    {
+	$stationstat{uc $rec[$recno]{STATION_CALLSIGN}}=1 
+	    if(!exists $stationstat{uc $rec[$recno]{STATION_CALLSIGN}});
     }
     if(exists $rec[$recno]{SOTA})
     {
@@ -2029,6 +2054,12 @@ sub Qso2HashT
  
     $rn=$c." ".$rec[0]{CALL};
     $rn=$rn." ".(uc $rec[0]{MY_GRIDSQUARE}) if($rec[0]{MY_GRIDSQUARE});
+
+    if(exists $rec[0]{MY_SOTA})
+    { 	
+        $rn=$rn." ".(uc $rec[0]{MY_SOTA}) if($rec[0]{MY_SOTA});
+    }	
+
     if($rec[0]{CALL})
     {
 	if(!exists $qsl{$rn})
@@ -3991,7 +4022,7 @@ sub CheckSota()
     $l=uc $l;
     my $ok=0;
 
-    $ok=1 if($l =~ /^(9H|DL|DM|E7|EA1|EA2|EA3|EA4|EA5|EA8|EI|F|G|GD|GI|GM|GW|HA|HB|HB0|HL|LA|LX|OD|OE|OH|OK|ON|OZ|PA|S2|S5|SP|SM|SV|TK|UT|VE1|VE2|VE7|VP8|W0|W1|W2|W3|W5|W6|W7|YO|Z3|ZS)\/(\w\w)-(\d\d\d)/);
+    $ok=1 if($l =~ /^(9H|CT|CT3|DL|DM|E7|EA1|EA2|EA3|EA4|EA5|EA7|EA8|EI|ES|F|G|GD|GI|GM|GW|HA|HB|HB0|HL|I|IS0|LA|LX|OD|OE|OH|OK|OM|ON|OZ|PA|S5|SP|SM|SV|TK|UT|VE1|VE2|VE6|VE7|VK3|VK5|VP8|W0|W1|W2|W3|W4C|W4G|W4T|W4V|W5A|W5N|W5O|W5T|W6|W7A|W7I|W7M|W7N|W7O|W7U|W7W|W7Y|W8V|YO|Z3|ZS)\/(\w\w)-(\d\d\d)/);
 
     return $ok;
 }
@@ -4292,6 +4323,8 @@ sub PrintInfo
     my $lonlat;
     my $lond;
     my $latd;
+    my $station;
+    my $prop;
     my $ndx=0;
     my $ndxc=0;
     my $ncq=0;
@@ -4301,8 +4334,15 @@ sub PrintInfo
     my $niota=0;
     my $nsota=0;
     my $nlonlat=0;
+    my $nstation=0;
 
-    print "DXCC:\n" if($opt_v);
+    print "STATION:\n" if($opt_v);
+    foreach $dxx (sort keys %stationstat)
+    {
+	print "$dxx " if(($opt_v)||($opt_q eq 'stations'));
+	$nstation++;
+    }
+    print "\nDXCC:\n" if($opt_v);
     foreach $dxx (sort {$a <=> $b} keys %dxstat)
     {
 	print "$dxx " if(($opt_v)||($opt_q eq 'dxcc'));
@@ -4400,6 +4440,10 @@ sub PrintInfo
 	{
 	    print (sprintf "%-8.8s   %5d\n", $mode, $modstat{$mode});
 	}
+	foreach $prop (sort keys %propstat)
+	{
+	    print (sprintf "%-8.8s   %5d\n", $prop, $propstat{$prop});
+	}
     }
 
     if($opt_q eq 'bands')
@@ -4410,7 +4454,6 @@ sub PrintInfo
 	}
 	print "\n";
     }
-
     if($opt_q eq 'modes')
     {
 	foreach $mode (sort keys %modstat)
@@ -4419,7 +4462,14 @@ sub PrintInfo
 	}
 	print "\n";
     }
-
+    if($opt_q eq 'props')
+    {
+	foreach $prop (sort keys %propstat)
+	{
+	    print $prop." ".$propstat{$prop}." ";
+	}
+	print "\n";
+    }
     if($opt_q eq 'country')
     {
 	foreach $ctry (sort keys %ctrystat)
@@ -4428,7 +4478,6 @@ sub PrintInfo
 	}
 	print "\n";
     }
-
     if($opt_q eq 'lonlat')
     {
 	foreach $lonlat (sort keys %lonlatstat)
@@ -4436,7 +4485,6 @@ sub PrintInfo
 	    print "$lonlat\n";
 	}
     }
-
     if($opt_q eq 'lonlatd')
     {
 	foreach $lonlat (sort keys %lonlatstat)
@@ -4451,8 +4499,14 @@ sub PrintInfo
 	    print "$lond $latd\n";
 	}
     }
-
-
+    if($opt_q eq 'station')
+    {
+	foreach $station (sort keys %stationstat)
+	{
+	    print "$station ";
+	}
+	print "\n";
+    }
 
 # print query results
     if($opt_q)
@@ -4501,6 +4555,7 @@ sub PrintInfo
 	    print "$nerr " if($p eq 'nerr');
 	    print "$niota " if($p eq 'niota');
 	    print "$nsota " if($p eq 'nsota');
+	    print "$nstation " if($p eq 'nstation');
 	}
 	print "\n";
     }
