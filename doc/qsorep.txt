@@ -1,0 +1,160 @@
+NAME
+    qsorep - QSO repository with ADIF-files
+
+SYNOPSIS
+    qsorep -l repdir [-c command] [-h] [-v] [-V]
+
+DESCRIPTION
+    The qsorep can be used to add or edit QSOs in an ADIF-file repository.
+    The repository directory needs to be given with the option -l. If the
+    directory does not exist, a new repository is created. The repository
+    has subdirectories for the ADIF logs and produced QSL cards. There are
+    separate directories for the exported Cabrillo logs, csv-files, eQSL
+    logs and LoTW logs. The filter subdirectory has all the filters to
+    manipulate the log files. For example to *txt2adif* has a single line
+
+    | adifmerg -f -txt -o
+
+    meaning that text is read from the standard input and ADIF-data is
+    written to standard output. It is necessary to create own custom filters
+    to the filter directory.
+
+    The configuration files for each ADIF-log is hidden into directory
+    .qsorep/ .
+
+    Production of QSL labels or QSL cards is possible. Use for example git
+    to track changes in the log files.
+
+OPTIONS
+    -l directory for repository
+
+    -c execute command string
+
+    -h display a short help text
+
+    -v verbose
+
+    -V print version
+
+COMMANDS
+    Add new QSOs to an ADIF-log file from terminal
+
+    *file* add
+
+    Create a new log file. The file type 'eqsl', 'log' or 'lotw' determines
+    how new QSOs and QSLs are added to the log. Optionally the file can
+    created from file2.
+
+    *file* create eqsl|log|lotw [path/file2] [filter [parameters]]
+
+    A *filter* can be used to modify the ADIF-file and *parameters* can be
+    passed to the adifmerg(1).
+
+    Edit ADIF-log or its configuration file. With the *diff* option the
+    diff(1) is used to show the difference to the original file.
+
+    *file* edit [config|diff]
+
+    Export ADIF-log as Cabrillo, csv, eQSL, LoTW, template filled or text
+    file. The 'file2' is given as a template for the 'cab' or 'temp'
+    options.
+
+    *file* export cab|csv|eqsl|lotw|temp|txt [file2]
+
+    Print short or verbosed info on the logfile.
+
+    *file* info [verbosed]
+
+    Print help on command.
+
+    [command] help
+
+    Print history of commands.
+
+    [number] history
+
+    List logfiles or print log on the screen. The QSOs can be selected with
+    for example 'CALL=DX0ABC'.
+
+    *file* list [verbosed] [selection]
+
+    Merge file2 to file.
+
+    *file* merge file2 [diff|test]
+
+    Add QSLs to file.
+
+    *file* qsl [diff]
+
+    Add QSOs to file.
+
+    *file* qso [diff]
+
+    Sort logfile to ascending time order.
+
+    *file* sort
+
+    Split logfile into smaller logs with a set, e.g. 'bands'.
+
+    *file* split set
+
+    Print qsorep(1) version.
+
+    version
+
+EXAMPLE
+    Create initial local copy of LoTW QSOs
+
+    *lotwin* create *lotw*
+
+    Print info on the *lotw.adi* file
+
+    *lotwin* info *verbosed*
+
+    Update received QSLs from LoTW
+
+    *lotw* qsl *diff*
+
+    Create new log for downloaded SOTA QSOs, use filter sotaMY0CALL and
+    select QSOs on date 20120821
+
+    *20120821SOTAREF* create *log* /home/my0call/Download/mylog.csv
+    sotaMY0CALL -S QSO_DATE=20120821
+
+    Export the file for signing and uploading to LoTW
+
+    *20120821SOTAREF* export *lotw*
+
+    Update QSOs
+
+    *20120821SOTAREF* merge /home/my0call/Download/newlog.csv *diff*
+
+    Edit main log file *my0call*
+
+    *my0call* edit *diff*
+
+    Note that some information can be lost in editing.
+
+    Add a QSO to the log file
+
+    *my0call* add
+
+    Add QSOs from received paper QSL cards by call signs and merge with the
+    main log file
+
+    *my0callqslr* qsl *diff*
+
+    *my0call* merge *my0callqslr*
+
+DIAGNOSTICS
+    The *qsorep* has been tested with perl v5.10.1. You may need to adapt
+    the script to your environment.
+
+BUGS
+AUTHORS
+    Jaakko Koivuniemi OH7BF, if tod lars ta fb7ho
+
+LINKS
+SEE ALSO
+    Getopt::Std(3pm), Term::ReadLine(3pm), adifmerg(1)
+
