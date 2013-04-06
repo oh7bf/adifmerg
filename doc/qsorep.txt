@@ -132,13 +132,13 @@ EXAMPLE
 
     *lotwin* create *lotw*
 
-    Print info on the *lotw.adi* file
+    Print info on the *lotwin.adi* file
 
     *lotwin* info *verbosed*
 
     Update received QSLs from LoTW
 
-    *lotw* qsl *diff*
+    *lotwin* qsl *diff*
 
     Create new log for downloaded SOTA QSOs, use filter sotaMY0CALL and
     select QSOs on date 20130331

@@ -138,13 +138,13 @@ Create initial local copy of LoTW QSOs
 
 I<lotwin> B<create> I<lotw>
 
-Print info on the I<lotw.adi> file
+Print info on the I<lotwin.adi> file
 
 I<lotwin> B<info> I<verbosed>
 
 Update received QSLs from LoTW 
 
-I<lotw> B<qsl> I<diff>
+I<lotwin> B<qsl> I<diff>
 
 Create new log for downloaded SOTA QSOs, use filter sotaMY0CALL and select 
 QSOs on date 20130331
@@ -161,7 +161,7 @@ I<20130331SOTAREF> B<export> I<lotw>
 
 Update QSOs
 
-I<20130331SOTAREF> B<merge> /home/my0call/Downloads/newlog.csv I<diff>
+I<20130331SOTAREF> B<merge> newlog I<diff>
 
 Edit main log file I<my0call>
 
