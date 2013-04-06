@@ -102,6 +102,31 @@ COMMANDS
 
     version
 
+REPOSITORY DIRECTORIES
+    Typical QSO repository has following directories
+
+    *adif* All the ADIF-log files are in this directory.
+
+    *cabrillo* Produced Cabrillo files.
+
+    *cards* Produced QSL-card files.
+
+    *csv* Produced CSV files.
+
+    *eqsl* Produced eQSL ADIF-files.
+
+    *filter* Filters to modify and export ADIF-files.
+
+    *lotw* Produced ADIF-files for signing and uploading to LoTW.
+
+    *txt* Produced text files.
+
+    In addition there is a hidden *.qsorep* directory. This directory has a
+    configuration file for all the ADIF-log files in *adif* directory.
+
+    Any external temporary data can live outside of the repository for
+    example in /tmp.
+
 EXAMPLE
     Create initial local copy of LoTW QSOs
 
@@ -116,18 +141,23 @@ EXAMPLE
     *lotw* qsl *diff*
 
     Create new log for downloaded SOTA QSOs, use filter sotaMY0CALL and
-    select QSOs on date 20120821
+    select QSOs on date 20130331
 
-    *20120821SOTAREF* create *log* /home/my0call/Download/mylog.csv
-    sotaMY0CALL -S QSO_DATE=20120821
+    *20130331SOTAREF* create *log* /home/my0call/Downloads/mylog.csv
+    sotaMY0CALL -S QSO_DATE=20130331
+
+    Typical filter file sotaMY0CALL could contain a line like
+
+    | adifmerg -f - -o -R MY_SOTA=SOTA -A
+    MY_COUNTRY=Finland,MY_ITU_ZONE=18,MY_CQ_ZONE=15
 
     Export the file for signing and uploading to LoTW
 
-    *20120821SOTAREF* export *lotw*
+    *20130331SOTAREF* export *lotw*
 
     Update QSOs
 
-    *20120821SOTAREF* merge /home/my0call/Download/newlog.csv *diff*
+    *20130331SOTAREF* merge /home/my0call/Downloads/newlog.csv *diff*
 
     Edit main log file *my0call*
 

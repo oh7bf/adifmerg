@@ -106,6 +106,32 @@ Print qsorep(1) version.
 
 B<version>
 
+=head1 REPOSITORY DIRECTORIES
+
+Typical QSO repository has following directories
+
+I<adif> All the ADIF-log files are in this directory.  
+
+I<cabrillo> Produced Cabrillo files. 
+
+I<cards> Produced QSL-card files. 
+
+I<csv> Produced CSV files.
+
+I<eqsl> Produced eQSL ADIF-files. 
+
+I<filter> Filters to modify and export ADIF-files.  
+
+I<lotw> Produced ADIF-files for signing and uploading to LoTW. 
+
+I<txt> Produced text files.
+
+In addition there is a hidden I<.qsorep> directory. This directory has
+a configuration file for all the ADIF-log files in I<adif> directory.
+
+Any external temporary data can live outside of the repository 
+for example in /tmp. 
+
 =head1 EXAMPLE
 
 Create initial local copy of LoTW QSOs
@@ -121,17 +147,21 @@ Update received QSLs from LoTW
 I<lotw> B<qsl> I<diff>
 
 Create new log for downloaded SOTA QSOs, use filter sotaMY0CALL and select 
-QSOs on date 20120821
+QSOs on date 20130331
 
-I<20120821SOTAREF> B<create> I<log> /home/my0call/Download/mylog.csv sotaMY0CALL -S QSO_DATE=20120821
+I<20130331SOTAREF> B<create> I<log> /home/my0call/Downloads/mylog.csv sotaMY0CALL -S QSO_DATE=20130331
+
+Typical filter file sotaMY0CALL could contain a line like
+
+| adifmerg -f - -o -R MY_SOTA=SOTA -A MY_COUNTRY=Finland,MY_ITU_ZONE=18,MY_CQ_ZONE=15
 
 Export the file for signing and uploading to LoTW
 
-I<20120821SOTAREF> B<export> I<lotw>
+I<20130331SOTAREF> B<export> I<lotw>
 
 Update QSOs
 
-I<20120821SOTAREF> B<merge> /home/my0call/Download/newlog.csv I<diff>
+I<20130331SOTAREF> B<merge> /home/my0call/Downloads/newlog.csv I<diff>
 
 Edit main log file I<my0call>
 
@@ -156,6 +186,7 @@ The I<qsorep> has been tested with perl v5.10.1. You may need to adapt
 the script to your environment. 
 
 =head1 BUGS
+
 
 =head1 AUTHORS
 
