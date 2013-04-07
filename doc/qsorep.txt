@@ -41,6 +41,15 @@ COMMANDS
 
     *file* add
 
+    Create QSL-cards
+
+    *file* cards
+
+    The filter to produce the LaTeX file is defined by the variable
+    CARDFILTER in the log configuration file. In addition to the template
+    file usually in cards/ directory also the files 'qslhead.tex' and
+    'qslfoot.tex' need to be in cards/ directory to produce the LaTeX file.
+
     Create a new log file. The file type 'eqsl', 'log' or 'lotw' determines
     how new QSOs and QSLs are added to the log. Optionally the file can
     created from file2.

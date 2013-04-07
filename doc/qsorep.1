@@ -172,6 +172,15 @@ Add new QSOs to an ADIF-log file from terminal
 .PP
 \&\fIfile\fR \fBadd\fR
 .PP
+Create QSL-cards
+.PP
+\&\fIfile\fR \fBcards\fR
+.PP
+The filter to produce the LaTeX file is defined by the variable
+\&\s-1CARDFILTER\s0 in the log configuration file. In addition to the template file
+usually in cards/ directory also the files 'qslhead.tex' and 'qslfoot.tex'
+need to be in cards/ directory to produce the LaTeX file.
+.PP
 Create a new log file. The file type 'eqsl', 'log' or 'lotw' determines how
 new QSOs and QSLs are added to the log. Optionally the file can created
 from file2.

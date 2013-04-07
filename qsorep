@@ -3,8 +3,8 @@
 #                                                                             
 # QSO repository for logging with ADIF-files.
 #
-# This program was written by Jaakko Koivuniemi OH7BF on October 24 2012.  
-# Copyright (C) 2012 Jaakko Koivuniemi.
+# This program was written by Jaakko Koivuniemi OH7BF on April 7 2013.  
+# Copyright (C) 2013 Jaakko Koivuniemi.
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -33,7 +33,8 @@ my $path=$ENV{"HOME"}."/";
 my $dbg=0; # 1=debug messages
 
 # variable hash
-my %vars = ("EQSLFILE" => "",
+my %vars = ("CARDFILTER" => "",
+            "EQSLFILE" => "",
 	    "EQSLFILTER" => "",
 	    "EQSLOUT" => "",
 	    "LOGFILE" => "",
@@ -104,6 +105,7 @@ if(!(-d $lpath))
 	`echo "| adifmerg -f -csv -o" > $filtpath/csv2adif`;
 	`echo "| adifmerg -f -txt -o" > $filtpath/txt2adif`;
 	`echo "| adifmerg -f -cbr -o" > $filtpath/cbr2adif`;
+	`echo "| adifmerg -f - -Q r -T Qsorep/cards/qsl.tex" > $filtpath/cards`;
 	`chmod go-wrx $cpath`;
     }
     else
@@ -203,6 +205,10 @@ sub docmd
 	{
 	    add($fname);
 	}
+        elsif($cm[1]=~/^cards/i)
+        {
+            cards($fname);
+        }
 	elsif($cm[1]=~/^create/i)
 	{
 	    create($fname,$par1,$par2,$par3,$res);
@@ -283,6 +289,26 @@ sub add
 	print "File not found: $fname\n";
     }
 
+}
+
+# QSL cards from ADIF-file with LaTeX and pdflatex 
+sub cards 
+{
+    my $fname=shift;
+    my $file=$apath.$fname.".adi"; # file with path
+    my $tmpfile="/tmp/$fname.tex";
+    my $ofile=$cardpath.$fname.".tex";
+    my $c="";
+
+    readvars($fname);
+
+    $c="adifmerg -f $file -o ".readfilter($vars{CARDFILTER})." > $tmpfile";
+    print "$c\n" if($dbg);
+    `$c`;
+    $c="cat $cardpath/qslhead.tex $tmpfile $cardpath/qslfoot.tex > $ofile";
+    `$c`;
+
+    print "Edit $ofile and use 'pdflatex' to produce PDF-file.\n";
 }
 
 # edit temporary text file /tmp/qsorep.txt
@@ -421,6 +447,8 @@ sub create
 	    print CNF "LOTWOUT=lotwqsout\n";
 	    print CNF "# eQSL out filter\n";
 	    print CNF "EQSLOUT=dummy\n";
+            print CNF "# QSL cards production filter\n";
+            print CNF "CARDFILTER=cards\n";
 	    close(CNF);
 	}
 
@@ -714,7 +742,12 @@ sub printhelp
 	    print "Add QSOs to ADIF-file.\n";
 	    print "file add\n";
 	}
-	if($cmd=~/^create/i)
+        if($cmd=~/^cards/i)
+        {
+            print "Create QSL-cards.\n";
+            print "file cards\n";
+        }	
+        if($cmd=~/^create/i)
 	{
 	    print "Create and fill new ADIF-file. The file type 'eqsl', 'log' or 'lotw' determines how new QSLs and QSOs are added to the file. Absolute path needs to be given for file2 and it needs to have correct suffix (e.g. '.csv'). The parameters at the end of the line can be used to filter the data, for example
 '-S QSODATE=20120821'\n";
@@ -783,6 +816,7 @@ sub printhelp
     else
     {
 	print "file add\n";
+        print "file cards\n";
 	print "file create eqsl|log|lotw [path/file2] [filter [parameters]]\n";
 	print "file edit [config|diff]\n";
 	print "file export cab|csv|eqsl|lotw|temp|txt [file2]\n";
