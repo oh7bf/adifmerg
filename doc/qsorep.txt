@@ -98,6 +98,9 @@ COMMANDS
 
     *file* split set
 
+    The possible sets are: bands, cont, country, cqz, dxcc, grids, grid6,
+    grid8, grid10, iota, ituz, modes, props, sota and stations.
+
     Print qsorep(1) version.
 
     version
@@ -140,6 +143,10 @@ EXAMPLE
 
     *lotwin* qsl *diff*
 
+    Split log file into different log files for each station call sign
+
+    *lotwin* split *stations*
+
     Create new log for downloaded SOTA QSOs, use filter sotaMY0CALL and
     select QSOs on date 20130331
 
@@ -157,7 +164,7 @@ EXAMPLE
 
     Update QSOs
 
-    *20130331SOTAREF* merge /home/my0call/Downloads/newlog.csv *diff*
+    *20130331SOTAREF* merge newlog *diff*
 
     Edit main log file *my0call*
 

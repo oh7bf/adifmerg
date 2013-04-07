@@ -102,6 +102,9 @@ Split logfile into smaller logs with a set, e.g. 'bands'.
 
 I<file> B<split> set
 
+The possible sets are: bands, cont, country, cqz, dxcc, grids, grid6, grid8,
+grid10, iota, ituz, modes, props, sota and stations.
+
 Print qsorep(1) version.
 
 B<version>
@@ -145,6 +148,10 @@ I<lotwin> B<info> I<verbosed>
 Update received QSLs from LoTW 
 
 I<lotwin> B<qsl> I<diff>
+
+Split log file into different log files for each station call sign
+
+I<lotwin> B<split> I<stations>
 
 Create new log for downloaded SOTA QSOs, use filter sotaMY0CALL and select 
 QSOs on date 20130331

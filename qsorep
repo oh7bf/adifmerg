@@ -25,7 +25,7 @@ use POSIX qw(strftime);
 
 use subs qw/add create edittxt edtmp export info list logsplit merge printhelp printhistory printversion printusage readfilter qsl qso resetvars timenow utcnow updatelotwd writecabtemp/;
 
-my $verno="20121024"; # YYYYMMDD
+my $verno="20130407"; # YYYYMMDD
 
 # change this if the logs are not in home directory
 my $path=$ENV{"HOME"}."/"; 
@@ -623,7 +623,7 @@ sub logsplit
 	      "stations" => "STATION_CALLSIGN"
 	);
 
-    if($par1 ne "")
+    if(exists $sets{$par1})
     {
 	if((-e $file)&&(-r $file))
 	{
@@ -636,14 +636,14 @@ sub logsplit
 		$ofile=$apath.$fname."_".$s.".adi";
 		$c=$c.$ofile;
 		if(($par1 ne "bands")&&($par1 ne "modes")&&($par1 ne "props"))
-		{
-		    `$c`;
-		#    print "$c\n";
+	{
+	    `$c`;
+		    print "$c\n" if($dbg);
 		}
 		elsif($i%2==0)
 		{
 		    `$c`;
-		#    print "$c\n";
+		    print "$c\n" if($dbg);
 		}
 		$i++;
 	    }
@@ -652,6 +652,11 @@ sub logsplit
 	{
 	    print "File not found: $fname\n";
 	}
+    }
+    else
+    {
+        print "Unknown set $par1\n";
+
     }
 }
 
@@ -762,7 +767,7 @@ sub printhelp
 	}
 	if($cmd=~/^split/i)
 	{
-	    print "Split QSOs to separate files. One of the adifmerg sets like 'bands' or 'grids' can be used as splitting criteria.\n";
+            print "Split QSOs to separate files. One of the adifmerg sets like 'bands', 'cont', 'country', 'cqz', 'dxcc', 'grids', 'grid6', 'grid8', 'grid10', 'iota', 'ituz', 'modes', 'props', 'sota' and 'stations' can be used as splitting criteria.\n";
 	    print "file split set\n";
 	}
 	if($cmd=~/^sort/i)

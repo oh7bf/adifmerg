@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "QSOREP 1"
-.TH QSOREP 1 "2013-04-06" "version 20130406" "Hamradio"
+.TH QSOREP 1 "2013-04-07" "version 20130407" "Hamradio"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -228,6 +228,9 @@ Split logfile into smaller logs with a set, e.g. 'bands'.
 .PP
 \&\fIfile\fR \fBsplit\fR set
 .PP
+The possible sets are: bands, cont, country, cqz, dxcc, grids, grid6, grid8,
+grid10, iota, ituz, modes, props, sota and stations.
+.PP
 Print \fIqsorep\fR\|(1) version.
 .PP
 \&\fBversion\fR
@@ -269,6 +272,10 @@ Print info on the \fIlotwin.adi\fR file
 Update received QSLs from LoTW
 .PP
 \&\fIlotwin\fR \fBqsl\fR \fIdiff\fR
+.PP
+Split log file into different log files for each station call sign
+.PP
+\&\fIlotwin\fR \fBsplit\fR \fIstations\fR
 .PP
 Create new log for downloaded \s-1SOTA\s0 QSOs, use filter sotaMY0CALL and select 
 QSOs on date 20130331
