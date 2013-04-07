@@ -147,6 +147,10 @@ EXAMPLE
 
     *lotwin* split *stations*
 
+    Extrac all QSOs to NO0CALL
+
+    *NO0CALL* create *log* Qsorep/adif/lotwin.adi dummy -S CALL=NO0CALL
+
     Create new log for downloaded SOTA QSOs, use filter sotaMY0CALL and
     select QSOs on date 20130331
 
@@ -178,6 +182,8 @@ EXAMPLE
 
     Add QSOs from received paper QSL cards by call signs and merge with the
     main log file
+
+    *my0callqslr* create *log* Qsorep/adif/my0call.adi
 
     *my0callqslr* qsl *diff*
 

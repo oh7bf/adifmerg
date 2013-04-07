@@ -862,6 +862,7 @@ sub qsl
 	    {
 		print TMP "# possible matching QSOs found from log\n";
 		print TMP "# remove extra QSOs from below and set QSL flags to ??YB\n";
+                print TMP "# (usually RBYB or QSL requested via bureau)\n";
 		foreach(@calls)
 		{
 		    print TMP "# $_\n";

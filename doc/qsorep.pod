@@ -153,6 +153,10 @@ Split log file into different log files for each station call sign
 
 I<lotwin> B<split> I<stations>
 
+Extrac all QSOs to NO0CALL
+
+I<NO0CALL> B<create> I<log> Qsorep/adif/lotwin.adi dummy -S CALL=NO0CALL
+
 Create new log for downloaded SOTA QSOs, use filter sotaMY0CALL and select 
 QSOs on date 20130331
 
@@ -182,6 +186,8 @@ I<my0call> B<add>
 
 Add QSOs from received paper QSL cards by call signs and merge with the main
 log file
+
+I<my0callqslr> B<create> I<log> Qsorep/adif/my0call.adi 
 
 I<my0callqslr> B<qsl> I<diff>
 

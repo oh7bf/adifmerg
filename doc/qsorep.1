@@ -277,6 +277,10 @@ Split log file into different log files for each station call sign
 .PP
 \&\fIlotwin\fR \fBsplit\fR \fIstations\fR
 .PP
+Extrac all QSOs to \s-1NO0CALL\s0
+.PP
+\&\fI\s-1NO0CALL\s0\fR \fBcreate\fR \fIlog\fR Qsorep/adif/lotwin.adi dummy \-S CALL=NO0CALL
+.PP
 Create new log for downloaded \s-1SOTA\s0 QSOs, use filter sotaMY0CALL and select 
 QSOs on date 20130331
 .PP
@@ -306,6 +310,8 @@ Add a \s-1QSO\s0 to the log file
 .PP
 Add QSOs from received paper \s-1QSL\s0 cards by call signs and merge with the main
 log file
+.PP
+\&\fImy0callqslr\fR \fBcreate\fR \fIlog\fR Qsorep/adif/my0call.adi
 .PP
 \&\fImy0callqslr\fR \fBqsl\fR \fIdiff\fR
 .PP
