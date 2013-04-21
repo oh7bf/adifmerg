@@ -42,11 +42,11 @@ B<-V> print version
 
 =head1 COMMANDS
 
-Add new QSOs to an ADIF-log file from terminal
+Add new QSOs to an ADIF-log file from terminal.
 
 I<file> B<add>
 
-Create QSL-cards 
+Create QSL-cards. 
 
 I<file> B<cards>
 
@@ -54,6 +54,13 @@ The filter to produce the LaTeX file is defined by the variable
 CARDFILTER in the log configuration file. In addition to the template file
 usually in cards/ directory also the files 'qslhead.tex' and 'qslfoot.tex'
 need to be in cards/ directory to produce the LaTeX file.
+
+Check ADIF-file.
+
+I<file> B<check> [errors]
+
+The file is sent to B<adifmerg> to see any errors. The lines
+with errors can be optionally printed. 
 
 Create a new log file. The file type 'eqsl', 'log' or 'lotw' determines how
 new QSOs and QSLs are added to the log. Optionally the file can created
@@ -63,6 +70,10 @@ I<file> B<create> eqsl|log|lotw [path/file2] [filter [parameters]]
 
 A I<filter> can be used to modify the ADIF-file and I<parameters> can be passed 
 to the adifmerg(1).
+
+Check duplicate QSOs.
+
+I<file> B<duplicate> [minutes]
 
 Edit ADIF-log or its configuration file. With the I<diff> option the diff(1) 
 is used to show the difference to the original file.
@@ -102,6 +113,16 @@ I<file> B<qsl> [diff]
 Add QSOs to file.
 
 I<file> B<qso> [diff]
+
+Query log file for data.
+
+I<file> B<query> parameter
+
+The possible parameters are bands, cont, country, cqz, dxcc, firstqso, grids,
+grid6, grid8, iota, ituz, lastqsl, lasteqsl, lastlqsl, lastqso, llastqsl,
+llastqso, llastqsot, lonlat, lonlatd, modes, ncont, ncq, ndxcc, neqslr,
+neqsls, nerr, ngrid, nitu, nlonlat, nlqslr, nlqsls, nqslr, nqsls, nqso,
+nsota, nstation, props, sota or stations.
 
 Sort logfile to ascending time order.
 

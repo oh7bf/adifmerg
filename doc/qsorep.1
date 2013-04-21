@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "QSOREP 1"
-.TH QSOREP 1 "2013-04-07" "version 20130407" "Hamradio"
+.TH QSOREP 1 "2013-04-15" "version 20130415" "Hamradio"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -168,11 +168,11 @@ Use for example \fBgit\fR to track changes in the log files.
 \&\fB\-V\fR print version
 .SH "COMMANDS"
 .IX Header "COMMANDS"
-Add new QSOs to an ADIF-log file from terminal
+Add new QSOs to an ADIF-log file from terminal.
 .PP
 \&\fIfile\fR \fBadd\fR
 .PP
-Create QSL-cards
+Create QSL-cards.
 .PP
 \&\fIfile\fR \fBcards\fR
 .PP
@@ -180,6 +180,13 @@ The filter to produce the LaTeX file is defined by the variable
 \&\s-1CARDFILTER\s0 in the log configuration file. In addition to the template file
 usually in cards/ directory also the files 'qslhead.tex' and 'qslfoot.tex'
 need to be in cards/ directory to produce the LaTeX file.
+.PP
+Check ADIF-file.
+.PP
+\&\fIfile\fR \fBcheck\fR [errors]
+.PP
+The file is sent to \fBadifmerg\fR to see any errors. The lines
+with errors can be optionally printed.
 .PP
 Create a new log file. The file type 'eqsl', 'log' or 'lotw' determines how
 new QSOs and QSLs are added to the log. Optionally the file can created
@@ -189,6 +196,10 @@ from file2.
 .PP
 A \fIfilter\fR can be used to modify the ADIF-file and \fIparameters\fR can be passed 
 to the \fIadifmerg\fR\|(1).
+.PP
+Check duplicate QSOs.
+.PP
+\&\fIfile\fR \fBduplicate\fR [minutes]
 .PP
 Edit ADIF-log or its configuration file. With the \fIdiff\fR option the \fIdiff\fR\|(1) 
 is used to show the difference to the original file.
@@ -228,6 +239,16 @@ Add QSLs to file.
 Add QSOs to file.
 .PP
 \&\fIfile\fR \fBqso\fR [diff]
+.PP
+Query log file for data.
+.PP
+\&\fIfile\fR \fBquery\fR parameter
+.PP
+The possible parameters are bands, cont, country, cqz, dxcc, firstqso, grids,
+grid6, grid8, iota, ituz, lastqsl, lasteqsl, lastlqsl, lastqso, llastqsl,
+llastqso, llastqsot, lonlat, lonlatd, modes, ncont, ncq, ndxcc, neqslr,
+neqsls, nerr, ngrid, nitu, nlonlat, nlqslr, nlqsls, nqslr, nqsls, nqso,
+nsota, nstation, props, sota or stations.
 .PP
 Sort logfile to ascending time order.
 .PP

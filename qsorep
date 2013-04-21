@@ -3,7 +3,7 @@
 #                                                                             
 # QSO repository for logging with ADIF-files.
 #
-# This program was written by Jaakko Koivuniemi OH7BF on April 7 2013.  
+# This program was written by Jaakko Koivuniemi OH7BF on April 21 2013.  
 # Copyright (C) 2013 Jaakko Koivuniemi.
 #
 # This program is free software; you can redistribute it and/or
@@ -23,9 +23,9 @@ use Getopt::Std;
 use Term::ReadLine;
 use POSIX qw(strftime);
 
-use subs qw/add create edittxt edtmp export info list logsplit merge printhelp printhistory printversion printusage readfilter qsl qso resetvars timenow utcnow updatelotwd writecabtemp/;
+use subs qw/add cards check create duplicate edittxt edtmp export info list logsplit merge printhelp printhistory printversion printusage query readfilter qsl qso resetvars timenow utcnow updatelotwd writecabtemp/;
 
-my $verno="20130407"; # YYYYMMDD
+my $verno="20130421"; # YYYYMMDD
 
 # change this if the logs are not in home directory
 my $path=$ENV{"HOME"}."/"; 
@@ -209,10 +209,18 @@ sub docmd
         {
             cards($fname);
         }
+        elsif($cm[1]=~/^check/i)
+        {
+            check($fname,$par1);
+        }
 	elsif($cm[1]=~/^create/i)
 	{
 	    create($fname,$par1,$par2,$par3,$res);
 	}
+        elsif($cm[1]=~/^duplicate/i)
+        {
+            duplicate($fname,$par1);
+        }
 	elsif($cm[1]=~/^edit/i)
 	{
 	    edit($fname,$par1);
@@ -248,6 +256,10 @@ sub docmd
 	elsif($cm[1]=~/^qso/i)
 	{
 	    qso($fname,$par1);
+	}
+	elsif($cm[1]=~/^query/i)
+	{
+            query($fname,$par1);
 	}
 	elsif($cm[1]=~/^split/i)
 	{
@@ -310,6 +322,35 @@ sub cards
 
     print "Edit $ofile and use 'pdflatex' to produce PDF-file.\n";
 }
+
+# check ADIF-file by reading it with 'adifmerg'
+sub check
+{
+    my $fname=shift;
+    my $prerr=shift;
+    my $file=$apath.$fname.".adi"; # file with path
+    my $c="";
+
+    $c="adifmerg -f $file";
+    $c=$c." -e" if($prerr=~/^errors/i);
+    print `$c`;
+    
+}
+
+# search for duplicate QSOs in the ADIF-file
+sub duplicate
+{
+    my $fname=shift;
+    my $min=shift;
+    my $file=$apath.$fname.".adi"; # file with path
+    my $c="";
+
+    $c="adifmerg -f $file -2";
+    $c=$c." -t ".$min if($min);
+    print `$c`;
+
+}
+
 
 # edit temporary text file /tmp/qsorep.txt
 sub editmp
@@ -746,6 +787,11 @@ sub printhelp
         {
             print "Create QSL-cards.\n";
             print "file cards\n";
+        }
+        if($cmd=~/^check/i)
+        {
+            print "Check ADIF-file and optionally print lines with errors.\n";
+            print "file check [errors]\n";
         }	
         if($cmd=~/^create/i)
 	{
@@ -753,6 +799,11 @@ sub printhelp
 '-S QSODATE=20120821'\n";
 	    print "file create eqsl|log|lotw [path/file2] [filter [parameters]]\n";
 	}
+        if($cmd=~/^duplicate/i)
+        {
+            print "Search for duplicate QSOs.\n";
+            print "file duplicate [minutes]\n";
+        }
 	if($cmd=~/^edit/i)
 	{
 	    print "Edit ADIF-file.\n";
@@ -798,6 +849,11 @@ sub printhelp
 	    print "Update QSOs in file.\n";
 	    print "file qso [diff]\n";
 	}
+        if($cmd=~/^query/i)
+	{
+            print "Query parameter from file. The parameter can be 'bands', 'cont', 'country', 'cqz', 'dxcc', 'firstqso', 'grids', 'grid6', 'grid8', 'iota', 'ituz', 'lastqsl', 'lasteqsl', 'lastlqsl', 'lastqso', 'llastqso', 'llastqsot', 'lonlat', 'lonlatd', 'modes', 'ncont', 'ncq', 'ndxcc', 'neqslr', 'neqsls', 'nerr', 'ngrid', 'niota', 'nitu', 'nlonlat', 'nlqslr', 'nlqsls', ' nqslr', 'nqsls', 'nqso', 'nstation', 'props', 'sota' or 'stations'.\n";
+            print "file query parameter\n";
+	}
 	if($cmd=~/^split/i)
 	{
             print "Split QSOs to separate files. One of the adifmerg sets like 'bands', 'cont', 'country', 'cqz', 'dxcc', 'grids', 'grid6', 'grid8', 'grid10', 'iota', 'ituz', 'modes', 'props', 'sota' and 'stations' can be used as splitting criteria.\n";
@@ -817,7 +873,9 @@ sub printhelp
     {
 	print "file add\n";
         print "file cards\n";
+        print "file check [errors]\n";
 	print "file create eqsl|log|lotw [path/file2] [filter [parameters]]\n";
+        print "file duplicate [minutes]\n";
 	print "file edit [config|diff]\n";
 	print "file export cab|csv|eqsl|lotw|temp|txt [file2]\n";
 	print "file info [verbosed]\n";
@@ -827,6 +885,7 @@ sub printhelp
 	print "file merge file2 [diff|test]\n";
 	print "file qsl [diff]\n";
 	print "file qso [diff]\n";
+	print "file query parameter\n";
 	print "file sort\n";
 	print "file split set\n";
 	print "version\n";
@@ -1016,6 +1075,22 @@ sub qso
 	updatelotwd($fname); 
     }
 }
+
+# query ADIF-log file
+sub query
+{
+    my $fname=shift;
+    my $par=shift;
+    my $file=$apath.$fname.".adi";
+
+    my $c="adifmerg -f $file -q ";
+    if($par)
+    {
+       $c=$c.$par;
+       print `$c`;
+    }	
+}
+
 
 # read eQSL
 sub readeqsl

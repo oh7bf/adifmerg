@@ -1,10 +1,13 @@
-Sun Apr  7 18:29:59 CEST 2013
+Sun Apr 21 21:28:40 CEST 2013
 Jaakko Koivuniemi, OH7BF
 
 CHANGE LOG
 ==========
 
 DATE            DESCRIPTION
+2013 Apr 21     qsorep query command
+2013 Apr 21     qsorep duplicate command
+2013 Apr 21     qsorep check command
 2013 Apr 7      qsorep cards command
 2013 Mar 28     add testrep for qsorep
 2012 Oct 24     update list of SOTA associations
