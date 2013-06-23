@@ -1,2 +1,2 @@
 #!/bin/bash
-pod2man -c "Hamradio" -r "version 20120506" adifmerg.pod adifmerg.1
+pod2man -c "Hamradio" -r "version 20130623" adifmerg.pod adifmerg.1

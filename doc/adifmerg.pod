@@ -331,7 +331,8 @@ Create QSO map
 adifmerg -f qso.adi -S MY_GRIDSQUARE=KP32la -q grid6
 
 and copy the grid squares for example to 
-http://dvi.elcom.cz/ok2pbq/prog/qso_map.php
+
+http://ok2pbq.atesystem.cz/prog/qso_map.php
 
 To make paper QSLs with LaTeX copy first an example from
 
