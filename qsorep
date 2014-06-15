@@ -3,8 +3,8 @@
 #                                                                             
 # QSO repository for logging with ADIF-files.
 #
-# This program was written by Jaakko Koivuniemi OH7BF on April 21 2013.  
-# Copyright (C) 2013 Jaakko Koivuniemi.
+# This program was written by Jaakko Koivuniemi OH7BF on June 15 2014.  
+# Copyright (C) 2013 - 2014 Jaakko Koivuniemi.
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -25,7 +25,7 @@ use POSIX qw(strftime);
 
 use subs qw/add cards check create duplicate edittxt edtmp export info list logsplit merge printhelp printhistory printversion printusage query readfilter qsl qso resetvars timenow utcnow updatelotwd writecabtemp/;
 
-my $verno="20130421"; # YYYYMMDD
+my $verno="20140615"; # YYYYMMDD
 
 # change this if the logs are not in home directory
 my $path=$ENV{"HOME"}."/"; 
@@ -796,7 +796,7 @@ sub printhelp
         if($cmd=~/^create/i)
 	{
 	    print "Create and fill new ADIF-file. The file type 'eqsl', 'log' or 'lotw' determines how new QSLs and QSOs are added to the file. Absolute path needs to be given for file2 and it needs to have correct suffix (e.g. '.csv'). The parameters at the end of the line can be used to filter the data, for example
-'-S QSODATE=20120821'\n";
+'-S QSO_DATE=20120821'. The filter can be 'dummy' if no modifications to the file are needed. See the examples in 'filter/' directory.\n";
 	    print "file create eqsl|log|lotw [path/file2] [filter [parameters]]\n";
 	}
         if($cmd=~/^duplicate/i)
