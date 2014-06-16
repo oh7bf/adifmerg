@@ -3,7 +3,7 @@
 #                                                                             
 # Merge and convert ADIF files.
 #
-# This program was written by Jaakko Koivuniemi OH7BF on June 15 2014.  
+# This program was written by Jaakko Koivuniemi OH7BF on June 16 2014.  
 # Copyright (C) 2008-2014 Jaakko Koivuniemi.
 #
 # This program is free software; you can redistribute it and/or
@@ -24,7 +24,7 @@ use Getopt::Std;
 
 use subs qw/AddLoc AddRec AdifHead AdifLine AdifRecTo2 b2cabf b2sota Band2freq CalcDist CheckBand CheckCQZ CheckDate CheckGrid CheckIota CheckITUZ CheckLoc CheckMode CheckPmode CheckPwr CheckQslr CheckQsls CheckQso CheckRig CheckRst CheckSat CheckSatMode CheckSota CheckUtc CheckVia CompareRec date2csv DelRec EmptyRec f2cabf FixRec Freq2band Grid2Loc jday Loc2Rad m2cab MapRec MergeRecs MRules MyNotes2Adif Notes2Adif PrintAdifHead PrintAdifRec PrintAdxHead PrintAdxRec PrintCabHead PrintCabRec PrintCsvRec PrintInfo PrintQsls PrintQso PrintQsos PrintTxtHead PrintTxtRec PrintTxtRecL printusage printversion QslDate Qso2Array Qso2Hash Qso2HashT Qso2Hash2s ReadAdifLog ReadAdifRec ReadCabLog ReadCsvLog ReadTxtLog SearchMatch StatQso time2csv/;
 
-my $verno="20140615";
+my $verno="20140616";
 my $averno="3.0.3";
 
 # general debugging switch
@@ -2944,6 +2944,10 @@ sub ReadCsvLog
 
 	    for($i=0;$i<@csvhead;$i++)
 	    {
+
+# remove extra hidden characters from SOTA chaser log header line end
+                $csvhead[$i]="Notes" if($csvhead[$i] =~ /Notes/);
+
 		if(exists $cconv{$csvhead[$i]})
 		{
 		    if($csvhead[$i] eq "Band")
