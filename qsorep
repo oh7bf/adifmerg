@@ -3,8 +3,8 @@
 #                                                                             
 # QSO repository for logging with ADIF-files.
 #
-# This program was written by Jaakko Koivuniemi OH7BF on June 15 2014.  
-# Copyright (C) 2013 - 2014 Jaakko Koivuniemi.
+# This program was written by Jaakko Koivuniemi OH7BF on January 3 2015.  
+# Copyright (C) 2013 - 2015 Jaakko Koivuniemi.
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -25,7 +25,7 @@ use POSIX qw(strftime);
 
 use subs qw/add cards check create duplicate edittxt edtmp export info list logsplit merge printhelp printhistory printversion printusage query readfilter qsl qso resetvars timenow utcnow updatelotwd writecabtemp/;
 
-my $verno="20140615"; # YYYYMMDD
+my $verno="20150103"; # YYYYMMDD
 
 # change this if the logs are not in home directory
 my $path=$ENV{"HOME"}."/"; 
@@ -146,6 +146,7 @@ else
 {
     my $term=Term::ReadLine->new("qsorep");
     my $prompt="log:";
+#    $term->ornaments(0);  
     my $OUT=$term->OUT || \*STDOUT;
 
     while(defined($_=$term->readline($prompt)))

@@ -3,8 +3,22 @@ adifmerg
 --------
 
 Small utility to convert ADIF files. To produce output without USERDEF fields
-use the switch '-u'.
+use the switch '-u'. See the manual page in doc/.
 
+qsorep
+------
+
+Create and maintain ADIF-file repository. See the manual page in doc/.
+
+Install
+-------
+
+See the 'install' script. For easier command line editing one of the 
+following could be installed on Rasbian Wheezy
+
+libterm-readline-gnu-perl
+libterm-readline-perl-perl
+libterm-readline-zoid-perl
 
 Files
 -----
@@ -23,8 +37,7 @@ script/util		- utility scripts
 test/runtest		- test routine 
 testrep/                - test repository for qsorep
 
-Installing
+Testing
 ----------
 
-Test first by 'cd test' and './runtest'. Then copy adifmerg to ~/bin and
-the manual page doc/adifmerg.1 to ~/man/man1.
+Test first by 'cd test' and './runtest'. 
