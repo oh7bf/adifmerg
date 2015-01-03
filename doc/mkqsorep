@@ -1,2 +1,2 @@
 #!/bin/bash
-pod2man -c "Hamradio" -r "version 20130415" qsorep.pod qsorep.1
+pod2man -c "Hamradio" -r "version 20150103" qsorep.pod qsorep.1

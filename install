@@ -1,0 +1,72 @@
+#!/bin/sh
+#
+# Installation script for Rasbian Wheezy. 
+#
+# Installation:
+#
+# a) sudo ./install (this script)
+#
+# The directories used and files created or modified by this script:
+#
+# /etc/profile.d/qsorep.sh           - set environment variables
+# /usr/share/man/man1/adifmerg.1     - manual page
+# /usr/share/man/man1/qsorep.1       - manual page
+# /usr/sbin/adifmerg                 - Perl script
+# /usr/sbin/qsorep                   - Perl script
+#
+# Sat Jan  3 08:26:06 CET 2015
+# Edit: 
+# 
+# Jaakko Koivuniemi oh7bf
+#
+
+
+# source directory for 'adifmerg'
+SOURCEDIR=${PWD}
+SOURCEMAN=${SOURCEDIR}/doc
+
+# executable scripts 
+BINDIR=/usr/sbin
+
+# manual pages
+MANDIR=/usr/share/man/man1
+
+# bash profile files
+PROFILEDIR=/etc/profile.d
+
+# executable scripts
+BINS='adifmerg qsorep'
+
+if [ -d $SOURCEBIN ]; then
+  echo "Copy binary executables to ${BINDIR}"
+  for item in $BINS;
+  do
+    if [ -r ${SOURCEBIN}/${item} ]; then
+       echo "... ${item}"
+       /usr/bin/install -C -m 755 ${SOURCEBIN}/${item} ${BINDIR}
+    fi 
+  done
+else
+  echo "Source directory ${SOURCEBIN} does not exist"
+fi
+
+if [ -d $SOURCEMAN ]; then
+  echo "Copy manual pages to ${MANDIR}"
+  for item in $BINS;
+  do
+    if [ -r ${SOURCEMAN}/$item.1 ]; then
+       echo "... ${item}.1"
+       /usr/bin/install -C -m 664 ${SOURCEMAN}/${item}.1 ${MANDIR}
+    fi 
+  done
+else
+  echo "Source directory ${SOURCEMAN} does not exist"
+fi
+
+if [ ! -x ${PROFILEDIR}/qsorep.sh ]; then
+  echo "Write profile script ${PROFILEDIR}/qsorep.sh"
+  /usr/bin/install -C -m 755 ${SOURCEDIR}/qsorep.sh ${PROFILEDIR} 
+else
+  echo "Profile script ${PROFILEDIR}/qsorep.sh already exists"
+fi
+

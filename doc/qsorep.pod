@@ -26,6 +26,7 @@ The configuration files for each ADIF-log is hidden into directory
 .qsorep/ .
 
 Production of QSL labels or QSL cards is possible. 
+
 Use for example B<git> to track changes in the log files.
 
 =head1 OPTIONS
