@@ -21,9 +21,9 @@ use strict;
 use POSIX;
 use Getopt::Std;
 
-use subs qw/AddLoc AddRec AdifHead AdifLine AdifRecTo2 b2cabf b2sota Band2freq CalcDist CheckBand CheckCQZ CheckDate CheckGrid CheckIota CheckITUZ CheckLoc CheckMode CheckPmode CheckPwr CheckQslr CheckQsls CheckQso CheckRig CheckRst CheckSat CheckSatMode CheckSota CheckUtc CheckVia CompareRec date2csv DelRec EmptyRec f2cabf FixRec Freq2band Grid2Loc jday Loc2Rad m2cab MapRec MergeRecs MRules MyNotes2Adif Notes2Adif PrintAdifHead PrintAdifRec PrintAdxHead PrintAdxRec PrintCabHead PrintCabRec PrintCsvRec PrintInfo PrintQsls PrintQso PrintQsos PrintTxtHead PrintTxtRec PrintTxtRecL printusage printversion QslDate Qso2Array Qso2Hash Qso2HashT Qso2Hash2s ReadAdifLog ReadAdifRec ReadCabLog ReadCsvLog ReadTxtLog SearchMatch StatQso time2csv/;
+use subs qw/AddLoc AddRec AdifHead AdifLine AdifRecTo2 b2cabf b2sota Band2freq CalcDist CheckBand CheckCQZ CheckDate CheckGrid CheckIota CheckITUZ CheckLoc CheckMode CheckPmode CheckPwr CheckQslr CheckQsls CheckQso CheckRig CheckRst CheckSat CheckSatMode CheckSota CheckUtc CheckVia CompareRec date2csv DelRec EmptyRec f2cabf FixRec Freq2band Grid2Loc jday Loc2Rad m2cab MapRec MergeRecs Modes2Submodes MRules MyNotes2Adif Notes2Adif PrintAdifHead PrintAdifRec PrintAdxHead PrintAdxRec PrintCabHead PrintCabRec PrintCsvRec PrintInfo PrintQsls PrintQso PrintQsos PrintTxtHead PrintTxtRec PrintTxtRecL printusage printversion QslDate Qso2Array Qso2Hash Qso2HashT Qso2Hash2s ReadAdifLog ReadAdifRec ReadCabLog ReadCsvLog ReadTxtLog SearchMatch StatQso time2csv/;
 
-my $verno="20171124";
+my $verno="20171125";
 my $averno="3.0.7";
 
 # general debugging switch
@@ -173,6 +173,7 @@ my @rec = ({"ADDRESS" => "",
            "SIG_INTL" => "",
            "SIG_INFO" => "",
            "SIG_INFO_INTL" => "",
+           "SILENT_KEY" => "",
            "SKCC" => "",
 	   "SOTA_REF" => "",
            "SRX" => 0,
@@ -325,6 +326,7 @@ my @rec = ({"ADDRESS" => "",
            "SIG_INTL" => "",
            "SIG_INFO" => "",
            "SIG_INFO_INTL" => "",
+           "SILENT_KEY" => "",
            "SKCC" => "",
 	   "SOTA_REF" => "",
            "SRX" => 0,
@@ -480,6 +482,7 @@ my %typ = ("ADDRESS" => "M",
            "SIG_INTL" => "I",
            "SIG_INFO" => "S",
            "SIG_INFO_INTL" => "I",
+           "SILENT_KEY" => "B",
            "SKCC" => "S",
 	   "SOTA_REF" => "S",
            "SRX" => "N",
@@ -1197,6 +1200,9 @@ sub PrintQso
     # convert deprecated records
     AdifRecTo2($recno);
 
+    # convert previous modes to submodes if applicaple
+    Modes2Submodes($recno);
+
     # optionally add/delete/fix records
     AddRec($recno) if($opt_A);
     DelRec($recno) if($opt_D);
@@ -1309,7 +1315,7 @@ sub PrintQso
 		Qso2Hash();
 	    }
 	}
-	PrintAdifRec($recno) if($opt_o);
+        PrintAdifRec($recno) if($opt_o);
 	PrintTxtRec($serr,$recno,$awstatus) if($opt_l);
 	PrintTxtRec($serr,$recno,$awstatus) if(($opt_e)&&($serr));
 	PrintTxtRecL($serr,$recno," ") if($opt_L);
@@ -1611,6 +1617,19 @@ sub AdifRecTo2
 	$rec[$recno]{VE_PROV}="";
     }
 
+}
+
+# convert modes to modes and submodes if this can be done
+# without overwriting data in SUBMODE field 
+sub Modes2Submodes 
+{
+    my $recno=shift;
+
+    if( exists $submodes{$rec[$recno]{MODE}} && !$rec[$recno]{SUBMODE} )
+    {
+	$rec[$recno]{SUBMODE}=$rec[$recno]{MODE};
+	$rec[$recno]{MODE}=$submodes{$rec[$recno]{SUBMODE}};
+    }
 }
 
 
@@ -3738,8 +3757,16 @@ sub CheckQso()
     }
     if(!CheckMode($rec[$recno]{MODE}))
     {
-	$serr=$serr."mode?";
-	$nerr++;
+        $serr=$serr."mode?";
+        $nerr++;
+    }
+    if( $rec[$recno]{SUBMODE} )
+    {
+        if( !CheckSubmode($rec[$recno]{SUBMODE}) )
+        {
+	    $serr = $serr . "submode?";
+	    $nerr++;
+        }
     }
     if($rec[$recno]{PROP_MODE})
     {
@@ -3853,22 +3880,22 @@ sub CheckQso()
 	    $nerr++;
 	}
     }
-    if(exists $rec[$recno]{SOTA})
+    if(exists $rec[$recno]{SOTA_REF})
     {
-	if($rec[$recno]{SOTA})
+	if($rec[$recno]{SOTA_REF})
 	{
-	    if(!CheckSota($rec[$recno]{SOTA}))
+	    if(!CheckSota($rec[$recno]{SOTA_REF}))
 	    {
 		$serr=$serr."sota?";
 		$nerr++;
 	    }
 	}
     }
-    if(exists $rec[$recno]{MY_SOTA})
+    if(exists $rec[$recno]{MY_SOTA_REF})
     {
-	if($rec[$recno]{MY_SOTA})
+	if($rec[$recno]{MY_SOTA_REF})
 	{
-	    if(!CheckSota($rec[$recno]{MY_SOTA}))
+	    if(!CheckSota($rec[$recno]{MY_SOTA_REF}))
 	    {
 		$serr=$serr."sota?";
 		$nerr++;
@@ -4142,9 +4169,9 @@ sub CheckBand()
 # test if mode looks ok
 sub CheckMode()
 {
-
     my $mode=shift;
     my $ok=0;
+
     $mode=uc $mode;
 
     foreach(@modes) 
@@ -4154,6 +4181,21 @@ sub CheckMode()
 
     return $ok;
 }
+
+# test if submode looks ok
+sub CheckSubmode()
+{
+    my $submode=shift;
+    my $ok=0;
+
+    $submode=uc $submode;
+
+    $ok=1 if( exists $submodes{$submode} );
+
+    return $ok;
+}
+
+
 
 # test if propagation mode looks ok
 sub CheckPmode()
