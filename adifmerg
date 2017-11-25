@@ -21,7 +21,7 @@ use strict;
 use POSIX;
 use Getopt::Std;
 
-use subs qw/AddLoc AddRec AdifHead AdifLine AdifRecTo2 b2cabf b2sota Band2freq CalcDist CheckBand CheckCQZ CheckDate CheckGrid CheckIota CheckITUZ CheckLoc CheckMode CheckPmode CheckPwr CheckQslr CheckQsls CheckQso CheckRig CheckRst CheckSat CheckSatMode CheckSota CheckUtc CheckVia CompareRec date2csv DelRec EmptyRec f2cabf FixRec Freq2band Grid2Loc jday Loc2Rad m2cab MapRec MergeRecs Modes2Submodes MRules MyNotes2Adif Notes2Adif PrintAdifHead PrintAdifRec PrintAdxHead PrintAdxRec PrintCabHead PrintCabRec PrintCsvRec PrintInfo PrintQsls PrintQso PrintQsos PrintTxtHead PrintTxtRec PrintTxtRecL printusage printversion QslDate Qso2Array Qso2Hash Qso2HashT Qso2Hash2s ReadAdifLog ReadAdifRec ReadCabLog ReadCsvLog ReadTxtLog SearchMatch StatQso time2csv/;
+use subs qw/AddLoc AddRec AdifHead AdifLine AdifRecTo2 b2cabf b2sota Band2freq CalcDist CheckBand CheckCQZ CheckDate CheckGrid CheckIota CheckITUZ CheckLoc CheckMode CheckPmode CheckPwr CheckQslr CheckQsls CheckQso CheckRig CheckRst CheckSat CheckSatMode CheckSota CheckSubmode CheckUtc CheckVia CompareRec date2csv DelRec EmptyRec f2cabf FixRec Freq2band Grid2Loc jday Loc2Rad m2cab MapRec MergeRecs Modes2Submodes MRules MyNotes2Adif Notes2Adif PrintAdifHead PrintAdifRec PrintAdxHead PrintAdxRec PrintCabHead PrintCabRec PrintCsvRec PrintInfo PrintQsls PrintQso PrintQsos PrintTxtHead PrintTxtRec PrintTxtRecL printusage printversion QslDate QslVerified2Credit QslViaRemoveM Qso2Array Qso2Hash Qso2HashT Qso2Hash2s ReadAdifLog ReadAdifRec ReadCabLog ReadCsvLog ReadTxtLog SearchMatch StatQso time2csv/;
 
 my $verno="20171125";
 my $averno="3.0.7";
@@ -1203,6 +1203,12 @@ sub PrintQso
     # convert previous modes to submodes if applicaple
     Modes2Submodes($recno);
 
+    # add CREDIT_GRANTED field if QSL received "V"
+    QslVerified2Credit($recno);
+
+    # remove "M" (manager) from QSL via
+    QslViaRemoveM($recno);
+
     # optionally add/delete/fix records
     AddRec($recno) if($opt_A);
     DelRec($recno) if($opt_D);
@@ -1632,6 +1638,77 @@ sub Modes2Submodes
     }
 }
 
+# add CREDIT_GRANTED field if QSL received "V" and change flag to "Y"
+sub QslVerified2Credit
+{
+    my $recno = shift;
+
+    if( $rec[$recno]{EQSL_QSL_RCVD} )
+    {
+        if( $rec[$recno]{EQSL_QSL_RCVD} =~ /V/i )
+        { 
+            $rec[$recno]{EQSL_QSL_RCVD} = "Y";
+            if( $rec[$recno]{CREDIT_GRANTED} )
+            {
+                $rec[$recno]{CREDIT_GRANTED} =  $rec[$recno]{CREDIT_GRANTED} . ",AWARD:eqsl"; 
+            }
+            else
+            {
+                $rec[$recno]{CREDIT_GRANTED} =  "AWARD:eqsl"; 
+            }
+        }
+    }
+
+    if( $rec[$recno]{LOTW_QSL_RCVD} )
+    {
+        if( $rec[$recno]{LOTW_QSL_RCVD} =~ /V/i )
+        { 
+            $rec[$recno]{LOTW_QSL_RCVD} = "Y";
+            if( $rec[$recno]{CREDIT_GRANTED} )
+            {
+                $rec[$recno]{CREDIT_GRANTED} =  $rec[$recno]{CREDIT_GRANTED} . ",AWARD:lotw"; 
+            }
+            else
+            {
+                $rec[$recno]{CREDIT_GRANTED} =  "AWARD:lotw"; 
+            }
+        }
+    }
+
+    if( $rec[$recno]{QSL_RCVD} )
+    {
+        if( $rec[$recno]{QSL_RCVD} =~ /V/i )
+        { 
+            $rec[$recno]{QSL_RCVD} = "Y";
+            if( $rec[$recno]{CREDIT_GRANTED} )
+            {
+                $rec[$recno]{CREDIT_GRANTED} =  $rec[$recno]{CREDIT_GRANTED} . ",AWARD:card"; 
+            }
+            else
+            {
+                $rec[$recno]{CREDIT_GRANTED} =  "AWARD:card"; 
+            }
+        }
+    }
+
+}
+
+# remove "M" (manager) from QSL via if applicable
+sub QslViaRemoveM
+{
+    my $recno = shift;
+
+    if( $rec[$recno]{QSL_RCVD_VIA} )
+    {
+        $rec[$recno]{QSL_RCVD_VIA} = "" if( $rec[$recno]{QSL_RCVD_VIA} =~ /M/i );
+    }
+
+    if( $rec[$recno]{QSL_SENT_VIA} )
+    {
+        $rec[$recno]{QSL_SENT_VIA} = "" if( $rec[$recno]{QSL_SENT_VIA} =~ /M/i );
+    }
+
+}
 
 # print beginning of Cabrillo file, the values are read from template file
 # $opt_C
