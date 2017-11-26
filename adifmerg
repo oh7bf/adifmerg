@@ -488,6 +488,7 @@ my %typ = ("ADDRESS" => "M",
 	   "STATION_CALLSIGN" => "S",
            "STX" => "N",
            "STX_STRING" => "S",
+           "SUBMODE" => "S",
            "SWL" => "B",
            "TEN_TEN" => "N",
            "TIME_OFF" => "T",
@@ -1401,13 +1402,16 @@ sub StatQso
     {
 	$modstat{uc $rec[$recno]{MODE}}=1;
     }
-    if(exists $submodstat{uc $rec[$recno]{SUBMODE}})
+    if( $rec[$recno]{SUBMODE} )
     {
-	$submodstat{uc $rec[$recno]{SUBMODE}}++;
-    }
-    else
-    {
-	$submodstat{uc $rec[$recno]{SUBMODE}}=1;
+        if(exists $submodstat{uc $rec[$recno]{SUBMODE}})
+        {
+	    $submodstat{uc $rec[$recno]{SUBMODE}}++;
+        }
+        else
+        {
+	    $submodstat{uc $rec[$recno]{SUBMODE}}=1;
+        }
     }
     if(exists $propstat{uc $rec[$recno]{PROP_MODE}})
     {
@@ -4710,6 +4714,7 @@ sub PrintInfo
     my $nsota=0;
     my $nlonlat=0;
     my $nstation=0;
+    my $nsubmodes = 0;
 
     print "STATION:\n" if($opt_v);
     foreach $dxx (sort keys %stationstat)
@@ -4768,6 +4773,8 @@ sub PrintInfo
     }
     print "\n" if($opt_v);
 
+    $nsubmodes = scalar keys %submodstat;
+
     if(!$opt_q)
     {
 	print "$nqso QSOs $sqsos shown, $ndx DXCCs with $ndxc confirmed\n";
@@ -4815,9 +4822,13 @@ sub PrintInfo
         {
             print (sprintf "%-8.8s   %5d\n", $mode, $modstat{$mode});
         }
-        foreach $submode (sort keys %submodstat)
+        if( $nsubmodes > 0 )
         {
-            print (sprintf "%-8.8s   %5d\n", $submode, $submodstat{$submode});
+            print "$nsubmodes submodes\n";
+            foreach $submode (sort keys %submodstat)
+            {
+                print (sprintf "%-8.8s   %5d\n", $submode, $submodstat{$submode});
+            }
         }
         foreach $prop (sort keys %propstat)
 	{
@@ -4843,7 +4854,7 @@ sub PrintInfo
     }
     if($opt_q eq 'submodes')
     {
-	foreach $submode (sort keys %submodstat)
+        foreach $submode (sort keys %submodstat)
 	{
 	    print $submode." ".$submodstat{$submode}." ";
 	}
