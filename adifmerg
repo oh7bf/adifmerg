@@ -502,7 +502,7 @@ my %typ = ("ADDRESS" => "M",
 
 # csv record convertion hash
 my %cconv = ("Band" => "BAND",
-	     "Full reference" => "SOTA",
+	     "Full reference" => "SOTA_REF",
 	     "Station worked" => "CALL",
 	     "Notes" => "COMMENT",
 	     "Mode" => "MODE",
@@ -521,13 +521,13 @@ my %cconv = ("Band" => "BAND",
 	     "QSLsv" => "QSL_SENT_VIA",
 	     "QSLvia" => "QSL_VIA",
              "Call (activator)" => "STATION_CALLSIGN",
-             "Full Reference (activator)" => "MY_SOTA",
+             "Full Reference (activator)" => "MY_SOTA_REF",
              "Call (chaser)" => "CALL",
-             "Full Reference (chaser)" => "SOTA",
+             "Full Reference (chaser)" => "SOTA_REF",
              "Call (my call)" => "STATION_CALLSIGN",
-             "Full Reference (my summit)" => "MY_SOTA",
+             "Full Reference (my summit)" => "MY_SOTA_REF",
              "Call (his call)" => "CALL",
-             "Full Reference (his summit)" => "SOTA");
+             "Full Reference (his summit)" => "SOTA_REF");
 
 # modes for adif 3.0.7, import only modes at end 
 my @modes=("AM", "ARDOP", "ATV", "C4FM", "CHIP", "CLO", "CONTESTI", "CW", "DIGITALVOICE", "DOMINO", "DSTAR", "FAX", "FM", "FSK441", "FT8", "HELL", "ISCAT", "JT4", "JT6M", "JT9", "JT44", "JT65", "MFSK", "MSK144", "MT63", "OLIVIA", "OPERA", "PAC", "PAX", "PKT", "PSK", "PSK2K", "Q15", "QRA64", "ROS", "RTTY", "RTTYM", "SSB", "SSTV", "T10", "THOR", "THRB", "TOR", "V4", "VOI", "WINMOR", "WSPR", "AMTORFEC", "ASCI", "CHIP64", "CHIP128", "DOMINOF", "FMHELL", "FSK31", "GTOR", "HELL80", "HFSK", "JT4A", "JT4B", "JT4C", "JT4D", "JT4E", "JT4F", "JT4G", "JT65A", "JT65B", "JT65C", "MFSK8", "MFSK16", "PAC2", "PAC3", "PAX2", "PCW", "PSK10", "PSK31", "PSK63", "PSK63F", "PSK125", "PSKAM10", "PSKAM31", "PSKAM50", "PSKFEC31", "PSKHELL", "QPSK31", "QPSK63", "QPSK125", "THRBX");
@@ -730,16 +730,16 @@ if($opt_u)
 {
     delete $hed{USERDEF1};
     delete $hed{USERDEF2};
-    delete $rec[0]{MY_SOTA};
-    delete $rec[1]{MY_SOTA};
-    delete $rec[0]{SOTA};
-    delete $rec[1]{SOTA};
-    delete $typ{MY_SOTA};
-    delete $typ{SOTA};
+    delete $rec[0]{MY_SOTA} if( $rec[0]{MY_SOTA} );
+    delete $rec[1]{MY_SOTA} if( $rec[1]{MY_SOTA} );
+    delete $rec[0]{SOTA} if( $rec[0]{SOTA} );
+    delete $rec[1]{SOTA} if( $rec[1]{SOTA} );
+    delete $typ{MY_SOTA} if( $typ{MY_SOTA} );
+    delete $typ{SOTA} if( $typ{SOTA} );
     delete $cconv{"Full reference"};
 }
 
-$opt_Q=uc (substr $opt_Q,0,1) if($opt_Q);
+$opt_Q = uc (substr $opt_Q, 0, 1) if( $opt_Q );
 
 # check if point calculation script can be called
 `$opt_p`|| die("Script $opt_p not found\n") if($opt_p);
@@ -1451,12 +1451,12 @@ sub StatQso
 	$stationstat{uc $rec[$recno]{STATION_CALLSIGN}}=1 
 	    if(!exists $stationstat{uc $rec[$recno]{STATION_CALLSIGN}});
     }
-    if(exists $rec[$recno]{SOTA})
+    if(exists $rec[$recno]{SOTA_REF})
     {
-	if($rec[$recno]{SOTA})
+	if($rec[$recno]{SOTA_REF})
 	{
-	    $sotastat{$rec[$recno]{SOTA}}=1 
-		if(!exists $sotastat{$rec[$recno]{SOTA}});
+	    $sotastat{$rec[$recno]{SOTA_REF}}=1 
+		if(!exists $sotastat{$rec[$recno]{SOTA_REF}});
 	}
     }
     if($rec[$recno]{GRIDSQUARE})
@@ -2349,9 +2349,9 @@ sub Qso2Hash
 	    $l=$l." ".$rec[0]{MY_STATE} if($rec[0]{MY_STATE});
 	    $l=$l." ".$rec[0]{MY_COUNTRY} if($rec[0]{MY_COUNTRY});
 	    $l=$l." ".$rec[0]{MY_IOTA} if($rec[0]{MY_IOTA});
-	    if(exists $rec[0]{MY_SOTA})
+	    if(exists $rec[0]{MY_SOTA_REF})
 	    {
-	        $l=$l." ".$rec[0]{MY_SOTA} if($rec[0]{MY_SOTA});
+	        $l=$l." ".$rec[0]{MY_SOTA_REF} if($rec[0]{MY_SOTA_REF});
 	    }
 	    if($rec[0]{SAT_NAME})
 	    {
@@ -2397,9 +2397,9 @@ sub Qso2HashT
     $rn=$c." ".$rec[0]{CALL};
     $rn=$rn." ".(uc $rec[0]{MY_GRIDSQUARE}) if($rec[0]{MY_GRIDSQUARE});
 
-    if(exists $rec[0]{MY_SOTA})
+    if(exists $rec[0]{MY_SOTA_REF})
     { 	
-        $rn=$rn." ".(uc $rec[0]{MY_SOTA}) if($rec[0]{MY_SOTA});
+        $rn=$rn." ".(uc $rec[0]{MY_SOTA_REF}) if($rec[0]{MY_SOTA_REF});
     }	
 
     if($rec[0]{CALL})
@@ -2428,9 +2428,9 @@ sub Qso2HashT
 	    $l=$l." MY_COUNTRY=".spc($rec[0]{MY_COUNTRY}) 
 		if($rec[0]{MY_COUNTRY});
 	    $l=$l." MY_IOTA=".$rec[0]{MY_IOTA} if($rec[0]{MY_IOTA});
-	    if(exists $rec[0]{MY_SOTA})
+	    if(exists $rec[0]{MY_SOTA_REF})
 	    {
-	        $l=$l." MY_SOTA=".$rec[0]{MY_SOTA} if($rec[0]{MY_SOTA});
+	        $l=$l." MY_SOTA_REF=".$rec[0]{MY_SOTA_REF} if($rec[0]{MY_SOTA_REF});
 	    }
 	    if($rec[0]{SAT_NAME})
 	    {
@@ -2676,10 +2676,10 @@ sub PrintTxtRec
     $myloc=uc $rec[$recno]{MY_GRIDSQUARE};
     $myiota=uc $rec[$recno]{MY_IOTA};
 
-    if(exists $rec[$recno]{MY_SOTA})
+    if(exists $rec[$recno]{MY_SOTA_REF})
     {
-	$newqth=1 if($mysota ne (uc $rec[$recno]{MY_SOTA}));
-	$mysota=uc $rec[$recno]{MY_SOTA};
+	$newqth=1 if($mysota ne (uc $rec[$recno]{MY_SOTA_REF}));
+	$mysota=uc $rec[$recno]{MY_SOTA_REF};
     }
     if($newqth&&$opt_v)
     {
@@ -2756,9 +2756,9 @@ sub PrintTxtRec
 	{
 	    $oline=$oline." ".($rec[$recno]{GRIDSQUARE}) 
 		if($rec[$recno]{GRIDSQUARE});
-	    if(exists $rec[$recno]{SOTA})
+	    if(exists $rec[$recno]{SOTA_REF})
 	    {
-		$oline=$oline." ".($rec[$recno]{SOTA}) if($rec[$recno]{SOTA});
+		$oline=$oline." ".($rec[$recno]{SOTA_REF}) if($rec[$recno]{SOTA_REF});
 	    }
 	    $oline=$oline." I".($rec[$recno]{ITUZ}) if($rec[$recno]{ITUZ});
 	    $oline=$oline." ".($rec[$recno]{CONT}) if($rec[$recno]{CONT});
@@ -2887,15 +2887,15 @@ sub PrintCsvRec
 	$oline=$oline."-,";
     }
 
-    if($rec[$recno]{MY_SOTA})
+    if($rec[$recno]{MY_SOTA_REF})
     {
-	$oline=$oline.$rec[$recno]{MY_SOTA}.","; 
+	$oline=$oline.$rec[$recno]{MY_SOTA_REF}.","; 
     }
     else
     {
-	if($rec[$recno]{SOTA})
+	if($rec[$recno]{SOTA_REF})
 	{
-	    $oline=$oline.$rec[$recno]{SOTA}.","; 
+	    $oline=$oline.$rec[$recno]{SOTA_REF}.","; 
 	}
 	else
 	{
@@ -3277,7 +3277,7 @@ sub ReadCsvLog
 					}
 					elsif(CheckSota($d[$j]))
 					{
-					    $rec[0]{SOTA}=$d[$j] if(exists $rec[0]{SOTA});
+					    $rec[0]{SOTA_REF}=$d[$j] if(exists $rec[0]{SOTA_REF});
 					}
 					elsif($comment)
 					{
@@ -3448,9 +3448,9 @@ sub ReadTxtLog
 		$rec[0]{MY_COUNTRY}=$mycountry if($mycountry);
 		$rec[0]{MY_STATE}=$mystate if($mystate);
 
-		if(exists $rec[0]{MY_SOTA})
+		if(exists $rec[0]{MY_SOTA_REF})
 		{
-		    $rec[0]{MY_SOTA}=$mysota if($mysota);
+		    $rec[0]{MY_SOTA_REF}=$mysota if($mysota);
 		}	
 
 		# print qso with error message
@@ -3524,7 +3524,7 @@ sub Notes2Adif
         }
         elsif(CheckSota($d[$i]))
         {
-           $rec[0]{SOTA}=$d[$i] if(exists $rec[0]{SOTA});
+           $rec[0]{SOTA_REF}=$d[$i] if(exists $rec[0]{SOTA_REF});
         }
         elsif(CheckVia($d[$i]))
         {
@@ -4702,7 +4702,7 @@ sub PrintInfo
 	print "$dxx " if(($opt_v)||($opt_q eq 'iota'));
 	$niota++;
     }
-    if(exists $rec[0]{SOTA})
+    if(exists $rec[0]{SOTA_REF})
     {
 	print "\nSOTA:\n" if($opt_v);
 	foreach $dxx (sort keys %sotastat)
@@ -4723,7 +4723,7 @@ sub PrintInfo
     {
 	print "$nqso QSOs $sqsos shown, $ndx DXCCs with $ndxc confirmed\n";
 	print "$ncq CQ zones, $nitu ITU zones, $ncont continents, $niota IOTAs";
-	print ", $nsota SOTAs" if(exists $rec[0]{SOTA});
+	print ", $nsota SOTAs" if(exists $rec[0]{SOTA_REF});
 	print " and $ngrid grid squares\n";
 	print "$nqsls QSLs sent, $nqslr QSLs received, $neqsls eQSL sent, ";
 	print "$neqslr received, $nlqsls LoTW QSL sent, $nlqslr received\n";
