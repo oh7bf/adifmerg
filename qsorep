@@ -3,8 +3,7 @@
 #                                                                             
 # QSO repository for logging with ADIF-files.
 #
-# This program was written by Jaakko Koivuniemi OH7BF on January 3 2015.  
-# Copyright (C) 2013 - 2015 Jaakko Koivuniemi.
+# Copyright (C) 2013 - 2017 Jaakko Koivuniemi.
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -25,7 +24,7 @@ use POSIX qw(strftime);
 
 use subs qw/add cards check create duplicate edittxt edtmp export info list logsplit merge printhelp printhistory printversion printusage query readfilter qsl qso resetvars timenow utcnow updatelotwd writecabtemp/;
 
-my $verno="20150103"; # YYYYMMDD
+my $verno="20171126"; # YYYYMMDD
 
 # change this if the logs are not in home directory
 my $path=$ENV{"HOME"}."/"; 
@@ -138,6 +137,10 @@ else
     close(LGF);
 }
 
+# change to QSO repository adif directory, useful in autocompletion of file
+# names
+chdir( $apath ) or die "$!";
+
 if($opt_c)
 {
     docmd($opt_c);
@@ -167,9 +170,9 @@ else
 # manipulate ADIF-files
 sub docmd
 {
-    my $cmd=shift;
-    my @cm=split /\s+/,$cmd;
-    if(@cm==1)
+    my $cmd = shift;
+    my @cm = split /\s+/, $cmd;
+    if( @cm == 1 )
     {
 	if($cmd =~ /^list/i)
 	{
@@ -190,9 +193,10 @@ sub docmd
     }
     elsif(@cm>1)
     {
-	my $fname=$cm[0];
-	my $par1="";
-	$par1=$cm[2] if($cm[2]);
+        my $fname=$cm[0];
+        my $par1="";
+        $fname .= ".adi" if( $fname !~ /\w+[.]adi(f)?/i );
+        $par1=$cm[2] if($cm[2]);
 	my $par2="";
 	$par2=$cm[3] if($cm[3]);
 	my $par3="";
@@ -246,10 +250,11 @@ sub docmd
 	{
 	    list($fname,$par1,$par2);
 	}
-	elsif($cm[1]=~/^merge/i)
-	{
-	    merge($fname,$par1,$par2);
-	}
+        elsif($cm[1]=~/^merge/i)
+        {
+            $par1 .= ".adi" if( $par1 !~ /\w+[.]adi(f)?/i );
+            merge($fname, $par1, $par2);
+        }
 	elsif($cm[1]=~/^qsl/i)
 	{
 	    qsl($fname,$par1);
@@ -283,7 +288,7 @@ sub docmd
 sub add
 {
     my $fname=shift;
-    $fname=$apath.$fname.".adi";
+    $fname=$apath.$fname;
 
     if((-e $fname)&&(-r $fname))
     {
@@ -308,7 +313,7 @@ sub add
 sub cards 
 {
     my $fname=shift;
-    my $file=$apath.$fname.".adi"; # file with path
+    my $file=$apath.$fname; # file with path
     my $tmpfile="/tmp/$fname.tex";
     my $ofile=$cardpath.$fname.".tex";
     my $c="";
@@ -329,7 +334,7 @@ sub check
 {
     my $fname=shift;
     my $prerr=shift;
-    my $file=$apath.$fname.".adi"; # file with path
+    my $file=$apath.$fname; # file with path
     my $c="";
 
     $c="adifmerg -f $file";
@@ -343,7 +348,7 @@ sub duplicate
 {
     my $fname=shift;
     my $min=shift;
-    my $file=$apath.$fname.".adi"; # file with path
+    my $file=$apath.$fname; # file with path
     my $c="";
 
     $c="adifmerg -f $file -2";
@@ -380,7 +385,7 @@ sub export
     my $fname=shift;
     my $par1=shift;
     my $par2=shift;
-    my $file=$apath.$fname.".adi"; # file with path
+    my $file=$apath.$fname; # file with path
     my $file2="";
     my $ans="";
     my $ofile;
@@ -460,7 +465,7 @@ sub create
     my $par3=shift;
     my $res=shift;
     my $cfile=$cpath.$fname; # log configuration file
-    my $file=$apath.$fname.".adi"; # file with path
+    my $file=$apath.$fname; # file with path
     my $c="";
 
     if(-e $file)
@@ -579,7 +584,7 @@ sub edit
     my $par1=shift;
     my $cfile=$cpath.$fname; # log configuration file
     my $c;
-    $fname=$apath.$fname.".adi";
+    $fname=$apath.$fname;
 
     if((-e $fname)&&(-r $fname))
     {
@@ -617,7 +622,7 @@ sub info
 {
     my $fname=shift;
     my $par1=shift;
-    my $c="adifmerg -f ".$apath.$fname.".adi -i";
+    my $c="adifmerg -f ".$apath.$fname." -i";
     $c=$c." -v" if($par1 eq "verbosed");
     print `$c`;
 }
@@ -632,7 +637,7 @@ sub list
 
     if($fname)
     {
-	my $c="adifmerg -f ".$apath.$fname.".adi -l";
+	my $c="adifmerg -f ".$apath.$fname." -l";
 	if($par1)
 	{
 	    if($par1=~/verb/i)
@@ -669,7 +674,7 @@ sub logsplit
 {
     my $fname=shift;
     my $par1=shift;
-    my $file=$apath.$fname.".adi"; # ADIF-file to split
+    my $file=$apath.$fname; # ADIF-file to split
     my @set;
     my $ofile="";
     my $s="";
@@ -703,8 +708,9 @@ sub logsplit
 	    {
 		$c="adifmerg -f $file -S $sets{$par1}=$s -o > ";
 		$s=~s/\//_/g;
-		$ofile=$apath.$fname."_".$s.".adi";
-		$c=$c.$ofile;
+                $ofile=$apath.$fname."_".$s.".adi";
+                $ofile =~ s/\.adi\_//i;
+                $c=$c.$ofile;
 		if(($par1 ne "bands")&&($par1 ne "modes")&&($par1 ne "props"))
 	{
 	    `$c`;
@@ -736,8 +742,8 @@ sub merge
     my $fname=shift;
     my $par1=shift;
     my $par2=shift;
-    my $file=$apath.$fname.".adi";
-    my $file2=$apath.$par1.".adi";
+    my $file=$apath.$fname;
+    my $file2=$apath.$par1;
     my $c="";
 
     if(!(-e $file)||!(-r $file))
@@ -936,7 +942,7 @@ sub qsl
 {
     my $fname=shift;
     my $par1=shift;
-    my $file=$apath.$fname.".adi";
+    my $file=$apath.$fname;
     my @calls;
     my $qsos="";
     my $ans="";
@@ -1032,7 +1038,7 @@ sub qso
 {
     my $fname=shift;
     my $par1=shift;
-    my $file=$apath.$fname.".adi";
+    my $file=$apath.$fname;
 
     readvars($fname);
     if($vars{TYPE} eq "lotw")
@@ -1082,7 +1088,7 @@ sub query
 {
     my $fname=shift;
     my $par=shift;
-    my $file=$apath.$fname.".adi";
+    my $file=$apath.$fname;
 
     my $c="adifmerg -f $file -q ";
     if($par)
@@ -1097,7 +1103,7 @@ sub query
 sub readeqsl
 {
     my $fname=shift;
-    my $file=$apath.$fname.".adi";
+    my $file=$apath.$fname;
     my $c;
     my $filt="";
 
@@ -1147,7 +1153,7 @@ sub readfilter
 sub readlotw
 {
     my $fname=shift;
-    my $file=$apath.$fname.".adi";
+    my $file=$apath.$fname;
     
     readvars($fname);
 
@@ -1221,7 +1227,7 @@ sub resetvars
 sub logsort
 {
     my $fname=shift;
-    my $file=$apath.$fname.".adi";
+    my $file=$apath.$fname;
     my $c="";
 
     if(!(-e $file)||!(-r $file))
