@@ -141,6 +141,8 @@ I<sota> list of SOTAs
 
 I<stations> list of stations
 
+I<submodes> list of submodes
+
 =head1 OPTIONS
 
 B<-f> read in ADIF, text or csv files

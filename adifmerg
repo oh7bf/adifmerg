@@ -682,6 +682,7 @@ my $lstlqsl="11000101"; # most recent received LoTW QSL date
 my $sqsos=0; # number of shown QSOs
 my %bndstat; # hash for band statistics
 my %modstat; # hash for mode statistics
+my %submodstat; # hash for submode statistics
 my %dxstat; # hash for dxcc statistics
 my %ctrystat; # hash for country statistics
 my %dxstatc; # hash for confirmed dxcc statistics
@@ -1399,6 +1400,14 @@ sub StatQso
     else
     {
 	$modstat{uc $rec[$recno]{MODE}}=1;
+    }
+    if(exists $submodstat{uc $rec[$recno]{SUBMODE}})
+    {
+	$submodstat{uc $rec[$recno]{SUBMODE}}++;
+    }
+    else
+    {
+	$submodstat{uc $rec[$recno]{SUBMODE}}=1;
     }
     if(exists $propstat{uc $rec[$recno]{PROP_MODE}})
     {
@@ -4683,6 +4692,7 @@ sub PrintInfo
     my $nqso=shift;
     my $bnd;
     my $mode;
+    my $submode;
     my $ctry;
     my $dxx;
     my $lonlat;
@@ -4801,11 +4811,15 @@ sub PrintInfo
 	{
 	    print (sprintf "%-8.8s   %5d\n", $bnd, $bndstat{$bnd}) if(exists $bndstat{$bnd});
 	}
-	foreach $mode (sort keys %modstat)
-	{
-	    print (sprintf "%-8.8s   %5d\n", $mode, $modstat{$mode});
-	}
-	foreach $prop (sort keys %propstat)
+        foreach $mode (sort keys %modstat)
+        {
+            print (sprintf "%-8.8s   %5d\n", $mode, $modstat{$mode});
+        }
+        foreach $submode (sort keys %submodstat)
+        {
+            print (sprintf "%-8.8s   %5d\n", $submode, $submodstat{$submode});
+        }
+        foreach $prop (sort keys %propstat)
 	{
 	    print (sprintf "%-8.8s   %5d\n", $prop, $propstat{$prop});
 	}
@@ -4824,6 +4838,14 @@ sub PrintInfo
 	foreach $mode (sort keys %modstat)
 	{
 	    print $mode." ".$modstat{$mode}." ";
+	}
+	print "\n";
+    }
+    if($opt_q eq 'submodes')
+    {
+	foreach $submode (sort keys %submodstat)
+	{
+	    print $submode." ".$submodstat{$submode}." ";
 	}
 	print "\n";
     }

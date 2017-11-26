@@ -136,6 +136,8 @@ DESCRIPTION
 
     *stations* list of stations
 
+    *submodes* list of submodes
+
 OPTIONS
     -f read in ADIF, text or csv files
 
