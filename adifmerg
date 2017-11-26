@@ -4955,25 +4955,35 @@ sub printversion
 {
     my $x;
     my $n;
+    my $m;
 
     print "adifmerg version $verno, ";
     print "Jaakko Koivuniemi, OH7BF\n";
     if($opt_v)
     {
-	print "Known records\n";
+	print "Known records ADIF $averno\n";
 	foreach $x (sort keys %typ)
 	{
 	    print $x." ";
 	}
 	print "\n";
-	$n=@modes;
-	print "$n known modes\n";
+        $n = scalar @modes;
+        $m = scalar @modesimport;
+        $n -= $m;
+        print "$n known modes and $m import only modes\n";
 	foreach $x (@modes)
 	{
 	    print $x." ";
 	}
 	print "\n";
-	$n=@pmodes;
+        $n = scalar keys %submodes;
+        print "$n known submodes\n";
+	foreach $x (sort keys %submodes)
+	{
+	    print $x." ";
+	}
+	print "\n";
+        $n=@pmodes;
 	print "$n known propagation modes\n";
 	foreach $x (@pmodes)
 	{
@@ -5001,7 +5011,8 @@ sub printversion
 	    print $x." ";
 	}
 	print "\n";
-	print "Known csv records\n";
+        $n = scalar keys %cconv;
+        print "$n known csv records\n";
 	foreach $x (sort keys %cconv)
 	{
 	    print $x.",";
