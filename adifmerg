@@ -30,14 +30,11 @@ my $averno="3.0.7";
 my $dbug=0;
 
 # header hash
-my %hed = (
-           "ADIF_VER" => "",
+my %hed = ("ADIF_VER" => "",
            "CREATED_TIMESTAMP" => "",
            "PROGRAMID" => "",
-           "PROGRAMVERSION" => "",
-#           "USERDEF1" => "MY_SOTA",
-#           "USERDEF2" => "SOTA"
-	   );
+           "PROGRAMVERSION" => "");
+
 
 # global two component array of record hash
 my @rec = ({"ADDRESS" => "",
@@ -942,8 +939,8 @@ sub ReadAdifLog
 	    $line=<>;
 	}
 
-        $c=substr $line,0,1 if($line);
-        if($c&&($c ne "<"))
+        $c=substr $line, 0, 1 if( $line );
+        if( $c && ($c ne "<") )
         {
             while(($line)&&($res !~ /^<eoh>.*/i))
             {
@@ -988,8 +985,8 @@ sub ReadAdifLog
 		exit;
 	    }
 	}
-	
-	PrintAdifHead() if($opt_o);
+
+        PrintAdifHead() if( $opt_o );
 
         # fill the first two records from (two) files
 	$line=$res.$line if($line&&$res);
@@ -1498,7 +1495,7 @@ sub StatQso
 # parse adif header and fill header hash, return rest of line
 sub AdifHead
 {
-    my $line=shift;
+    my $line = shift;
     my $parm;
     my $dta;
     my $pos;
@@ -1506,63 +1503,66 @@ sub AdifHead
     my $c;
 
     # while loop to discard characters before '<'
-    $c=substr $line,0,1;
-    while(($c ne "<")&&(length($line)>0))
+    $c = substr $line, 0, 1;
+    while( ($c ne "<") && (length($line)>0) )
     {
-        $line=substr $line,1,(length($line)-1);
-        $c=substr $line,0,1;
+        $line = substr $line, 1, (length($line)-1);
+        $c=substr $line, 0, 1;
     }
 
-    return "" if(length($line)==0);
+    return "" if( length($line) == 0 );
 
-    while($line =~ /^<(\w+):(\d+)(:[ABNSDTML])?>.*/i)
+#    print "--A hed\{ADIF_VER\} = $hed{ADIF_VER}\n";
+
+    while( $line =~ /^<(\w+):(\d+)(:[ABNSDTML])?>.*/i )
     {
-        $parm=uc $1;
-        $len=$2;
-        $pos=length($parm)+length($len)+3;
-        $pos+=2 if($3);
-        $dta=substr $line,$pos,$len;
-        $line=substr $line,($pos+$len);
+        $parm = uc $1;
+        $len = $2;
+        $pos = length($parm) + length($len) + 3;
+        $pos += 2 if($3);
+        $dta = substr $line, $pos, $len;
+        $line = substr $line, ($pos+$len);
         
-        if(exists $hed{$parm})
+        if( exists $hed{$parm} )
         {
-             $hed{$parm}=$dta;
+             $hed{$parm} = $dta;
+#             print "--B hed\{$parm\} = $hed{$parm}\n";
         }
         else 
 	{
-	    if($parm =~ /^USERDEF\d{1,2}/i)
+	    if( $parm =~ /^USERDEF\d{1,2}/i )
 	    {
 		if(!$opt_u)
 		{
-		    $hed{$parm}=$dta;
+		    $hed{$parm} = $dta;
 		
 		    # now $dta can be for example 'ShoeSize,{5:20}' or 
 		    # 'SweaterSize,{S,M,L}'
 		    # 1. add the new field to rec hash with default 'S' type
 		    # if the type is not given
 		    # 2. set the value to "" or 0 is number
-		    if($dta =~ /^(\w+)(\,\{\w+\})?/)
+		    if( $dta =~ /^(\w+)(\,\{\w+\})?/ )
 		    {
-			$rec[0]{$1}="";
-			$rec[1]{$1}="";
-			$typ{$1}="S";
+			$rec[0]{$1} = "";
+			$rec[1]{$1} = "";
+			$typ{$1} = "S";
 		    }
 		}
 	    }
 	    else
 	    {
-		if($parm !~ /^APP_\w+_\w+/i)
+		if( $parm !~ /^APP_\w+_\w+/i )
 		{
 		    print "Unknown parameter $parm = $dta\n";
 		}
 	    }
 	}
 
-        $c=substr $line,0,1;
-        while(($c ne "<")&&(length($line)>0))
+        $c = substr $line, 0, 1;
+        while( ($c ne "<") && (length($line)>0) )
         {
-            $line=substr $line,1,(length($line)-1);
-            $c=substr $line,0,1;
+            $line = substr $line, 1, (length($line)-1);
+            $c = substr $line, 0, 1;
         }
     }
 
@@ -3072,16 +3072,18 @@ sub PrintAdifHead
     my $oline="";
     my $recn; # record name
 
-    $hed{PROGRAMID}="adifmerg";
-    $hed{PROGRAMVERSION}=$verno;
-    $hed{ADIF_VER}=$averno;
+    $hed{ADIF_VER} = $averno;
+    $hed{PROGRAMID} = "adifmerg";
+    $hed{PROGRAMVERSION} = $verno;
 
     print "# http://www.adif.org\n";
     foreach $recn (sort keys %hed)
     {
-	$oline="<".$recn.":".length($hed{$recn}).">".($hed{$recn}) 
-	    if($hed{$recn});
-	print "$oline\n";
+        if( $hed{$recn} )
+        {
+            $oline = "<" . $recn . ":" . length($hed{$recn}) . ">" . ($hed{$recn});
+	    print "$oline\n";
+        }
     }
     print "<eoh>\n";
 }
