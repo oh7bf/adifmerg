@@ -1322,18 +1322,18 @@ sub PrintQso
 	    }
 	}
         PrintAdifRec($recno) if($opt_o);
-	PrintTxtRec($serr,$recno,$awstatus) if($opt_l);
-	PrintTxtRec($serr,$recno,$awstatus) if(($opt_e)&&($serr));
-	PrintTxtRecL($serr,$recno," ") if($opt_L);
-	PrintCabRec($recno) if($opt_C);
-	PrintTxtRecL($serr,$recno,",") if($opt_x);
-	PrintCsvRec($recno) if($opt_X);
-	PrintTempRec($recno) if(($opt_T)&&(!$opt_Q));
-	Qso2Array() if($opt_s);
-	Qso2Hash2s() if($opt_2);
+        PrintTxtRec($serr,$recno,$awstatus) if($opt_l);
+        PrintTxtRec($serr,$recno,$awstatus) if(($opt_e)&&($serr));
+        PrintTxtRecL($serr,$recno," ") if($opt_L);
+        PrintCabRec($recno) if($opt_C);
+        PrintTxtRecL($serr,$recno,",") if($opt_x);
+        PrintCsvRec($recno) if($opt_X);
+        PrintTempRec($recno) if(($opt_T)&&(!$opt_Q));
+        Qso2Array() if($opt_s);
+        Qso2Hash2s() if($opt_2);
 	
 	$sqsos++ if($opt_o||$opt_l||(($opt_e)&&($serr))||$opt_L||$opt_C||$opt_x||$opt_s|$opt_X);
-	StatQso($recno);
+        StatQso($recno);
 
     }
 
@@ -2740,7 +2740,14 @@ sub PrintTxtRec
     {
 	$oline=$oline.(sprintf " %-6.6s",$rec[$recno]{BAND});
     }
-    $oline=$oline.(sprintf " %-6.6s",$rec[$recno]{MODE});
+    if( $rec[$recno]{SUBMODE} )
+    {
+        $oline=$oline.(sprintf " %-6.6s",$rec[$recno]{SUBMODE});
+    }
+    else
+    {
+        $oline=$oline.(sprintf " %-6.6s",$rec[$recno]{MODE});
+    }
     $oline=$oline.(sprintf " %-12.12s",$rec[$recno]{CALL});
     $oline=$oline.(sprintf " %-3.3s",$rec[$recno]{RST_SENT}) 
 	if($rec[$recno]{RST_SENT});
@@ -2935,9 +2942,13 @@ sub PrintCsvRec
 	$oline="-,";
     }
     
-    if($rec[$recno]{MODE})
+    if($rec[$recno]{SUBMODE})
     {
-	$oline=$oline.$rec[$recno]{MODE}.",";
+        $oline=$oline.$rec[$recno]{SUBMODE}.",";
+    }
+    elsif($rec[$recno]{MODE})
+    {
+        $oline=$oline.$rec[$recno]{MODE}.",";
     }
     else
     {
@@ -3018,19 +3029,24 @@ sub PrintTempRec
     my $pat;
     my $rep;
 
-    for($i=0;$i<@tfile;$i++)
+    for( $i=0; $i<@tfile; $i++ )
     {
-	$line=$tfile[$i];
+	$line = $tfile[$i];
 	foreach $recn (keys %typ)
 	{
-	    $pat="__".$recn;
-	    if(exists $rec[$recno]{$recn})
+            if( exists $rec[$recno]{$recn} )
 	    {
-		$rep=$rec[$recno]{$recn};
-		$line =~ s/$pat/$rep/g;
-	    }
-	}
-	print $line;
+                $rep = $rec[$recno]{$recn};
+                # use SUBMODE instead of MODE if exists
+                if( $recn =~ /MODE/i )
+                {
+                    $rep = $rec[$recno]{SUBMODE} if( exists $rec[$recno]{SUBMODE} );
+                }
+                $pat = "__".$recn;
+                $line =~ s/$pat/$rep/g;
+            }
+        }
+        print $line;
     }
 }
 
