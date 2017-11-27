@@ -271,11 +271,11 @@ sub docmd
 	{
 	    logsplit($fname,$par1);
 	}
-	elsif($cm[1]=~/^sort/i)
-	{
-	    logsort($fname);
-	}
-	else
+        elsif($cm[1]=~/^sort/i)
+        {
+            logsort($fname);
+        }
+        else
 	{
 	    print "Nothing done.\n" 
 		if($cmd!~/exit|quit/);
@@ -858,12 +858,12 @@ sub printhelp
 	}
         if($cmd=~/^query/i)
 	{
-            print "Query parameter from file. The parameter can be 'bands', 'cont', 'country', 'cqz', 'dxcc', 'firstqso', 'grids', 'grid6', 'grid8', 'iota', 'ituz', 'lastqsl', 'lasteqsl', 'lastlqsl', 'lastqso', 'llastqso', 'llastqsot', 'lonlat', 'lonlatd', 'modes', 'ncont', 'ncq', 'ndxcc', 'neqslr', 'neqsls', 'nerr', 'ngrid', 'niota', 'nitu', 'nlonlat', 'nlqslr', 'nlqsls', ' nqslr', 'nqsls', 'nqso', 'nstation', 'props', 'sota' or 'stations'.\n";
+            print "Query parameter from file. The parameter can be 'bands', 'cont', 'country', 'cqz', 'dxcc', 'firstqso', 'grids', 'grid6', 'grid8', 'iota', 'ituz', 'lastqsl', 'lasteqsl', 'lastlqsl', 'lastqso', 'llastqso', 'llastqsot', 'lonlat', 'lonlatd', 'modes', 'ncont', 'ncq', 'ndxcc', 'neqslr', 'neqsls', 'nerr', 'ngrid', 'niota', 'nitu', 'nlonlat', 'nlqslr', 'nlqsls', ' nqslr', 'nqsls', 'nqso', 'nstation', 'props', 'sota', 'stations' or 'submodes'.\n";
             print "file query parameter\n";
 	}
 	if($cmd=~/^split/i)
 	{
-            print "Split QSOs to separate files. One of the adifmerg sets like 'bands', 'cont', 'country', 'cqz', 'dxcc', 'grids', 'grid6', 'grid8', 'grid10', 'iota', 'ituz', 'modes', 'props', 'sota' and 'stations' can be used as splitting criteria.\n";
+            print "Split QSOs to separate files. One of the adifmerg sets like 'bands', 'cont', 'country', 'cqz', 'dxcc', 'grids', 'grid6', 'grid8', 'grid10', 'iota', 'ituz', 'modes', 'props', 'sota', 'stations' and 'submodes' can be used as splitting criteria.\n";
 	    print "file split set\n";
 	}
 	if($cmd=~/^sort/i)
@@ -926,7 +926,8 @@ sub printhistory
 # print version
 sub printversion
 {    
-    print "qsorep v. $verno, Jaakko Koivuniemi OH7BF\n";
+    print "qsorep v. $verno\n";
+    print `adifmerg -V`;
 }
 
 
