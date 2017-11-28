@@ -24,7 +24,7 @@ use POSIX qw(strftime);
 
 use subs qw/add cards check create duplicate edittxt edtmp export info list logsplit merge printhelp printhistory printversion printusage query readfilter qsl qso resetvars timenow utcnow updatelotwd writecabtemp/;
 
-my $verno="20171126"; # YYYYMMDD
+my $verno="20171127"; # YYYYMMDD
 
 # change this if the logs are not in home directory
 my $path=$ENV{"HOME"}."/"; 
@@ -417,14 +417,16 @@ sub export
     }
     elsif($par1 eq "csv")
     {
-	$ofile=$csvpath.$fname.".csv";
-	$c="adifmerg -f $file -X > $ofile";
+        $ofile=$csvpath.$fname.".csv";
+        $ofile =~ s/[.]adi//i;
+        $c="adifmerg -f $file -X > $ofile";
 	`$c`;
     }
     elsif($par1 eq "eqsl")
     {
-	$ofile=$epath.$fname."_eqsl.adi";
-	$c="adifmerg -f $file -o ".readfilter($vars{EQSLOUT})." > $ofile";
+        $ofile=$epath.$fname."_eqsl.adi";
+        $ofile =~ s/[.]adi_/_/i;
+        $c="adifmerg -f $file -o ".readfilter($vars{EQSLOUT})." > $ofile";
 	if(readfilter($vars{EQSLOUT}))
 	{
 	    `$c`;
@@ -437,7 +439,8 @@ sub export
     elsif($par1 eq "lotw")
     {
 	$ofile=$ltwpath.$fname."_lotw.adi";
-	$c="adifmerg -f $file -o ".readfilter($vars{LOTWOUT})." > $ofile";
+        $ofile =~ s/[.]adi_/_/i;
+        $c="adifmerg -f $file -o ".readfilter($vars{LOTWOUT})." > $ofile";
 	if(readfilter($vars{LOTWOUT}))
 	{
 	    `$c`;
@@ -449,8 +452,9 @@ sub export
     }
     elsif($par1 eq "txt")
     {
-	$ofile=$tpath.$fname.".txt";
-	$c="adifmerg -f $file -l -v > $ofile";
+        $ofile=$tpath.$fname.".txt";
+        $ofile =~ s/[.]adi//i;
+        $c="adifmerg -f $file -l -v > $ofile";
 	`$c`;
     }
 }
