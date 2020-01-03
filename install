@@ -15,7 +15,7 @@
 # /usr/sbin/qsorep                   - Perl script
 #
 # Sat Jan  3 08:26:06 CET 2015
-# Edit: 
+# Edit: Fri Jan  3 21:22:05 EET 2020
 # 
 # Jaakko Koivuniemi oh7bf
 #
@@ -23,6 +23,7 @@
 
 # source directory for 'adifmerg'
 SOURCEDIR=${PWD}
+SOURCEBIN=${SOURCEDIR}
 SOURCEMAN=${SOURCEDIR}/doc
 
 # executable scripts 
