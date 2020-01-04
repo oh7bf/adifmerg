@@ -1,0 +1,90 @@
+#!/bin/sh
+#
+# Clean up script for Rasbian/Ubuntu. 
+#
+# Un-installation:
+#
+# a) sudo ./uninstall (this script)
+#
+# The directories used and files created or modified by this script:
+#
+# /etc/profile.d/qsorep.sh           - set environment variables
+# /usr/share/man/man1/adifmerg.1     - manual page
+# /usr/share/man/man1/qsorep.1       - manual page
+# /usr/sbin/adifmerg                 - Perl script
+# /usr/sbin/qsorep                   - Perl script
+#
+# Sat Jan  4 09:45:17 EET 2020
+# Edit: 
+# 
+# Jaakko Koivuniemi oh7bf
+#
+
+
+# source directory for 'adifmerg'
+SOURCEDIR=${PWD}
+SOURCEBIN=${SOURCEDIR}
+SOURCEMAN=${SOURCEDIR}/doc
+
+# executable scripts 
+BINDIR=/usr/sbin
+
+# manual pages
+MANDIR=/usr/share/man/man1
+
+# bash profile files
+PROFILEDIR=/etc/profile.d
+
+# temporary directory to store files
+TEMPDIR=/tmp/adifmerg-uninstall
+
+# executable scripts
+PERLS='adifmerg qsorep'
+
+read -p "The adifmerg and qsorep files will be removed, is this ok? (y|n)" yn
+case $yn in
+    [Yy]* ) break;;
+    [Nn]* ) exit;;
+    * ) exit;;
+esac
+
+if [ -d $TEMPDIR ]; then
+  echo "${TEMPDIR} already exists"
+else
+  echo "Create ${TEMPDIR}"
+  /bin/mkdir -m 755 ${TEMPDIR}
+fi
+
+if [ -d $BINDIR ]; then
+  echo "Remove Perl scripts from ${BINDIR}"
+  for item in $PERLS;
+  do
+    if [ -e ${BINDIR}/${item} ]; then
+       echo "... ${item}"
+       /bin/mv -f ${BINDIR}/${item} ${TEMPDIR}
+    fi 
+  done
+else
+  echo "Binary directory ${BIBDIR} does not exist"
+fi
+
+if [ -d $MANDIR ]; then
+  echo "Remove manual pages from ${MANDIR}"
+  for item in $PERLS;
+  do
+    if [ -r ${MANDIR}/$item.1 ]; then
+       echo "... ${item}.1"
+       /bin/mv -f ${MANDIR}/${item}.1 ${TEMPDIR}
+    fi 
+  done
+else
+  echo "Source directory ${MANDIR} does not exist"
+fi
+
+if [ -x ${PROFILEDIR}/qsorep.sh ]; then
+  echo "Remove profile script ${PROFILEDIR}/qsorep.sh"
+  /bin/mv -f ${PROFILEDIR}/qsorep.sh ${TEMPDIR} 
+fi
+
+echo "Remove repositories and other data files manually if necessary"
+

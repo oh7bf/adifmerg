@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Installation script for Rasbian Wheezy. 
+# Installation script for Rasbian/Ubuntu. 
 #
 # Installation:
 #
@@ -15,7 +15,7 @@
 # /usr/sbin/qsorep                   - Perl script
 #
 # Sat Jan  3 08:26:06 CET 2015
-# Edit: Fri Jan  3 21:22:05 EET 2020
+# Edit: Sat Jan  4 10:11:58 EET 2020
 # 
 # Jaakko Koivuniemi oh7bf
 #
@@ -36,11 +36,11 @@ MANDIR=/usr/share/man/man1
 PROFILEDIR=/etc/profile.d
 
 # executable scripts
-BINS='adifmerg qsorep'
+PERLS='adifmerg qsorep'
 
 if [ -d $SOURCEBIN ]; then
   echo "Copy binary executables to ${BINDIR}"
-  for item in $BINS;
+  for item in $PERLS;
   do
     if [ -r ${SOURCEBIN}/${item} ]; then
        echo "... ${item}"
@@ -53,7 +53,7 @@ fi
 
 if [ -d $SOURCEMAN ]; then
   echo "Copy manual pages to ${MANDIR}"
-  for item in $BINS;
+  for item in $PERLS;
   do
     if [ -r ${SOURCEMAN}/$item.1 ]; then
        echo "... ${item}.1"
