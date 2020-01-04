@@ -71,5 +71,5 @@ else
   echo "Profile script ${PROFILEDIR}/qsorep.sh already exists"
 fi
 
-echo "Install better readline, e.g. 'sudo apt-get install libterm-readline-gnu-perl'"
+echo "Install better readline, e.g. 'sudo apt-get update' and 'sudo apt-get install libterm-readline-gnu-perl'"
 
