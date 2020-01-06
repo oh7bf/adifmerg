@@ -3291,16 +3291,24 @@ sub ReadCsvLog
 				if( $csvhead[$i] eq "Notes" || $csvhead[$i] eq "Comments" )
 				{
                                     $csvrec[$i] =~ s/"//g;
-                                    $csvrec[$i] =~ m!([1-5][1-9][1-9]?)/([1-5][1-9][1-9]?)(.*)!;
-				    if($1)
+                                    $csvrec[$i] =~ m!([1-5][1-9][1-9]?)(QSB|QRM|QRN)?/([1-5][1-9][1-9]?)(.*)!;
+				    if( $1 )
 				    {
-					$rec[0]{RST_SENT}=$1 if($1);
-					$rec[0]{RST_RCVD}=$2 if($2);
-					$rec[0]{COMMENT}=$3 if($3);
+					$rec[0]{RST_SENT} = $1 if( $1 );
+					$rec[0]{RST_RCVD} = $3 if( $3 );
+                                        if( $2 )
+					{
+					    $rec[0]{COMMENT} = $2;
+					    $rec[0]{COMMENT} = $rec[0]{COMMENT} . " " . $4 if($4);
+                                        }
+                                        else
+					{
+					    $rec[0]{COMMENT} = $4 if($4);
+					}
 				    }
 				    else
 				    {
-					$rec[0]{COMMENT}=$csvrec[$i];
+					$rec[0]{COMMENT} = $csvrec[$i];
 				    }
 
 				    @d = split /\s/, $rec[0]{COMMENT};
