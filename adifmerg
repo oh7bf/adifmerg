@@ -3,7 +3,7 @@
 #                                                                             
 # Merge and convert ADIF files.
 #
-# Copyright (C) 2008 - 2017 Jaakko Koivuniemi.
+# Copyright (C) 2008 - 2019 Jaakko Koivuniemi.
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -23,7 +23,7 @@ use Getopt::Std;
 
 use subs qw/AddLoc AddRec AdifHead AdifLine AdifRecTo2 b2cabf b2sota Band2freq CalcDist CheckBand CheckCQZ CheckDate CheckGrid CheckIota CheckITUZ CheckLoc CheckMode CheckPmode CheckPwr CheckQslr CheckQsls CheckQso CheckRig CheckRst CheckSat CheckSatMode CheckSota CheckSubmode CheckUtc CheckVia CompareRec date2csv DelRec EmptyRec f2cabf FixRec Freq2band Grid2Loc jday Loc2Rad m2cab MapRec MergeRecs Modes2Submodes MRules MyNotes2Adif Notes2Adif PrintAdifHead PrintAdifRec PrintAdxHead PrintAdxRec PrintCabHead PrintCabRec PrintCsvRec PrintInfo PrintQsls PrintQso PrintQsos PrintTxtHead PrintTxtRec PrintTxtRecL printusage printversion QslDate QslVerified2Credit QslViaRemoveM Qso2Array Qso2Hash Qso2HashT Qso2Hash2s ReadAdifLog ReadAdifRec ReadCabLog ReadCsvLog ReadTxtLog SearchMatch StatQso time2csv Userdef2Standard/;
 
-my $verno="20171126";
+my $verno="20190106";
 my $averno="3.0.7";
 
 # general debugging switch
@@ -505,10 +505,13 @@ my %typ = ("ADDRESS" => "M",
 my %cconv = ("Band" => "BAND",
 	     "Full reference" => "SOTA_REF",
 	     "Station worked" => "CALL",
+             "OtherCallsign" => "CALL",
 	     "Notes" => "COMMENT",
+             "Comments" => "COMMENT",
 	     "Mode" => "MODE",
 	     "Date" => "QSO_DATE",
 	     "Call used" => "STATION_CALLSIGN",
+             "YourCallsign" => "STATION_CALLSIGN",
 	     "Time" => "TIME_ON",
 	     "End" => "TIME_OFF",
 	     "GridLoc" => "GRIDSQUARE",
@@ -523,9 +526,11 @@ my %cconv = ("Band" => "BAND",
 	     "QSLvia" => "QSL_VIA",
              "Call (activator)" => "STATION_CALLSIGN",
              "Full Reference (activator)" => "MY_SOTA_REF",
-             "Call (chaser)" => "CALL",
+             '"Your Summit"' => "MY_SOTA_REF",
+	     "Call (chaser)" => "CALL",
              "Full Reference (chaser)" => "SOTA_REF",
-             "Call (my call)" => "STATION_CALLSIGN",
+             "OtherSummit" => "SOTA_REF",
+	     "Call (my call)" => "STATION_CALLSIGN",
              "Full Reference (my summit)" => "MY_SOTA_REF",
              "Call (his call)" => "CALL",
              "Full Reference (his summit)" => "SOTA_REF");
@@ -3283,9 +3288,10 @@ sub ReadCsvLog
 			    }
 			    else
 			    {
-				if($csvhead[$i] eq "Notes")
+				if( $csvhead[$i] eq "Notes" || $csvhead[$i] eq "Comments" )
 				{
-				    $csvrec[$i] =~ m!([1-5][1-9][1-9]?)/([1-5][1-9][1-9]?)(.*)!;
+                                    $csvrec[$i] =~ s/"//g;
+                                    $csvrec[$i] =~ m!([1-5][1-9][1-9]?)/([1-5][1-9][1-9]?)(.*)!;
 				    if($1)
 				    {
 					$rec[0]{RST_SENT}=$1 if($1);
@@ -3473,9 +3479,9 @@ sub ReadTxtLog
 		# check if rest of the line has useful data like propagation 
 		# mode, satellite name or locator - rest is added to comment 
 		# record
-		$comment=Notes2Adif($line);
+		$comment = Notes2Adif( $line );
 
-		$rec[0]{COMMENT}=$comment;
+		$rec[0]{COMMENT} = $comment;
 	    
 		if($dbug)
 		{
