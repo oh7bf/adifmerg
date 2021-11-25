@@ -3,7 +3,7 @@
 #                                                                             
 # Merge and convert ADIF files.
 #
-# Copyright (C) 2008 - 2019 Jaakko Koivuniemi.
+# Copyright (C) 2008 - 2021 Jaakko Koivuniemi.
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -23,7 +23,7 @@ use Getopt::Std;
 
 use subs qw/AddLoc AddRec AdifHead AdifLine AdifRecTo2 b2cabf b2sota Band2freq CalcDist CheckBand CheckCQZ CheckDate CheckGrid CheckIota CheckITUZ CheckLoc CheckMode CheckPmode CheckPwr CheckQslr CheckQsls CheckQso CheckRig CheckRst CheckSat CheckSatMode CheckSota CheckSubmode CheckUtc CheckVia CompareRec date2csv DelRec EmptyRec f2cabf FixRec Freq2band Grid2Loc jday Loc2Rad m2cab MapRec MergeRecs Modes2Submodes MRules MyNotes2Adif Notes2Adif PrintAdifHead PrintAdifRec PrintAdxHead PrintAdxRec PrintCabHead PrintCabRec PrintCsvRec PrintInfo PrintQsls PrintQso PrintQsos PrintTxtHead PrintTxtRec PrintTxtRecL printusage printversion QslDate QslVerified2Credit QslViaRemoveM Qso2Array Qso2Hash Qso2HashT Qso2Hash2s ReadAdifLog ReadAdifRec ReadCabLog ReadCsvLog ReadTxtLog SearchMatch StatQso time2csv Userdef2Standard/;
 
-my $verno="20190106";
+my $verno="20211125";
 my $averno="3.0.7";
 
 # general debugging switch
@@ -539,26 +539,52 @@ my %cconv = ("Band" => "BAND",
 my @modes=("AM", "ARDOP", "ATV", "C4FM", "CHIP", "CLO", "CONTESTI", "CW", "DIGITALVOICE", "DOMINO", "DSTAR", "FAX", "FM", "FSK441", "FT8", "HELL", "ISCAT", "JT4", "JT6M", "JT9", "JT44", "JT65", "MFSK", "MSK144", "MT63", "OLIVIA", "OPERA", "PAC", "PAX", "PKT", "PSK", "PSK2K", "Q15", "QRA64", "ROS", "RTTY", "RTTYM", "SSB", "SSTV", "T10", "THOR", "THRB", "TOR", "V4", "VOI", "WINMOR", "WSPR", "AMTORFEC", "ASCI", "CHIP64", "CHIP128", "DOMINOF", "FMHELL", "FSK31", "GTOR", "HELL80", "HFSK", "JT4A", "JT4B", "JT4C", "JT4D", "JT4E", "JT4F", "JT4G", "JT65A", "JT65B", "JT65C", "MFSK8", "MFSK16", "PAC2", "PAC3", "PAX2", "PCW", "PSK10", "PSK31", "PSK63", "PSK63F", "PSK125", "PSKAM10", "PSKAM31", "PSKAM50", "PSKFEC31", "PSKHELL", "QPSK31", "QPSK63", "QPSK125", "THRBX");
  
  
-# import-only modes for adif 3.0.7
+# import-only modes for adif 3.1.2
 my @modesimport=("AMTORFEC", "ASCI", "CHIP64", "CHIP128", "DOMINOF", "FMHELL", "FSK31", "GTOR", "HELL80", "HFSK", "JT4A", "JT4B", "JT4C", "JT4D", "JT4E", "JT4F", "JT4G", "JT65A", "JT65B", "JT65C", "MFSK8", "MFSK16", "PAC2", "PAC3", "PAX2", "PCW", "PSK10", "PSK31", "PSK63", "PSK63F", "PSK125", "PSKAM10", "PSKAM31", "PSKAM50", "PSKFEC31", "PSKHELL", "QPSK31", "QPSK63", "QPSK125", "THRBX");
 
-# submode hash to mode for adif 3.0.7
-my %submodes = ("AMTORFEC" => "TOR",
+# submode hash to mode for adif 3.1.2
+my %submodes = ("8PSK125" => "PSK",
+                "8PSK125F" => "PSK",
+                "8PSK125FL" => "PSK",
+                "8PSK250" => "PSK",
+                "8PSK250F" => "PSK",
+                "8PSK250FL" => "PSK",
+                "8PSK500" => "PSK",
+                "8PSK500F" => "PSK",
+                "8PSK1000" => "PSK",
+                "8PSK1000F" => "PSK",
+                "8PSK1200F" => "PSK",
+                "AMTORFEC" => "TOR",
                 "ASCI" => "RTTY",
                 "CHIP64" => "CHIP",
                 "CHIP128" => "CHIP",
-                "DOMINOEX" => "DOMINO",
+                "DOM-M" => "DOMINO",
+                "DOM4" => "DOMINO",
+                "DOM5" => "DOMINO",
+                "DOM8" => "DOMINO",
+                "DOM11" => "DOMINO",
+                "DOM16" => "DOMINO",
+                "DOM22" => "DOMINO",
+                "DOM44" => "DOMINO",
+                "DOM88" => "DOMINO",
+		"DOMINOEX" => "DOMINO",
                 "DOMINOF" => "DOMINO",
                 "FMHELL" => "HELL",
                 "FSK31" => "PSK",
                 "FSKHELL" => "HELL",
                 "FSQCALL" => "MFSK",
+                "FST4" => "MFSK",
+                "FST4W" => "MFSK",
+                "FT4" => "MFSK",
                 "GTOR" => "TOR",
                 "HELL80" => "HELL",
+                "HELLX5" => "HELL",
+                "HELLX9" => "HELL",
                 "HFSK" => "HELL",
                 "ISCAT-A" => "ISCAT",
                 "ISCAT-B" => "ISCAT",
-                "JT4A" => "JT4",
+                "JS8" => "MFSK",
+		"JT4A" => "JT4",
                 "JT4B" => "JT4",
                 "JT4C" => "JT4",
                 "JT4D" => "JT4",
@@ -587,7 +613,8 @@ my %submodes = ("AMTORFEC" => "TOR",
                 "JT65B2" => "JT65",
                 "JT65C" => "JT65",
                 "JT65C2" => "JT65",
-                "LSB" => "SSB",
+                "JTMS" => "MFSK",
+		"LSB" => "SSB",
                 "MFSK4" => "MFSK",
                 "MFSK8" => "MFSK",
                 "MFSK11" => "MFSK",
@@ -596,7 +623,9 @@ my %submodes = ("AMTORFEC" => "TOR",
                 "MFSK31" => "MFSK",
                 "MFSK32" => "MFSK",
                 "MFSK64" => "MFSK",
+                "MFSK64L" => "MFSK",
                 "MFSK128" => "MFSK",
+                "MFSK128L" => "MFSK",
                 "OLIVIA 4/125" => "OLIVIA", 
                 "OLIVIA 4/250" => "OLIVIA", 
                 "OLIVIA 8/250" => "OLIVIA", 
@@ -610,21 +639,43 @@ my %submodes = ("AMTORFEC" => "TOR",
                 "PAC3" => "PAC",
                 "PAC4" => "PAC",
                 "PAX2" => "PAX",
+                "PCW" => "CW",
                 "PSK10" => "PSK",
                 "PSK31" => "PSK",
                 "PSK63" => "PSK",
                 "PSK63F" => "PSK",
+                "PSK63RC10" => "PSK",
+                "PSK63RC20" => "PSK",
+                "PSK63RC32" => "PSK",
+                "PSK63RC4" => "PSK",
+                "PSK63RC5" => "PSK",
                 "PSK125" => "PSK",
+                "PSK125RC10" => "PSK",
+                "PSK125RC12" => "PSK",
+                "PSK125RC16" => "PSK",
+                "PSK125RC4" => "PSK",
+                "PSK125RC5" => "PSK",
                 "PSK250" => "PSK",
+                "PSK250RC2" => "PSK",
+                "PSK250RC3" => "PSK",
+                "PSK250RC5" => "PSK",
+                "PSK250RC6" => "PSK",
+                "PSK250RC7" => "PSK",
                 "PSK500" => "PSK",
+                "PSK500RC2" => "PSK",
+                "PSK500RC3" => "PSK",
+                "PSK500RC4" => "PSK",
+                "PSK800RC2" => "PSK",
                 "PSK1000" => "PSK",
+                "PSK1000RC2" => "PSK",
                 "PSKAM10" => "PSK",
                 "PSKAM31" => "PSK",
                 "PSKAM50" => "PSK",
                 "PSKFEC31" => "PSK",
                 "PSKHELL" => "HELL",
                 "QPSK31" => "PSK",
-                "QPSK63" => "PSK",
+                "Q65" => "MFSK",
+		"QPSK63" => "PSK",
                 "QPSK125" => "PSK",
                 "QPSK250" => "PSK",
                 "QPSK500" => "PSK",
@@ -636,9 +687,28 @@ my %submodes = ("AMTORFEC" => "TOR",
                 "ROS-EME" => "ROS",
                 "ROS-HF" => "ROS",
                 "ROS-MF" => "ROS",
-                "SIM31" => "PSK",
+		"SIM31" => "PSK",
+                "SITORB" => "TOR",
+                "SLOWHELL" => "HELL",
+                "THOR-M" => "THOR",
+                "THOR4" => "THOR",
+                "THOR5" => "THOR",
+                "THOR8" => "THOR",
+                "THOR11" => "THOR",
+                "THOR16" => "THOR",
+                "THOR22" => "THOR",
+                "THOR25X4" => "THOR",
+                "THOR50X1" => "THOR",
+                "THOR50X2" => "THOR",
+                "THOR100" => "THOR",
                 "THRBX" => "THRB",
-                "USB" => "SSB"); 
+                "THRBX1" => "THRB",
+                "THRBX2" => "THRB",
+                "THRBX4" => "THRB",
+                "THROB1" => "THRB",
+                "THROB2" => "THRB",
+                "THROB4" => "THRB",
+		"USB" => "SSB"); 
 
 
 # propagation modes
@@ -4249,7 +4319,7 @@ sub CheckDate()
 	    $ok=1 if(($day>=1)&&($day<=29)&&($year%2==0));
 	    $ok=1 if(($day>=1)&&($day<=28)&&($year%2!=0));
 	}
-	$ok=0 if(($year<1930)||($year>2020));
+	$ok=0 if(($year<1930)||($year>2021));
     }
 
     return $ok;
@@ -4288,10 +4358,11 @@ sub CheckUtc()
 # test if valid RS(T)
 sub CheckRst()
 {
-    my $rst=shift;
-    my $ok=0;
+    my $rst = shift;
+    my $ok = 0;
 
-    $ok=1 if($rst =~ /^[1-5][1-9][1-9]?.*/);
+    $ok = 1 if( $rst =~ /^[1-5][1-9][1-9]?.*/ );
+    $ok = 1 if( $rst =~ /[+-]?[0-9][0-9]?.*/ );
 
     return $ok;
 }
