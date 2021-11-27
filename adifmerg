@@ -23,7 +23,7 @@ use Getopt::Std;
 
 use subs qw/AddLoc AddRec AdifHead AdifLine AdifRecTo2 b2cabf b2sota Band2freq CalcDist CheckBand CheckCQZ CheckDate CheckGrid CheckIota CheckITUZ CheckLoc CheckMode CheckPmode CheckPwr CheckQslr CheckQsls CheckQso CheckRig CheckRst CheckSat CheckSatMode CheckSota CheckSubmode CheckUtc CheckVia CompareRec date2csv DelRec EmptyRec f2cabf FixRec Freq2band Grid2Loc jday Loc2Rad m2cab MapRec MergeRecs Modes2Submodes MRules MyNotes2Adif Notes2Adif PrintAdifHead PrintAdifRec PrintAdxHead PrintAdxRec PrintCabHead PrintCabRec PrintCsvRec PrintInfo PrintQsls PrintQso PrintQsos PrintTxtHead PrintTxtRec PrintTxtRecL printusage printversion QslDate QslVerified2Credit QslViaRemoveM Qso2Array Qso2Hash Qso2HashT Qso2Hash2s ReadAdifLog ReadAdifRec ReadCabLog ReadCsvLog ReadTxtLog SearchMatch StatQso time2csv Userdef2Standard/;
 
-my $verno="20211125";
+my $verno="20211126";
 my $averno="3.0.7";
 
 # general debugging switch
@@ -67,13 +67,13 @@ my @rec = ({"ADDRESS" => "",
            "CREDIT_SUBMITTED" => "",
            "DARC_DOK" => "",
            "DISTANCE" => 0,
-	   "DXCC" => 0,
-	   "EMAIL" => "",
-	   "EQ_CALL" => "",
-	   "EQSL_QSLRDATE" => "",
-	   "EQSL_QSLSDATE" => "",
-	   "EQSL_QSL_RCVD" => "",
-	   "EQSL_QSL_SENT" => "", 
+           "DXCC" => 0,
+           "EMAIL" => "",
+           "EQ_CALL" => "",
+           "EQSL_QSLRDATE" => "",
+           "EQSL_QSLSDATE" => "",
+           "EQSL_QSL_RCVD" => "",
+           "EQSL_QSL_SENT" => "", 
            "FISTS" => "",
            "FISTS_CC" => "", 	
            "FORCE_INIT" => "",
@@ -85,11 +85,11 @@ my @rec = ({"ADDRESS" => "",
            "HRDLOG_QSO_UPLOAD_STATUS" => "",
            "IOTA" => "",
            "IOTA_ISLAND_ID" => "",
-	   "ITUZ" => 0,
-	   "K_INDEX" => 0,
-	   "LAT" => "",
-	   "LON" => "",
-	   "LOTW_QSLRDATE" => "",
+           "ITUZ" => 0,
+           "K_INDEX" => 0,
+           "LAT" => "",
+           "LON" => "",
+           "LOTW_QSLRDATE" => "",
            "LOTW_QSLSDATE" => "",
            "LOTW_QSL_RCVD" => "",
            "LOTW_QSL_SENT" => "",
@@ -100,8 +100,8 @@ my @rec = ({"ADDRESS" => "",
            "MY_ANTENNA_INTL" => "",
            "MY_CITY" => "",
            "MY_CITY_INTL" => "",
-	   "MY_CNTY" => "",
-	   "MY_COUNTRY" => "",
+           "MY_CNTY" => "",
+           "MY_COUNTRY" => "",
            "MY_COUNTRY_INTL" => "",
            "MY_CQ_ZONE" => 0,
            "MY_DXCC" => 0,
@@ -111,8 +111,8 @@ my @rec = ({"ADDRESS" => "",
            "MY_IOTA_ISLAND_ID" => "",
            "MY_ITU_ZONE" => "",
            "MY_LAT" => "",
-	   "MY_LON" => "",
-	   "MY_NAME" => "",
+           "MY_LON" => "",
+           "MY_NAME" => "",
            "MY_NAME_INTL" => "",
            "MY_POSTAL_CODE" => "",
            "MY_POSTAL_CODE_INTL" => "",
@@ -145,9 +145,9 @@ my @rec = ({"ADDRESS" => "",
            "QSLMSG" => "",
            "QSLMSG_INTL" => "",
 	   "QSLRDATE" => "",
-	   "QSLSDATE" => "",
-	   "QSL_RCVD" => "",
-	   "QSL_RCVD_VIA" => "",
+           "QSLSDATE" => "",
+           "QSL_RCVD" => "",
+           "QSL_RCVD_VIA" => "",
            "QSL_SENT" => "",
            "QSL_SENT_VIA" => "",
            "QSL_VIA" => "",
@@ -172,7 +172,7 @@ my @rec = ({"ADDRESS" => "",
            "SIG_INFO_INTL" => "",
            "SILENT_KEY" => "",
            "SKCC" => "",
-	   "SOTA_REF" => "",
+           "SOTA_REF" => "",
            "SRX" => 0,
            "SRX_STRING" => "",
            "STATE" => "",
@@ -349,19 +349,19 @@ my @rec = ({"ADDRESS" => "",
 # L location, B boolean, E enumeration, A award list
 my %typ = ("ADDRESS" => "M",
            "ADDRESS_INTL" => "G",
-	   "AGE" => "N",
-	   "A_INDEX" => "N",
-	   "ANT_AZ" => "N",
-	   "ANT_EL" => "N",
-	   "ANT_PATH" => "E",
-	   "ARRL_SECT" => "E",
+           "AGE" => "N",
+           "A_INDEX" => "N",
+           "ANT_AZ" => "N",
+           "ANT_EL" => "N",
+           "ANT_PATH" => "E",
+           "ARRL_SECT" => "E",
            "AWARD_SUBMITTED" => "",
            "AWARD_GRANTED" => "",
            "BAND" => "E",
-	   "BAND_RX" => "E",
-	   "CALL" => "S",
-	   "CHECK" => "S",
-	   "CLASS" => "S",
+           "BAND_RX" => "E",
+           "CALL" => "S",
+           "CHECK" => "S",
+           "CLASS" => "S",
            "CLUBLOG_QSO_UPLOAD_DATE" => "D",
            "CLUBLOG_QSO_UPLOAD_STATUS" => "E",
            "CNTY" => "E",
@@ -535,7 +535,7 @@ my %cconv = ("Band" => "BAND",
              "Call (his call)" => "CALL",
              "Full Reference (his summit)" => "SOTA_REF");
 
-# modes for adif 3.0.7, import only modes at end 
+# modes for adif 3.1.2, import only modes at end 
 my @modes=("AM", "ARDOP", "ATV", "C4FM", "CHIP", "CLO", "CONTESTI", "CW", "DIGITALVOICE", "DOMINO", "DSTAR", "FAX", "FM", "FSK441", "FT8", "HELL", "ISCAT", "JT4", "JT6M", "JT9", "JT44", "JT65", "MFSK", "MSK144", "MT63", "OLIVIA", "OPERA", "PAC", "PAX", "PKT", "PSK", "PSK2K", "Q15", "QRA64", "ROS", "RTTY", "RTTYM", "SSB", "SSTV", "T10", "THOR", "THRB", "TOR", "V4", "VOI", "WINMOR", "WSPR", "AMTORFEC", "ASCI", "CHIP64", "CHIP128", "DOMINOF", "FMHELL", "FSK31", "GTOR", "HELL80", "HFSK", "JT4A", "JT4B", "JT4C", "JT4D", "JT4E", "JT4F", "JT4G", "JT65A", "JT65B", "JT65C", "MFSK8", "MFSK16", "PAC2", "PAC3", "PAX2", "PCW", "PSK10", "PSK31", "PSK63", "PSK63F", "PSK125", "PSKAM10", "PSKAM31", "PSKAM50", "PSKFEC31", "PSKHELL", "QPSK31", "QPSK63", "QPSK125", "THRBX");
  
  
@@ -715,19 +715,19 @@ my %submodes = ("8PSK125" => "PSK",
 my @pmodes=("AS", "AUE", "AUR", "BS", "ECH", "EME", "ES", "F2", "FAI", "INTERNET", "ION", "IRL", "MS", "RPT", "RS", "SAT", "TEP", "TR");
 
 # bands for adif 2.2.7
-my @bands=("2190M", "630M", "560M", "160M", "80M", "60M", "40M", "30M", "20M", "17M", "15M", "12M", "10M", "6M", "4M", "2M", "1.25M", "70CM", "33CM", "23CM", "13CM", "9CM", "6CM", "3CM", "1.25CM", "6MM", "4MM", "2.5MM", "2MM", "1MM");
+my @bands=("2190M", "630M", "560M", "160M", "80M", "60M", "40M", "30M", "20M", "17M", "15M", "12M", "10M", "6M", "5M", "4M", "2M", "1.25M", "70CM", "33CM", "23CM", "13CM", "9CM", "6CM", "3CM", "1.25CM", "6MM", "4MM", "2.5MM", "2MM", "1MM");
 
-my @bandl=(0.1357, 0.472, 0.501, 1.8, 3.5, 5.06, 7.0, 10.1, 14.0, 18.068, 21.0, 24.89, 28.0, 50, 70, 144, 222, 420, 902, 1240, 2300, 3300, 5650, 10000, 24000, 47000, 75500, 119980, 142000, 241000);
+my @bandl=(0.1357, 0.472, 0.501, 1.8, 3.5, 5.06, 7.0, 10.1, 14.0, 18.068, 21.0, 24.89, 28.0, 50, 54.000001, 70, 144, 222, 420, 902, 1240, 2300, 3300, 5650, 10000, 24000, 47000, 75500, 119980, 142000, 241000);
 
-my @bandu=(0.1378, 0.479, 0.504, 2.0, 4.0, 5.45, 7.3, 10.15, 14.35, 18.168, 21.45, 24.99, 29.7, 54, 71, 148, 225, 450, 928, 1300, 2450, 3500, 5925, 10500, 24250, 47200, 81000, 120020, 149000, 250000);
+my @bandu=(0.1378, 0.479, 0.504, 2.0, 4.0, 5.45, 7.3, 10.15, 14.35, 18.168, 21.45, 24.99, 29.7, 54, 69.9, 71, 148, 225, 450, 928, 1300, 2450, 3500, 5925, 10500, 24250, 47200, 81000, 120020, 149000, 250000);
 
-my @bandf=(0.137, 0.475, 0.5, 1.8, 3.5, 5, 7, 10.1, 14, 18.068, 21, 24.89, 28, 50, 70, 144, 222, 432, 902, 1240, 2300, 3300, 5650, 10000, 24000, 47000, 75500, 119980, 142000, 241000);
+my @bandf=(0.137, 0.475, 0.5, 1.8, 3.5, 5, 7, 10.1, 14, 18.068, 21, 24.89, 28, 50, 60, 70, 144, 222, 432, 902, 1240, 2300, 3300, 5650, 10000, 24000, 47000, 75500, 119980, 142000, 241000);
 
 # satellites for LoTW
-my @sats=("AO-10","AO-13","AO-16","AO-21","AO-27","AO-3","AO-4","AO-40","AO-51","AO-6","AO-7","AO-8","Arsene","FO-12","FO-20","FO-29","LO-19","NO-44","RS-1","RS-10","RS-11","RS-12","RS-13","RS-15","RS-2","RS-5","RS-6","RS-7","RS-8","SO-35","SO-41","SO-50","UO-14","VO-52");
+my @sats=("AISAT1", "AO-10", "AO-13", "AO-16", "AO-21", "AO-24", "AO-27", "AO-3", "AO-4", "AO-40", "AO-51", "AO-6", "AO-7", "AO-73", "AO-8", "AO-85", "AO-91", "AO-92", "AO-109", "ARISS", "BO-102", "BY70-1", "CAS-3H", "CAS-4A", "CAS-4B", "DO-64", "EO-79", "EO-88", "ESEO", "FO-12", "FO-20", "FO-29", "FO-99", "FS-3", "HO-68", "HO-107", "IO-86", "JO-97", "KEDR", "LO-19", "LO-78", "LO-87", "LO-90", "MIREX", "NO-44", "NO-83", "NO-84", "NO-103", "NO-104", "PO-101", "QO-100", "RS-1", "RS-10", "RS-11", "RS-12", "RS-13", "RS-15", "RS-2", "RS-44", "RS-5", "RS-6", "RS-7", "RS-8", "SAREX", "SO-35", "SO-41", "SO-50", "SO-67", "TAURUS", "UKUBE1", "TO-108", "UO-14", "UVSQ", "VO-52", "XW-2A", "XW-2B", "XW-2C", "XW-2D", "XW-2E", "XW-2F");
 
 # typical rigs
-my @rigs=("ATS3B","ATS3B.1","ATS4","FT100","FT1802","FT1900","FT1000","FT2000","FT250","FT270","FT2800","FT450","FTDX5000","FT60R","FT736","FT747","FT757","FT757GX","FT767","FT817","FT817ND","FT840","FT847","FT857","FT8800","FT8900","FTM10R","FTM350R","FT890","FT897","FT900","FT920","FT950","FT990","FTDX9000","VX110","VX120","VX127","VX150","VX170","VX3R","VX6R","VX7R","VX8R","VX8RD","FT50R","FT7800","IC271","IC275","IC471","IC475","IC7000","IC703","IC706","IC706MkII","IC707","IC718","IC7200","IC725","IC726","IC728","IC735","IC736","IC737","IC746","IC751","IC756","IC761","IC765","IC775","IC78","IC7800","IC781","IC820","IC821","IC910","IC970","ICR10","ICR20","ICR7000","ICR71","ICR7100","ICR72","ICR75","ICR8500","ICR9000","K1","KX1","K2","K3","R5000","R8A","R8B","THD7A","THF7E","THG71","TMD700","TMV7","TS140","TS2000","TS440","TS450","TS480","TS50S","TS570","TS570","TS680","TS690","TS711","TS790","TS811","TS850","TS870","TS930","TS940","TS950","VR5000");
+my @rigs=("ATS3B","ATS3B.1","ATS4","FT100","FT1802","FT1900","FT1000","FT2000","FT250","FT270","FT2800","FT450","FTDX5000","FT60R","FT736","FT747","FT757","FT757GX","FT767","FT817","FT817ND","FT818ND","FT840","FT847","FT857","FT8800","FT8900","FTM10R","FTM350R","FT890","FT897","FT900","FT920","FT950","FT990","FTDX9000","VX110","VX120","VX127","VX150","VX170","VX3R","VX6R","VX7R","VX8R","VX8RD","FT50R","FT7800","IC271","IC275","IC471","IC475","IC7000","IC703","IC706","IC706MkII","IC707","IC718","IC7200","IC725","IC726","IC728","IC735","IC736","IC737","IC746","IC751","IC756","IC761","IC765","IC775","IC78","IC7800","IC781","IC820","IC821","IC910","IC970","ICR10","ICR20","ICR7000","ICR71","ICR7100","ICR72","ICR75","ICR8500","ICR9000","K1","KX1","K2","K3","R5000","R8A","R8B","THD7A","THF7E","THG71","TMD700","TMV7","TS140","TS2000","TS440","TS450","TS480","TS50S","TS570","TS570","TS680","TS690","TS711","TS790","TS811","TS850","TS870","TS930","TS940","TS950","VR5000");
 
 # options: -h help, -V version, -v verbose, -f adif file, -l list qsos etc
 our ($opt_h,$opt_V,$opt_v,$opt_f,$opt_m,$opt_M,$opt_s,$opt_l,$opt_o,$opt_i,$opt_b,$opt_L,$opt_t,$opt_C,$opt_p,$opt_e,$opt_A,$opt_D,$opt_S,$opt_x,$opt_F,$opt_d,$opt_c,$opt_Q,$opt_q,$opt_a,$opt_u,$opt_R,$opt_2,$opt_X,$opt_T,$opt_N);
