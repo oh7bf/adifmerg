@@ -23,11 +23,11 @@ use Getopt::Std;
 
 use subs qw/AddLoc AddRec AdifHead AdifLine AdifRecTo2 b2cabf b2sota Band2freq CalcDist CheckBand CheckCQZ CheckDate CheckGrid CheckIota CheckITUZ CheckLoc CheckMode CheckPmode CheckPwr CheckQslr CheckQsls CheckQso CheckRig CheckRst CheckSat CheckSatMode CheckSota CheckSubmode CheckUtc CheckVia CompareRec date2csv DelRec EmptyRec f2cabf FixRec Freq2band Grid2Loc jday Loc2Rad m2cab MapRec MergeRecs Modes2Submodes MRules MyNotes2Adif Notes2Adif PrintAdifHead PrintAdifRec PrintAdxHead PrintAdxRec PrintCabHead PrintCabRec PrintCsvRec PrintInfo PrintQsls PrintQso PrintQsos PrintTxtHead PrintTxtRec PrintTxtRecL printusage printversion QslDate QslVerified2Credit QslViaRemoveM Qso2Array Qso2Hash Qso2HashT Qso2Hash2s ReadAdifLog ReadAdifRec ReadCabLog ReadCsvLog ReadTxtLog SearchMatch StatQso time2csv Userdef2Standard/;
 
-my $verno="20211126";
+my $verno="20220116";
 my $averno="3.0.7";
 
 # general debugging switch
-my $dbug=0;
+my $dbug = 0;
 
 # header hash
 my %hed = ("ADIF_VER" => "",
@@ -3251,19 +3251,19 @@ sub PrintAdxHead
 # date, time and band are converted from SOTA database format
 sub ReadCsvLog
 {
-    my $file=shift;
+    my $file = shift;
     my $line;
     my $LOGFILE;
-    my $l=0;
-    my $ok=0;
-    my $ne=0;
-    my $serr=""; # type of error
+    my $l = 0;
+    my $ok = 0;
+    my $ne = 0;
+    my $serr = ""; # type of error
     my @csvhead; # csv header array
     my @csvrec; # csv record array
     my $i;
     my $j;
     my @d;
-    my $comment="";
+    my $comment = "";
 
     my %band = ("VLF"    => "2190M",
 		"1.8MHZ" => "160M",
@@ -3291,156 +3291,161 @@ sub ReadCsvLog
 		"MICROWAVE" => "6MM");
 
 
-    if(open($LOGFILE,"<",$file)||($file eq "-csv"))
+    if( open($LOGFILE, "<", $file ) || ( $file eq "-csv" ) )
     {
         # throw away first line
 	if($file ne "-csv")
 	{
-	    $line=<$LOGFILE>; 
+	    $line = <$LOGFILE>; 
 	}
 	else
 	{
-	    $line=<>; 
+	    $line = <>; 
 	}
-	@csvhead=split /,/, $line if($line);
+        @csvhead = split /,/, $line if( $line );
 
-	print "$csvhead[0] $csvhead[1]\n" if($dbug);
+	print "-- header: $csvhead[0], $csvhead[1], ...\n" if( $dbug );
 
-	if($file ne "-csv")
+	if( $file ne "-csv" )
 	{
-	    $line=<$LOGFILE>; 
+	    $line = <$LOGFILE>; 
 	}
 	else
 	{
-	    $line=<>; 
+	    $line = <>; 
 	}
 
-        $ok=1;
-        while($line)
+        $ok = 1;
+	while( $line )
         {
-	    EmptyRec(0); # clean hash before adding new data
-            print "$l:" if($dbug);
+	    EmptyRec( 0 ); # clean hash before adding new data
+            print "$l:" if( $dbug );
 
-	    @csvrec=split /,/, $line if($line);
+            @csvrec = split /,/, $line if( $line );
 
-	    for($i=0;$i<@csvhead;$i++)
+	    for( $i = 0; $i < @csvhead; $i++ )
 	    {
 
 # remove extra hidden characters from SOTA chaser log header line end
-                $csvhead[$i]="Notes" if($csvhead[$i] =~ /Notes/);
+                $csvhead[ $i ] = "Notes" if( $csvhead[ $i ] =~ /Notes/ );
+                $csvhead[ $i ] = "Comments" if( $csvhead[ $i ] =~ /Comments/ );
 
-		if(exists $cconv{$csvhead[$i]})
-		{
-		    if($csvhead[$i] eq "Band")
-		    {
-			if(CheckBand($csvrec[$i]))
-			{
-			    $rec[0]{BAND}=$csvrec[$i];
+                if( exists $cconv{ $csvhead[ $i ] } )
+                {
+                    if( $csvhead[ $i ] eq "Band" )
+                    {
+			if( CheckBand( $csvrec[ $i ] ) )
+                        {
+                            $rec[ 0 ]{ BAND } = $csvrec[ $i ];
 			}
-			else
-			{
-			    $rec[0]{BAND}=$band{uc $csvrec[$i]};
-			}			
-		    }
-		    else
-		    {
-			if($csvhead[$i] eq "Date")
-			{
-			    $csvrec[$i] =~ m!(\d\d)/(\d\d)/(\d\d\d\d)!;
-			    $rec[0]{QSO_DATE}=$3.$2.$1;  
-			}
-			else
-			{
-			    if($csvhead[$i] eq "Time")
-			    {
-				$csvrec[$i] =~ /(\d\d):(\d\d)/;
-				$rec[0]{TIME_ON}=$1.$2;	
-			    }
-			    else
-			    {
-				if( $csvhead[$i] eq "Notes" || $csvhead[$i] eq "Comments" )
-				{
-                                    $csvrec[$i] =~ s/"//g;
-                                    $csvrec[$i] =~ m!([1-5][1-9][1-9]?)(QSB|QRM|QRN)?/([1-5][1-9][1-9]?)(.*)!;
-				    if( $1 )
-				    {
-					$rec[0]{RST_SENT} = $1 if( $1 );
-					$rec[0]{RST_RCVD} = $3 if( $3 );
+                        else
+                        {
+                            $rec[ 0 ]{ BAND } = $band{ uc $csvrec[ $i ] };
+                        }			
+                    }
+                    else
+                    {
+                        if( $csvhead[ $i ] eq "Date" )
+                        {
+                            $csvrec[ $i ] =~ m!(\d\d)/(\d\d)/(\d\d\d\d)!;
+                            $rec[ 0 ]{ QSO_DATE } = $3 . $2 . $1;  
+                        }
+                        else
+                        {
+                            if( $csvhead[ $i ] eq "Time" )
+                            {
+                                $csvrec[ $i ] =~ /(\d\d):(\d\d)/;
+                                $rec[ 0 ]{ TIME_ON } = $1 . $2;	
+                            }
+                            else
+                            {
+                                if( $csvhead[$i] eq "Notes" || $csvhead[$i] eq "Comments" )
+                                {
+                                    $csvrec[ $i ] =~ s/"//g;
+                                    $csvrec[ $i ] =~ m!([1-5][1-9][1-9]?)(QSB|QRM|QRN)?/([1-5][1-9][1-9]?)(.*)!;
+                                    if( $1 )
+                                    {
+                                        $rec[ 0 ]{ RST_SENT } = $1 if( $1 );
+                                        $rec[ 0 ]{ RST_RCVD } = $3 if( $3 );
                                         if( $2 )
-					{
-					    $rec[0]{COMMENT} = $2;
-					    $rec[0]{COMMENT} = $rec[0]{COMMENT} . " " . $4 if($4);
+                                        {
+                                            $rec[ 0 ]{ COMMENT } = $2;
+                                            $rec[ 0 ]{ COMMENT } = $rec[ 0 ]{ COMMENT } . " " . $4 if( $4 );
                                         }
                                         else
-					{
-					    $rec[0]{COMMENT} = $4 if($4);
-					}
-				    }
-				    else
-				    {
-					$rec[0]{COMMENT} = $csvrec[$i];
-				    }
+                                        {
+                                            $rec[ 0 ]{ COMMENT } = $4 if( $4 );
+                                        }
+                                    }
+                                    else
+                                    {
+                                        $rec[ 0 ]{ COMMENT } = $csvrec[ $i ];
+                                    }
 
-				    @d = split /\s/, $rec[0]{COMMENT};
-				    $comment="";
-				    for($j=0;$j<@d;$j++)
-				    {
-					if(CheckPmode($d[$j]))
-					{
-					    $rec[0]{PROP_MODE}=$d[$j];
+                                    @d = split /\s/, $rec[ 0 ]{ COMMENT };
+                                    $comment = "";
+                                    for( $j = 0; $j < @d; $j++ )
+                                    {
+                                        if( CheckPmode( $d[ $j ] ) )
+                                        {
+                                            $rec[ 0 ]{ PROP_MODE } = $d[ $j ];
 					}
-					elsif(CheckSat($d[$j]))
-					{
-					    $rec[0]{SAT_NAME}=$d[$j];
+                                        elsif( CheckSat( $d[ $j ] ) )
+                                        {
+                                            $rec[ 0 ]{ SAT_NAME } = $d[ $j ];
+                                        }
+                                        elsif( CheckSatMode( $d[ $j ] ) )
+                                        {
+                                            $rec[ 0 ]{ SAT_MODE } = $d[ $j ];
 					}
-					elsif(CheckSatMode($d[$j]))
-					{
-					    $rec[0]{SAT_MODE}=$d[$j];
+                                        elsif( ( CheckGrid( $d[ $j ] ) ) && ( length( $d[ $j ] ) >= 4 ) )
+                                        {
+                                            $rec[ 0 ]{ GRIDSQUARE } = $d[ $j ];
+                                        }
+                                        elsif( CheckIota( $d[ $j ] ) )
+                                        {
+                                            $rec[ 0 ]{ IOTA } = $d[ $j ];
+                                        }
+                                        elsif( CheckCQZ( $d[ $j ] ) )
+                                        {
+                                            $d[ $j ] =~ /^(NA|SA|EU|AF|OC|AS|AN)-(\d{1,2})/;
+                                            $rec[ 0 ]{ CONT } = $1;
+                                            $rec[ 0 ]{ CQZ } = $2;
 					}
-					elsif((CheckGrid($d[$j]))&&(length($d[$j])>=4))
-					{
-					    $rec[0]{GRIDSQUARE}=$d[$j];
-					}
-					elsif(CheckIota($d[$j]))
-					{
-					    $rec[0]{IOTA}=$d[$j];
-					}
-					elsif(CheckCQZ($d[$j]))
-					{
-					    $d[$j] =~ /^(NA|SA|EU|AF|OC|AS|AN)-(\d{1,2})/;
-					    $rec[0]{CONT}=$1;
-					    $rec[0]{CQZ}=$2;
-					}
-					elsif(CheckSota($d[$j]))
-					{
-					    $rec[0]{SOTA_REF}=$d[$j] if(exists $rec[0]{SOTA_REF});
-					}
-					elsif($comment)
-					{
-					    $comment=$comment." ".$d[$j];
-					}
-					else
-					{
-					    $comment=$d[$j];
-					}
-				    }
+                                        elsif( CheckSota( $d[ $j ] ) )
+                                        {
+                                            $rec[ 0 ]{ SOTA_REF } = $d[ $j ] if( exists $rec[ 0 ]{ SOTA_REF } );
+                                        }
+                                        elsif( $comment )
+                                        {
+                                            $comment = $comment . " " . $d[ $j ];
+                                        }
+                                        else
+                                        {
+                                            $comment = $d[ $j ];
+                                        }
+                                    }
 				    
-				    $rec[0]{COMMENT}=$comment;
+                                    $rec[ 0 ]{ COMMENT } = $comment;
 
-				}
-				else
-				{
-				    $rec[0]{$cconv{$csvhead[$i]}}=$csvrec[$i];
-				}
-			    }
-			}
-		    }
-		}
+                                }
+                                else
+                                {
+                                    $rec[ 0 ]{ $cconv{ $csvhead[ $i ] } } = $csvrec[ $i ];
+                                }
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    print "-- unknown CSV header column $csvhead[ $i ]\n" if( $dbug );
+                }
 
 	    }
 
-	    if($dbug)
-	    {
+            if( $dbug )
+            {
 		print "--record complete\n";
 		print "call $rec[0]{CALL}\n";
 		print "time $rec[0]{TIME_ON}\n";
@@ -3451,25 +3456,25 @@ sub ReadCsvLog
 	    }
 
 	    # print qso with error message
-	    if($opt_l||$opt_o||$opt_L||$opt_x)
+            if( $opt_l || $opt_o || $opt_L || $opt_x )
 	    {
-		$nerr+=PrintQso(0);
-	    }
+               $nerr += PrintQso( 0 );
+            }
 	    
-	    $l++; 
+            $l++; 
 
-	    if($file ne "-csv")
+            if( $file ne "-csv" )
 	    {
-		$line=<$LOGFILE>; 
-	    }
-	    else
-	    {
-		$line=<>; 
-	    }
+                $line = <$LOGFILE>; 
+            }
+            else
+            {
+                $line = <>; 
+           }
         }
     }
 
-    print "$nerr errors found\n" if($nerr>0); 
+    print "$nerr errors found\n" if( $nerr > 0 ); 
     return $l;
 }
 
@@ -4319,7 +4324,7 @@ sub CheckDate()
 	    $ok=1 if(($day>=1)&&($day<=29)&&($year%2==0));
 	    $ok=1 if(($day>=1)&&($day<=28)&&($year%2!=0));
 	}
-	$ok=0 if(($year<1930)||($year>2021));
+	$ok=0 if(($year<1930)||($year>2022));
     }
 
     return $ok;
