@@ -3,7 +3,7 @@
 #                                                                             
 # Merge and convert ADIF files.
 #
-# Copyright (C) 2008 - 2021 Jaakko Koivuniemi.
+# Copyright (C) 2008 - 2022 Jaakko Koivuniemi.
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -23,7 +23,7 @@ use Getopt::Std;
 
 use subs qw/AddLoc AddRec AdifHead AdifLine AdifRecTo2 b2cabf b2sota Band2freq CalcDist CheckBand CheckCQZ CheckDate CheckGrid CheckIota CheckITUZ CheckLoc CheckMode CheckPmode CheckPwr CheckQslr CheckQsls CheckQso CheckRig CheckRst CheckSat CheckSatMode CheckSota CheckSubmode CheckUtc CheckVia CompareRec date2csv DelRec EmptyRec f2cabf FixRec Freq2band Grid2Loc jday Loc2Rad m2cab MapRec MergeRecs Modes2Submodes MRules MyNotes2Adif Notes2Adif PrintAdifHead PrintAdifRec PrintAdxHead PrintAdxRec PrintCabHead PrintCabRec PrintCsvRec PrintInfo PrintQsls PrintQso PrintQsos PrintTxtHead PrintTxtRec PrintTxtRecL printusage printversion QslDate QslVerified2Credit QslViaRemoveM Qso2Array Qso2Hash Qso2HashT Qso2Hash2s ReadAdifLog ReadAdifRec ReadCabLog ReadCsvLog ReadTxtLog SearchMatch StatQso time2csv Userdef2Standard/;
 
-my $verno="20220116";
+my $verno="20220117";
 my $averno="3.0.7";
 
 # general debugging switch
@@ -4492,7 +4492,7 @@ sub CheckSota()
     $l=uc $l;
     my $ok=0;
 
-    $ok=1 if($l =~ /^(4X|9A|9H|9V|CT|CT3|CU|CX|DL|DM|E5|E7|EA1|EA2|EA3|EA4|EA5|EA6|EA7|EA8|EA9|EI|ES|F|FG|FH|FK|FL|FM|FP|G|GD|GI|GM|GW|HA|HB|HB0|HL|I|IS0|JA|JA5|JA6|JA8|K0M|KH6|KLA|KLF|KLS|KP4|LA|LX|LZ|OD|OE|OH|OK|OM|ON|OY|OZ|PA|R9U|S5|SM|SP|SV|TF|TK|UT|VE1|VE2|VE6|VE7|VE9|VK1|VK2|VK3|VK4|VK5|VK6|VK7|VK8|VK9|VO1|VO2|VP8|VY1|VY2|W0C|W0D|W0M|W0N|W1|W2|W3|W4A|W4C|W4G|W4K|W4T|W4V|W5A|W5M|W5N|W5O|W5T|W6|W7A|W7I|W7M|W7N|W7O|W7U|W7W|W7Y|W8M|W8O|W8V|W9|XE1|XE2|YO|YU|Z3|ZB2|ZD|ZL1|ZL3|ZL7|ZL8|ZL9|ZS)\/(\w\w)-(\d\d\d)/);
+    $ok=1 if($l =~ /^(3Y|4O|4X|5B|8P|9A|9H|9V|A6|BV|CT|CT3|CU|CX|DL|DM|DU2|DU3|DU4|DUC|E5|E7|EA1|EA2|EA3|EA4|EA5|EA6|EA7|EA8|EA9|EI|ES|F|FG|FH|FK|FL|FM|FP|FR|G|GD|GI|GJ|GM|GU|GW|HA|HB|HB0|HI|HL|HR|I|IA|IS0|JA|JA5|JA6|JA8|JW|JX|K0M|KH6|KLA|KLF|KLS|KP4|LA|LUD|LUH|LUM|LUP|LUQ|LUY|LX|LY|LZ|OD|OE|OH|OK|OM|ON|OY|OZ|PA|PP1|PP2|PP5|PP6|PP7|PQ2|PR8|PS7|PS8|PT2|PT7|PY1|PY2|PY3|PY4|PY5|PYF|PYT|R3|R9U|S5|S7|SM|SP|SV|TF|TI|TK|UT|V5|VE1|VE2|VE3|VE4|VE5|VE6|VE7|VE9|VK1|VK2|VK3|VK4|VK5|VK6|VK7|VK8|VK9|VO1|VO2|VP8|VY1|VY2|W0C|W0D|W0I|W0M|W0N|W1|W2|W3|W4A|W4C|W4G|W4K|W4T|W4V|W5A|W5M|W5N|W5O|W5T|W6|W7A|W7I|W7M|W7N|W7O|W7U|W7W|W7Y|W8M|W8O|W8V|W9|XE1|XE2|XE3|XF4|YBE|YBJ|YL|YO|YU|Z3|ZB2|ZD|ZL1|ZL3|ZL7|ZL8|ZL9|ZS|ZS8)\/(\w\w)-(\d\d\d)/);
 
     return $ok;
 }
