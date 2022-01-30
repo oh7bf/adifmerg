@@ -23,7 +23,7 @@ use Getopt::Std;
 
 use subs qw/AddLoc AddRec AdifHead AdifLine AdifRecTo2 b2cabf b2sota Band2freq CalcDist CheckBand CheckCQZ CheckDate CheckGrid CheckIota CheckITUZ CheckLoc CheckMode CheckPmode CheckPwr CheckQslr CheckQsls CheckQso CheckRig CheckRst CheckSat CheckSatMode CheckSota CheckSubmode CheckUtc CheckVia CompareRec date2csv DelRec EmptyRec f2cabf FixRec Freq2band Grid2Loc jday Loc2Rad m2cab MapRec MergeRecs Modes2Submodes MRules MyNotes2Adif Notes2Adif PrintAdifHead PrintAdifRec PrintAdxHead PrintAdxRec PrintCabHead PrintCabRec PrintCsvRec PrintInfo PrintQsls PrintQso PrintQsos PrintTxtHead PrintTxtRec PrintTxtRecL printusage printversion QslDate QslVerified2Credit QslViaRemoveM Qso2Array Qso2Hash Qso2HashT Qso2Hash2s ReadAdifLog ReadAdifRec ReadCabLog ReadCsvLog ReadTxtLog SearchMatch StatQso time2csv Userdef2Standard/;
 
-my $verno="20220117";
+my $verno="20220129";
 my $averno="3.0.7";
 
 # general debugging switch
@@ -920,33 +920,33 @@ if($opt_T)
 # check if dxcc can be used to check the call sign
 `dxcc`|| die("dxcc not found\n") if($opt_c);
 
-if($opt_f) 
+if( $opt_f ) 
 {
-    if($file1)
+    if( $file1 )
     {
-	# adif file
-	if(($file1 =~ /\w+\.adi$/i)||($file1 =~ /\w+\.adif$/i)||($file1 eq "-"))
-	{
-	    $nqso=ReadAdifLog($file1,$file2);
-	    PrintInfo($nqso) if($opt_i);
-	}
-	# csv file
-	elsif(($file1 =~ /\w+\.csv$/i)||($file1 eq "-csv"))
-	{
-            $nqso=ReadCsvLog($file1);
-	    PrintInfo($nqso) if($opt_i);
-	}
-        # text file
-        elsif(($file1 =~ /\w+\.txt$/i)||($file1 eq "-txt"))
+        # adif file
+        if( $file1 =~ /\w+\.adi$/i || $file1 =~ /\w+\.adif$/i || $file1 eq "-" )
         {
-            $nqso=ReadTxtLog($file1);
-            PrintInfo($nqso) if($opt_i);
+            $nqso = ReadAdifLog($file1, $file2);
+            PrintInfo( $nqso ) if( $opt_i );
+        }
+        # csv file
+        elsif( $file1 =~ /\w+\.csv$/i || $file1 eq "-csv" )
+        {
+            $nqso = ReadCsvLog( $file1 );
+            PrintInfo( $nqso ) if( $opt_i );
+        }
+        # text file
+        elsif( $file1 =~ /\w+\.txt$/i || $file1 eq "-txt" )
+        {
+            $nqso = ReadTxtLog( $file1 );
+            PrintInfo( $nqso ) if( $opt_i );
         }
         # cabrillo file
-        elsif(($file1 =~ /\w+\.cbr$/i)||($file1 eq "-cbr"))
+        elsif( $file1 =~ /\w+\.cbr$/i || $file1 eq "-cbr" )
         {
-            $nqso=ReadCabLog($file1);
-            PrintInfo($nqso) if($opt_i);
+            $nqso = ReadCabLog( $file1 );
+            PrintInfo( $nqso ) if( $opt_i );
         }
         else
         {
@@ -986,252 +986,251 @@ print "Warning: data changed $dloss times during merging\n" if($dloss>0);
 # read in QSO data from ADIF file
 sub ReadAdifLog
 {
-    my $file1=shift;
-    my $file2=shift;
+    my $file1 = shift;
+    my $file2 = shift;
     my $LOGFILE;
     my $LOGFILE2;
-    my $l=0;
-    my $l2=0;
-    my $line="";
-    my $line2="";
-    my $ok=0;
-    my $ne=0;
-    my $serr=""; # type of error
-    my $res="";
-    my $res2="";
+    my $l = 0;
+    my $l2 = 0;
+    my $line = "";
+    my $line2 = "";
+    my $ok = 0;
+    my $ne = 0;
+    my $serr = ""; # type of error
+    my $res = "";
+    my $res2 = "";
     my $c;
     my $c2;
-    my $rcc1=0; # record 0 complete
-    my $rcc2=0; # record 1 complete
+    my $rcc1 = 0; # record 0 complete
+    my $rcc2 = 0; # record 1 complete
 
-    if(open($LOGFILE,"<",$file1)||($file1 eq "-"))
+    if( open( $LOGFILE, "<", $file1 ) || $file1 eq "-" )
     {
         # parse header if first character is not '<'
-	if($file1 ne "-")
-	{
-	    $line=<$LOGFILE>;
-	}
-	else 
-	{
-	    $line=<>;
-	}
-
-        $c=substr $line, 0, 1 if( $line );
-        if( $c && ($c ne "<") )
+        if( $file1 ne "-" )
         {
-            while(($line)&&($res !~ /^<eoh>.*/i))
-            {
-                $res=AdifHead($line);
-		if($file1 ne "-")
-		{
-		    $line=<$LOGFILE>;
-		}
-		else 
-		{
-		    $line=<>;
-		}
-            }
-            print "--end of header\n" if($dbug);
-	    $res=substr $res,5,(length($res)-5) if(length($res)>=5);
-            print "--rest of line: $res\n" if($dbug);
+            $line = <$LOGFILE>;
+        }
+        else 
+        {
+            $line = <>;
         }
 
-	# second file for merging
-	if($file2)
-	{
-	    if(open($LOGFILE2,"<",$file2))
-	    {
-		# parse header if first character is not '<'
-		$line2=<$LOGFILE2>;
-		$c2=substr $line2,0,1;
-		if($c2 ne "<")
-		{
-		    while(($line2)&&($res2 !~ /^<eoh>.*/i))
-		    {
-			$res2=AdifHead($line2);
-			$line2=<$LOGFILE2>;
-		    }
-		    print "--end of header2\n" if($dbug);
-		    $res2=substr $res2,5,(length($res2)-5);
-		    print "--rest of line: $res2\n" if($dbug);
-		}
-	    }
-	    else
-	    {
-		print "Could not open $file2\n";
-		exit;
-	    }
-	}
+        $c = substr $line, 0, 1 if( $line );
+        if( $c && ($c ne "<") )
+        {
+            while( $line && $res !~ /^<eoh>.*/i )
+            {
+                $res = AdifHead( $line );
+                if( $file1 ne "-" )
+                {
+                    $line = <$LOGFILE>;
+                }
+                else 
+                {
+                    $line = <>;
+                }
+            }
+            print "--end of header\n" if( $dbug );
+            $res = substr $res,5,( length( $res ) - 5 ) if( length( $res ) >= 5 );
+            print "--rest of line: $res\n" if( $dbug );
+        }
+
+        # second file for merging
+        if( $file2 )
+        {
+            if( open( $LOGFILE2, "<", $file2 ) )
+            {
+                # parse header if first character is not '<'
+                $line2 = <$LOGFILE2>;
+                $c2 = substr $line2, 0, 1;
+                if( $c2 ne "<" )
+                {
+                    while( $line2 && $res2 !~ /^<eoh>.*/i )
+                    {
+                        $res2 = AdifHead( $line2 );
+                        $line2 = <$LOGFILE2>;
+                    }
+                    print "--end of header2\n" if( $dbug );
+                    $res2 = substr $res2, 5, ( length( $res2 ) - 5 );
+                    print "--rest of line: $res2\n" if( $dbug );
+                }
+            }
+            else
+            {
+                print "Could not open $file2\n";
+                exit;
+            }
+        }
 
         PrintAdifHead() if( $opt_o );
 
         # fill the first two records from (two) files
-	$line=$res.$line if($line&&$res);
-	while(($line)&&(!$rcc1))
-	{
-	    ($res,$rcc1,$l)=ReadAdifRec($line,$l,0);
-	    if($file1 ne "-")
-	    {
-		$line=<$LOGFILE>;
-	    }
-	    else 
-	    {
-		$line=<>;
-	    }
-	}
-	$l++ if($rcc1);
+        $line = $res . $line if( $line && $res );
+        while( $line && !$rcc1 )
+        {
+            ($res, $rcc1, $l) = ReadAdifRec( $line, $l, 0);
+            if( $file1 ne "-" )
+            {
+                $line = <$LOGFILE>;
+            }
+            else 
+            {
+                $line = <>;
+            }
+        }
+        $l++ if( $rcc1 );
 	    
-	$line2=$res2.$line2;
-	while(($line2)&&(!$rcc2))
-	{
-	    ($res2,$rcc2,$l2)=ReadAdifRec($line2,$l2,1);
-	    $line2=<$LOGFILE2>;
-	}
-	$l2++ if($rcc2);
+        $line2 = $res2 . $line2;
+        while( $line2 && !$rcc2 )
+        {
+            ($res2, $rcc2, $l2) = ReadAdifRec( $line2, $l2, 1 );
+            $line2 = <$LOGFILE2>;
+        }
+        $l2++ if( $rcc2 );
 
-	print "--rec1 status $rcc1 rec2 status $rcc2\n" if($dbug);
-        $ok=1;
-	while($ok)
-	{
-	    $ok=0 if((!$rcc1)&&(!$rcc2)); # no record full
+        print "--rec1 status $rcc1 rec2 status $rcc2\n" if( $dbug );
+        $ok = 1;
+        while( $ok )
+        {
+            $ok = 0 if( !$rcc1 && !$rcc2 ); # no record full
 
-	    # record 1 complete, second file already empty
-	    if($rcc1&&(!$rcc2)) 
-	    {
-		print "--rec1 complete\n" if($dbug);
-		$rcc1=0;
-		$nerr+=PrintQso(0);
-		EmptyRec(0);
-	  
-		# fill new record
-		$line=$res.$line if($line);
-		while(($line)&&(!$rcc1))
-		{
-		    ($res,$rcc1,$l)=ReadAdifRec($line,$l,0);
-		    if($file1 ne "-")
-		    {
-			$line=<$LOGFILE>;
-		    }
-		    else 
-		    {
-			$line=<>;
-		    }
-		}
-		$l++ if($rcc1);
-	    }
+            # record 1 complete, second file already empty
+            if( $rcc1 &&  !$rcc2 ) 
+            {
+                print "--rec1 complete\n" if( $dbug );
+                $rcc1 = 0;
+                $nerr += PrintQso( 0 );
+                EmptyRec( 0 );
+  
+                # fill new record
+                $line = $res . $line if( $line );
+                while( $line && !$rcc1 )
+                {
+                    ($res, $rcc1, $l) = ReadAdifRec( $line, $l, 0 );
+                    if( $file1 ne "-" )
+                    {
+                        $line = <$LOGFILE>;
+                    }
+                    else 
+                    {
+                        $line = <>;
+                    }
+                }
+                $l++ if( $rcc1 );
+            }
 
-	    # record 2 complete, first file already empty
-	    if($rcc2&&(!$rcc1)) 
-	    {
-		print "--rec2 complete\n" if($dbug);
-		$rcc2=0;
-		$nerr+=PrintQso(1) if(!$opt_M);
-		SearchMatch() if($opt_M);
-		EmptyRec(1);
+            # record 2 complete, first file already empty
+            if( $rcc2 && !$rcc1 ) 
+            {
+                print "--rec2 complete\n" if( $dbug );
+                $rcc2 = 0;
+                $nerr += PrintQso( 1 ) if( !$opt_M );
+                SearchMatch() if( $opt_M );
+                EmptyRec( 1 );
 
-		# fill new record
-		$line2=$res2.$line2 if($line2);
-		while(($line2)&&(!$rcc2))
-		{
-		    ($res2,$rcc2,$l2)=ReadAdifRec($line2,$l2,1);
-		    $line2=<$LOGFILE2>;
-		}
-		$l2++ if($rcc2);
-	    }
+                # fill new record
+                $line2 = $res2 . $line2 if( $line2 );
+                while( $line2 && !$rcc2 )
+                {
+                    ($res2, $rcc2, $l2) = ReadAdifRec( $line2, $l2, 1 );
+                    $line2 = <$LOGFILE2>;
+                }
+                $l2++ if( $rcc2 );
+            }
 
-	    # both records complete, compare and print first in time
-	    if($rcc1&&$rcc2)
-	    {
-		print "--rec1 and rec2 complete\n" if($dbug);
-		# compare and print out
-		if(CompareRec()==1)
-		{
-		    # first record earlier
-		    $rcc1=0;
-		    $nerr+=PrintQso(0);		    
-		    EmptyRec(0);
+            # both records complete, compare and print first in time
+            if( $rcc1 && $rcc2 )
+            {
+                print "--rec1 and rec2 complete\n" if( $dbug );
+                # compare and print out
+                if( CompareRec() == 1 )
+                {
+                    # first record earlier
+                    $rcc1 = 0;
+                    $nerr += PrintQso( 0 );		    
+                    EmptyRec( 0 );
 
-		    # fill new record
-		    $line=$res.$line if($line);
-		    while(($line)&&(!$rcc1))
-		    {
-			($res,$rcc1,$l)=ReadAdifRec($line,$l,0);
-			if($file1 ne "-")
-			{
-			    $line=<$LOGFILE>;
-			}
-			else 
-			{
-			    $line=<>;
-			}
-		    }
-		    $l++ if($rcc1);
-		}
-		else
-		{
-		    if(CompareRec()!=-1)
-		    {
-			# second record earlier
-			$rcc2=0;
-			$nerr+=PrintQso(1) if(!$opt_M);
-			SearchMatch() if($opt_M);
-			EmptyRec(1);
+                    # fill new record
+                    $line = $res . $line if( $line );
+                    while( $line && !$rcc1 )
+                    {
+                        ($res, $rcc1, $l) = ReadAdifRec( $line, $l, 0 );
+                        if( $file1 ne "-" )
+                        {
+                            $line = <$LOGFILE>;
+                        }
+                        else 
+                        {
+                            $line = <>;
+                        }
+                    }
+                    $l++ if( $rcc1 );
+                }
+                else
+                {
+                    if( CompareRec() != -1 )
+                    {
+                        # second record earlier
+                        $rcc2 = 0;
+                        $nerr += PrintQso( 1 ) if( !$opt_M );
+                        SearchMatch() if( $opt_M );
+                        EmptyRec( 1 );
 
-			# fill new record
-			$line2=$res2.$line2 if($line2);
-			while(($line2)&&(!$rcc2))
-			{
-			    ($res2,$rcc2,$l2)=ReadAdifRec($line2,$l2,1);
-			    $line2=<$LOGFILE2>;
-			}
-			$l2++ if($rcc2);
-		    }
-		    else
-		    {
-			# two records are probably same QSO
-			MergeRecs();
+                        # fill new record
+                        $line2 = $res2 . $line2 if( $line2 );
+                        while( $line2 && !$rcc2 )
+                        {
+                            ($res2, $rcc2, $l2) = ReadAdifRec( $line2, $l2, 1 );
+                            $line2 = <$LOGFILE2>;
+                        }
+                        $l2++ if( $rcc2 );
+                    }
+                    else
+                    {
+                        # two records are probably same QSO
+                        MergeRecs();
 
-			$rcc1=0;
-			$nerr+=PrintQso(0);		    
-			EmptyRec(0);
+                        $rcc1 = 0;
+                        $nerr += PrintQso( 0 );		    
+                        EmptyRec( 0 );
 
-			# fill new record1
-			$line=$res.$line if($line);
-			while(($line)&&(!$rcc1))
-			{
-			    ($res,$rcc1,$l)=ReadAdifRec($line,$l,0);
-			    if($file1 ne "-")
-			    {
-				$line=<$LOGFILE>;
-			    }
-			    else 
-			    {
-				$line=<>;
-			    }
-			}
+                        # fill new record1
+                        $line = $res . $line if( $line );
+                        while( $line && !$rcc1 )
+                        {
+                            ($res, $rcc1, $l) = ReadAdifRec( $line, $l, 0 );
+                            if( $file1 ne "-" )
+                            {
+                                $line = <$LOGFILE>;
+                            }
+                            else 
+                            {
+                                $line = <>;
+                            }
+                        }
 
-			$l++ if($rcc1);
+                        $l++ if( $rcc1 );
 
-			$rcc2=0;
-			EmptyRec(1);
+                        $rcc2 = 0;
+                        EmptyRec( 1 );
 
-			# fill new record
-			$line2=$res2.$line2 if($line2);
-			while(($line2)&&(!$rcc2))
-			{
-			    ($res2,$rcc2,$l2)=ReadAdifRec($line2,$l2,1);
-			    $line2=<$LOGFILE2>;
-			}
-			$l2++ if($rcc2);
-		    }
-		}
-	    }
-	}
-
+                        # fill new record
+                        $line2 = $res2 . $line2 if( $line2 );
+                        while( $line2 && !$rcc2 )
+                        {
+                            ($res2, $rcc2, $l2) = ReadAdifRec( $line2, $l2, 1 );
+                            $line2 = <$LOGFILE2>;
+                        }
+                        $l2++ if( $rcc2 );
+                    }
+                }
+            }
+        }
     }
 
-    print "$nerr errors found\n" if(($nerr>0)&&(!$opt_q)); 
-    return ($l+$l2);
+    print "$nerr errors found\n" if( $nerr > 0 && !$opt_q ); 
+    return ( $l + $l2 );
 }
 
 # search for a QSO from first log if was not found in merging with -M
@@ -1264,159 +1263,156 @@ sub SearchMatch
 # print QSO data as adif, text or csv and check validity of QSO records
 sub PrintQso
 {
-    my $recno=shift;
+    my $recno = shift;
     my $serr;
-    my $ne=0;
-    my $prout=0;
+    my $ne = 0;
+    my $prout = 0;
     my @awards;
-    my $awstatus="";
+    my $awstatus = "";
 
     # convert deprecated records
-    AdifRecTo2($recno);
+    AdifRecTo2( $recno );
 
     # convert previous modes to submodes if applicaple
-    Modes2Submodes($recno);
+    Modes2Submodes( $recno );
 
     # add CREDIT_GRANTED field if QSL received "V"
-    QslVerified2Credit($recno);
+    QslVerified2Credit( $recno );
 
     # remove "M" (manager) from QSL via
-    QslViaRemoveM($recno);
+    QslViaRemoveM( $recno );
 
     # map userdefined fields to standard if available
-    Userdef2Standard($recno);
+    Userdef2Standard( $recno );
 
     # optionally add/delete/fix records
-    AddRec($recno) if($opt_A);
-    DelRec($recno) if($opt_D);
-    FixRec($recno) if($opt_F);
-    MapRec($recno) if($opt_R);
+    AddRec( $recno ) if( $opt_A );
+    DelRec( $recno ) if( $opt_D );
+    FixRec( $recno ) if( $opt_F );
+    MapRec( $recno ) if( $opt_R );
 
     # add location from grid square 
-    AddLoc($recno) if($opt_d);
+    AddLoc( $recno ) if( $opt_d );
     # calculate distance
-    CalcDist($recno) if($opt_d);
+    CalcDist( $recno ) if( $opt_d );
 
     # optionally add band info from frequency
-    $rec[$recno]{BAND}=Freq2band($rec[$recno]{FREQ})
-	if(($opt_b)&&(!$rec[$recno]{BAND}));
+    $rec[ $recno ]{BAND} = Freq2band( $rec[ $recno ]{FREQ} )
+       if( $opt_b && !$rec[ $recno ]{BAND} );
 
     # check QSO data
-    if(CheckQso($recno))
+    if( CheckQso( $recno ) )
     {
-	($ne,$serr)=CheckQso($recno);
+        ($ne, $serr ) = CheckQso( $recno );
     }
     else
     {
-	$serr="";
+        $serr = "";
     }
     
     # print out
-    $prout=0;
-    $prout=1 if(!$opt_S);
-    if((!$srecu)&&($opt_S)&&(exists $rec[$recno]{$srecn}))
+    $prout = 0;
+    $prout = 1 if( !$opt_S );
+    if( !$srecu && $opt_S && (exists $rec[$recno]{$srecn}) )
     {
         # exact match 'REC=VAL'
-	if(($srecv)&&($srecv ne "!"))
-	{
-	    if($srecn ne "GRIDSQUARE")
-	    {
-		$prout=1 if(($rec[$recno]{$srecn} eq $srecv)&&($srecv));
-	    }
-	    else
-	    {
-		$prout=1 if(((substr $rec[$recno]{$srecn},0,$gridlen) eq $srecv)&&($srecv));
-	    }
-	}
-
-	else
-	{
-	    # any empty/zero value 'REC=!'
-	    if($srecv eq "!")
-	    {
-		$prout=1 if(!$rec[$recno]{$srecn});
-	    }
-	    else
-	    {
-		# any value 'REC='
-		$prout=1 if($rec[$recno]{$srecn});
-	    }
-	} 
+        if( $srecv && $srecv ne "!" )
+        {
+            if( $srecn ne "GRIDSQUARE" )
+            {
+                $prout = 1 if( $rec[ $recno ]{$srecn} eq $srecv && $srecv );
+            }
+            else
+            {
+                $prout = 1 if(((substr $rec[$recno]{$srecn},0,$gridlen) eq $srecv)&&($srecv));
+            }
+        }
+        else
+        {
+            # any empty/zero value 'REC=!'
+            if( $srecv eq "!" )
+            {
+                $prout = 1 if( !$rec[ $recno ]{$srecn} );
+            }
+            else
+            {
+                # any value 'REC='
+                $prout = 1 if( $rec[ $recno ]{$srecn} );
+            }
+        } 
     }
 
-    if(($srecu)&&($srecv)&&($opt_S))
+    if( $srecu && $srecv && $opt_S )
     {
-	$prout=1 if(($rec[$recno]{$srecn} ge $srecv)&&($rec[$recno]{$srecn} le $srecu));
+        $prout = 1 if( $rec[$recno]{$srecn} ge $srecv && $rec[$recno]{$srecn} le $srecu );
     }
 
-    $awstatus="";
-    if($opt_a)
+    $awstatus = "";
+    if( $opt_a )
     {
-	if(($rec[$recno]{CREDIT_GRANTED})||($rec[$recno]{CREDIT_SUBMITTED}))
-	{
-	    @awards=split /,/, $rec[$recno]{CREDIT_SUBMITTED}; 
-	    foreach(@awards)
-	    {
-		$awstatus="S" if($opt_a eq $_);
-	    }
+        if( $rec[$recno]{CREDIT_GRANTED} || $rec[$recno]{CREDIT_SUBMITTED} )
+        {
+            @awards = split /,/, $rec[ $recno ]{CREDIT_SUBMITTED}; 
+            foreach( @awards )
+            {
+                $awstatus = "S" if( $opt_a eq $_ );
+            }
 
-	    @awards=split /,/, $rec[$recno]{CREDIT_GRANTED}; 
-	    foreach(@awards)
-	    {
-		$awstatus=$awstatus."G" if($opt_a eq $_);
-	    }
-	}
-	$prout=0 if(($prout)&&(!$awstatus));
+            @awards = split /,/, $rec[ $recno ]{CREDIT_GRANTED}; 
+            foreach( @awards )
+            {
+                $awstatus = $awstatus . "G" if( $opt_a eq $_ );
+            }
+        }
+        $prout = 0 if( $prout && !$awstatus );
     }
 
-    if(!$opt_N)
+    if( !$opt_N )
     {
-	$prout=0 if(($rec[$recno]{QSO_COMPLETE} =~ /N/i)&&($srecn ne "QSO_COMPLETE"));
+        $prout = 0 if( $rec[$recno]{QSO_COMPLETE} =~ /N/i && $srecn ne "QSO_COMPLETE" );
     }
 
-    if($prout)
+    if( $prout )
     {
-	if(((uc $opt_Q) eq 'A')&&(((uc $rec[$recno]{QSL_SENT}) eq 'N')||((uc $rec[$recno]{QSL_SENT}) eq 'R')))
-	{
-	    if($opt_T)
-	    {
-		Qso2HashT();
-	    }
-	    else
-	    {
-		Qso2Hash();
-	    }
-	}
-	if(((uc $opt_Q) eq 'R')&&((uc $rec[$recno]{QSL_SENT}) eq 'R'))
-	{
-	    if($opt_T)
-	    {
-		Qso2HashT();
-	    }
-	    else
-	    {
-		Qso2Hash();
-	    }
-	}
-        PrintAdifRec($recno) if($opt_o);
-        PrintTxtRec($serr,$recno,$awstatus) if($opt_l);
-        PrintTxtRec($serr,$recno,$awstatus) if(($opt_e)&&($serr));
-        PrintTxtRecL($serr,$recno," ") if($opt_L);
-        PrintCabRec($recno) if($opt_C);
-        PrintTxtRecL($serr,$recno,",") if($opt_x);
-        PrintCsvRec($recno) if($opt_X);
-        PrintTempRec($recno) if(($opt_T)&&(!$opt_Q));
-        Qso2Array() if($opt_s);
-        Qso2Hash2s() if($opt_2);
+        if(((uc $opt_Q) eq 'A')&&(((uc $rec[$recno]{QSL_SENT}) eq 'N')||((uc $rec[$recno]{QSL_SENT}) eq 'R')))
+        {
+            if( $opt_T )
+            {
+                Qso2HashT();
+            }
+            else
+            {
+                Qso2Hash();
+            }
+        }
+        if(((uc $opt_Q) eq 'R')&&((uc $rec[$recno]{QSL_SENT}) eq 'R'))
+        {
+            if( $opt_T )
+            {
+                Qso2HashT();
+            }
+            else
+            {
+                Qso2Hash();
+            }
+        }
+        PrintAdifRec( $recno ) if( $opt_o );
+        PrintTxtRec( $serr, $recno, $awstatus ) if( $opt_l );
+        PrintTxtRec( $serr, $recno, $awstatus ) if( $opt_e && $serr );
+        PrintTxtRecL( $serr, $recno, " " ) if( $opt_L );
+        PrintCabRec( $recno ) if( $opt_C );
+        PrintTxtRecL( $serr, $recno, "," ) if( $opt_x );
+        PrintCsvRec( $recno ) if( $opt_X );
+        PrintTempRec( $recno ) if( $opt_T && !$opt_Q );
+        Qso2Array() if( $opt_s );
+        Qso2Hash2s() if( $opt_2 );
 	
-	$sqsos++ if($opt_o||$opt_l||(($opt_e)&&($serr))||$opt_L||$opt_C||$opt_x||$opt_s|$opt_X);
+	$sqsos++ if( $opt_o || $opt_l || ( $opt_e && $serr ) || $opt_L || $opt_C || $opt_x || $opt_s || $opt_X);
         StatQso($recno);
-
     }
 
     return $ne;
 }
-    
 
 # calculate QSO statistics
 sub StatQso
@@ -3949,317 +3945,316 @@ sub Loc2Rad
 #check if QSO data looks ok
 sub CheckQso()
 {
-    my $recno=shift;
-    my $serr="";
-    my $nerr=0;
-    my $cntry="";
-    my $cq="";
-    my $itu="";
-    my $cont="";
-    my $ctry="";
+    my $recno = shift;
+    my $serr = "";
+    my $nerr = 0;
+    my $cntry = "";
+    my $cq = "";
+    my $itu = "";
+    my $cont = "";
+    my $ctry = "";
 
-    print "--[$recno] checking data\n" if($dbug);
+    print "--[$recno] checking data\n" if( $dbug );
 
-    if(!CheckDate($rec[$recno]{QSO_DATE}))
+    if( !CheckDate( $rec[ $recno ]{QSO_DATE} ) )
     {
-	$serr=$serr."date?";
-	$nerr++;
-    }
-    if(!CheckUtc($rec[$recno]{TIME_ON}))
-    {
-	$serr=$serr."utc?";
-	$nerr++;
-    }
-    if(!CheckBand($rec[$recno]{BAND}))
-    {
-	$serr=$serr."band?";
-	$nerr++;
-    }
-    if(!CheckMode($rec[$recno]{MODE}))
-    {
-        $serr=$serr."mode?";
+        $serr = $serr . "date?";
         $nerr++;
     }
-    if( $rec[$recno]{SUBMODE} )
+    if( !CheckUtc( $rec[ $recno ]{TIME_ON} ) )
     {
-        if( !CheckSubmode($rec[$recno]{SUBMODE}) )
+        $serr = $serr . "utc?";
+        $nerr++;
+    }
+    if( !CheckBand( $rec[ $recno ]{BAND} ) )
+    {
+        $serr = $serr . "band?";
+        $nerr++;
+    }
+    if( !CheckMode( $rec[ $recno ]{MODE} ) )
+    {
+        $serr = $serr . "mode?";
+        $nerr++;
+    }
+    if( $rec[ $recno ]{SUBMODE} )
+    {
+        if( !CheckSubmode( $rec[ $recno ]{SUBMODE} ) )
         {
 	    $serr = $serr . "submode?";
-	    $nerr++;
+            $nerr++;
         }
     }
-    if($rec[$recno]{PROP_MODE})
+    if( $rec[ $recno ]{PROP_MODE} )
     {
-	if(!CheckPmode($rec[$recno]{PROP_MODE}))
-	{
-	    $serr=$serr."pmode?";
-	    $nerr++;
-	}
+	if( !CheckPmode( $rec[ $recno ]{PROP_MODE} ) )
+        {
+            $serr = $serr . "pmode?";
+            $nerr++;
+        }
     }
-    if($rec[$recno]{RST_SENT})
+    if( $rec[ $recno ]{RST_SENT} )
     {
-	if(!CheckRst($rec[$recno]{RST_SENT}))
-	{
-	    $serr=$serr."rsts?";
-	    $nerr++;
-	}
+        if( !CheckRst( $rec[ $recno ]{RST_SENT} ) )
+        {
+            $serr = $serr . "rsts?";
+            $nerr++;
+        }
     }
-    if($rec[$recno]{RST_RCVD})
+    if( $rec[ $recno ]{RST_RCVD} )
     {
-	if(!CheckRst($rec[$recno]{RST_RCVD}))
-	{
-	    $serr=$serr."rstr?";
-	    $nerr++;
-	}
+        if( !CheckRst( $rec[ $recno ]{RST_RCVD} ) )
+        {
+            $serr = $serr . "rstr?";
+            $nerr++;
+        }
     }
-    if($rec[$recno]{QSL_RCVD})
+    if( $rec[ $recno ]{QSL_RCVD} )
     {
-	if(!CheckQslr($rec[$recno]{QSL_RCVD}))
-	{
-	    $serr=$serr."qslr?";
-	    $nerr++;
-	}
+        if( !CheckQslr( $rec[ $recno ]{QSL_RCVD} ) )
+        {
+            $serr = $serr . "qslr?";
+            $nerr++;
+        }
     }
-    if($rec[$recno]{QSL_SENT})
+    if( $rec[ $recno ]{QSL_SENT} )
     {
-	if(!CheckQsls($rec[$recno]{QSL_SENT}))
-	{
-	    $serr=$serr."qsls?";
-	    $nerr++;
-	}
+        if( !CheckQsls( $rec[ $recno ]{QSL_SENT} ) )
+        {
+            $serr = $serr . "qsls?";
+            $nerr++;
+        }
     }
-    if($rec[$recno]{LAT})
+    if( $rec[ $recno ]{LAT} )
     {
-	if(!CheckLoc($rec[$recno]{LAT}))
-	{
-	    $serr=$serr."loc?";
-	    $nerr++;
-	}
+        if( !CheckLoc( $rec[ $recno ]{LAT} ) )
+        {
+            $serr = $serr . "loc?";
+            $nerr++;
+        }
     }
-    if($rec[$recno]{LON})
+    if( $rec[ $recno ]{LON} )
     {
-	if(!CheckLoc($rec[$recno]{LON}))
-	{
-	    $serr=$serr."loc?";
-	    $nerr++;
-	}
+        if( !CheckLoc( $rec[ $recno ]{LON} ) )
+        {
+            $serr = $serr . "loc?";
+            $nerr++;
+        }
     }
-    if($rec[$recno]{MY_LAT})
+    if( $rec[ $recno ]{MY_LAT} )
     {
-	if(!CheckLoc($rec[$recno]{MY_LAT}))
-	{
-	    $serr=$serr."loc?";
-	    $nerr++;
-	}
+        if( !CheckLoc( $rec[ $recno ]{MY_LAT} ) )
+        {
+            $serr = $serr . "loc?";
+            $nerr++;
+        }
     }
-    if($rec[$recno]{MY_LON})
+    if( $rec[ $recno ]{MY_LON} )
     {
-	if(!CheckLoc($rec[$recno]{MY_LON}))
-	{
-	    $serr=$serr."loc?";
-	    $nerr++;
-	}
+        if( !CheckLoc( $rec[$recno]{MY_LON} ) )
+        {
+            $serr = $serr . "loc?";
+            $nerr++;
+        }
     }
-    if($rec[$recno]{GRIDSQUARE})
+    if( $rec[ $recno ]{GRIDSQUARE} )
     {
-	if(!CheckGrid($rec[$recno]{GRIDSQUARE}))
-	{
-	    $serr=$serr."grid?";
-	    $nerr++;
-	}
+        if( !CheckGrid( $rec[ $recno ]{GRIDSQUARE} ) )
+        {
+            $serr = $serr . "grid?";
+            $nerr++;
+        }
     }
-    if($rec[$recno]{MY_GRIDSQUARE})
+    if( $rec[ $recno ]{MY_GRIDSQUARE} )
     {
-	if(!CheckGrid($rec[$recno]{MY_GRIDSQUARE}))
-	{
-	    $serr=$serr."grid?";
-	    $nerr++;
-	}
+        if( !CheckGrid( $rec[ $recno ]{MY_GRIDSQUARE} ) )
+        {
+            $serr = $serr . "grid?";
+            $nerr++;
+        }
     }
-    if($rec[$recno]{IOTA})
+    if( $rec[ $recno ]{IOTA} )
     {
-	if(!CheckIota($rec[$recno]{IOTA}))
-	{
-	    $serr=$serr."iota?";
-	    $nerr++;
-	}
+        if( !CheckIota( $rec[$recno]{IOTA} ) )
+        {
+            $serr = $serr . "iota?";
+            $nerr++;
+        }
     }
-    if($rec[$recno]{SAT_NAME})
+    if( $rec[ $recno ]{SAT_NAME} )
     {
-	if(!CheckSat($rec[$recno]{SAT_NAME}))
-	{
-	    $serr=$serr."sat?";
-	    $nerr++;
-	}
+        if( !CheckSat( $rec[$recno]{SAT_NAME} ) )
+        {
+            $serr = $serr . "sat?";
+            $nerr++;
+        }
     }
-    if($rec[$recno]{SAT_MODE})
+    if( $rec[ $recno ]{SAT_MODE} )
     {
-	if(!CheckSatMode($rec[$recno]{SAT_MODE}))
-	{
-	    $serr=$serr."smode?";
-	    $nerr++;
-	}
+        if( !CheckSatMode( $rec[ $recno ]{SAT_MODE} ) )
+        {
+            $serr = $serr . "smode?";
+            $nerr++;
+        }
     }
-    if(exists $rec[$recno]{SOTA_REF})
+    if( exists $rec[ $recno ]{SOTA_REF} )
     {
-	if($rec[$recno]{SOTA_REF})
-	{
-	    if(!CheckSota($rec[$recno]{SOTA_REF}))
-	    {
-		$serr=$serr."sota?";
-		$nerr++;
-	    }
-	}
+        if( $rec[ $recno ]{SOTA_REF} )
+        {
+            if( !CheckSota( $rec[ $recno ]{SOTA_REF} ) )
+            {
+                $serr = $serr . "sota?";
+                $nerr++;
+            }
+        }
     }
-    if(exists $rec[$recno]{MY_SOTA_REF})
+    if( exists $rec[ $recno ]{MY_SOTA_REF} )
     {
-	if($rec[$recno]{MY_SOTA_REF})
-	{
-	    if(!CheckSota($rec[$recno]{MY_SOTA_REF}))
-	    {
-		$serr=$serr."sota?";
-		$nerr++;
-	    }
-	}
+        if( $rec[ $recno ]{MY_SOTA_REF} )
+        {
+            if( !CheckSota( $rec[ $recno ]{MY_SOTA_REF} ) )
+            {
+                $serr = $serr . "sota?";
+                $nerr++;
+            }
+        }
     }
-    if($opt_c)
+    if( $opt_c )
     {
-	$cntry=`dxcc $rec[$recno]{CALL}`;
-	if($cntry =~ /.*Country\sName:\s+(\w+)(\s\w+)?.*/i)
-	{
-	    $ctry=$1;
-	    if($2)
-	    {
-		$ctry=$ctry.$2 if($2 !~ /WAZ/);
-	    }
-	    if($1 eq "Unknown")
-	    {
-		$serr=$serr."call?";
-		$nerr++;
-	    }
-	    else
-	    {
-		if($rec[$recno]{COUNTRY})
-		{
-		    if($rec[$recno]{COUNTRY} ne $ctry)
-		    {
-			$serr=$serr."cntry?";
-			$nerr++;
-		    }
-		}
-		else
-		{
-		    $rec[$recno]{COUNTRY}=$ctry;
-		}
-		$cq=$1 if($cntry =~ /.*WAZ\sZone:\s+(\d{1,2}).*/i);
-		$cq=1*$cq;
-		$itu=$1 if($cntry =~ /.*ITU\sZone:\s+(\d{1,2}).*/i);
-		$itu=1*$itu;
-		$cont=$1 if($cntry =~ /.*Continent:\s+(\w\w).*/i);
-		if($rec[$recno]{CQZ})
-		{
-		    if($rec[$recno]{CQZ}!=$cq)
-		    {
-			$serr=$serr."cq?";
-			$nerr++;
-		    }
-		}
-		else
-		{
-		    $rec[$recno]{CQZ}=$cq;
-		}
-		if($rec[$recno]{ITUZ})
-		{
-		    if($rec[$recno]{ITUZ}!=$itu)
-		    {
-			$serr=$serr."itu?";
-			$nerr++;
-		    }
-		}
-		else
-		{
-		    $rec[$recno]{ITUZ}=$itu;
-		}
-		if($rec[$recno]{CONT})
-		{
-		    if($rec[$recno]{CONT} ne $cont)
-		    {
-			$serr=$serr."cont?";
-			$nerr++;
-		    }
-		}
-		else
-		{
-		    $rec[$recno]{CONT}=$cont;
-		}
-	    }
+        $cntry = `dxcc $rec[$recno]{CALL}`;
+        if( $cntry =~ /.*Country\sName:\s+(\w+)(\s\w+)?.*/i )
+        {
+            $ctry = $1;
+            if( $2 )
+            {
+                $ctry = $ctry . $2 if( $2 !~ /WAZ/ );
+            }
+            if( $1 eq "Unknown" )
+            {
+                $serr = $serr . "call?";
+                $nerr++;
+            }
+            else
+            {
+                if( $rec[ $recno ]{COUNTRY} )
+                {
+                    if( $rec[ $recno ]{COUNTRY} ne $ctry )
+                    {
+                        $serr = $serr . "cntry?";
+                        $nerr++;
+                    }
+                }
+                else
+                {
+                    $rec[$recno]{COUNTRY}=$ctry;
+                }
+                $cq = $1 if( $cntry =~ /.*WAZ\sZone:\s+(\d{1,2}).*/i );
+                $cq = 1*$cq;
+                $itu = $1 if( $cntry =~ /.*ITU\sZone:\s+(\d{1,2}).*/i );
+                $itu = 1*$itu;
+                $cont = $1 if( $cntry =~ /.*Continent:\s+(\w\w).*/i );
+                if( $rec[ $recno ]{CQZ} )
+                {
+                    if( $rec[ $recno ]{CQZ} != $cq )
+                    {
+                        $serr = $serr . "cq?";
+                        $nerr++;
+                    }
+                }
+                else
+                {
+                    $rec[ $recno ]{CQZ} = $cq;
+                }
+                if( $rec[ $recno ]{ITUZ} )
+                {
+                    if( $rec[ $recno ]{ITUZ} != $itu )
+                    {
+                        $serr = $serr . "itu?";
+                        $nerr++;
+                    }
+                }
+                else
+                {
+                    $rec[$recno]{ITUZ}=$itu;
+                }
+                if( $rec[ $recno ]{CONT} )
+                {
+                    if( $rec[ $recno ]{CONT} ne $cont )
+                    {
+                        $serr = $serr . "cont?";
+                        $nerr++;
+                    }
+                }
+                else
+                {
+                    $rec[ $recno ]{CONT} = $cont;
+                }
+            }
 	}
-	# check also STATION_CALLSIGN if exists
-	if($rec[$recno]{STATION_CALLSIGN})
-	{
-	    $cntry=`dxcc $rec[$recno]{STATION_CALLSIGN}`;
-	    if($cntry =~ /.*Country\sName:\s+(\w+)(\s\w+)?.*/i)
-	    {
-		$ctry=$1;
-		if($2)
-		{
-		    $ctry=$ctry.$2 if($2 !~ /WAZ/);
-		}
-		if($1 eq "Unknown")
-		{
-		    $serr=$serr."mycall?";
-		    $nerr++;
-		}
-		else
-		{
-		    if($rec[$recno]{MY_COUNTRY})
-		    {
-			if($rec[$recno]{MY_COUNTRY} ne $ctry)
-			{
-			    $serr=$serr."mycntry?";
-			    $nerr++;
-			}
-		    }
-		    else
-		    {
-			$rec[$recno]{MY_COUNTRY}=$ctry;
-		    }
-		    $cq=$1 if($cntry =~ /.*WAZ\sZone:\s+(\d{1,2}).*/i);
-		    $cq=1*$cq;
-		    $itu=$1 if($cntry =~ /.*ITU\sZone:\s+(\d{1,2}).*/i);
-		    $itu=1*$itu;
-		    $cont=$1 if($cntry =~ /.*Continent:\s+(\w\w).*/i);
-		    if($rec[$recno]{MY_CQ_ZONE})
-		    {
-			if($rec[$recno]{MY_CQ_ZONE}!=$cq)
-			{
-			    $serr=$serr."mycq?";
-			    $nerr++;
-			}
-		    }
-		    else
-		    {
-			$rec[$recno]{MY_CQ_ZONE}=$cq;
-		    }
-		    if($rec[$recno]{MY_ITU_ZONE})
-		    {
-			if($rec[$recno]{MY_ITU_ZONE}!=$itu)
-			{
-			    $serr=$serr."myitu?";
-			    $nerr++;
-			}
-		    }
-		    else
-		    {
-			$rec[$recno]{MY_ITU_ZONE}=$itu;
-		    }
-		    
-		}
-	    }
-	}
+        # check also STATION_CALLSIGN if exists
+        if( $rec[ $recno ]{STATION_CALLSIGN} )
+        {
+            $cntry = `dxcc $rec[ $recno ]{STATION_CALLSIGN}`;
+            if( $cntry =~ /.*Country\sName:\s+(\w+)(\s\w+)?.*/i )
+            {
+                $ctry = $1;
+                if( $2 )
+                {
+                    $ctry = $ctry . $2 if( $2 !~ /WAZ/ );
+                }
+                if( $1 eq "Unknown" )
+                {
+                    $serr = $serr . "mycall?";
+                    $nerr++;
+                }
+                else
+                {
+                    if( $rec[ $recno ]{MY_COUNTRY} )
+                    {
+                        if( $rec[ $recno ]{MY_COUNTRY} ne $ctry )
+                        {
+                            $serr = $serr . "mycntry?";
+                            $nerr++;
+                        }
+                    }
+                    else
+                    {
+                        $rec[ $recno ]{MY_COUNTRY} = $ctry;
+                    }
+                    $cq = $1 if( $cntry =~ /.*WAZ\sZone:\s+(\d{1,2}).*/i );
+                    $cq = 1*$cq;
+                    $itu = $1 if( $cntry =~ /.*ITU\sZone:\s+(\d{1,2}).*/i );
+                    $itu = 1*$itu;
+                    $cont = $1 if( $cntry =~ /.*Continent:\s+(\w\w).*/i );
+                    if( $rec[ $recno ]{MY_CQ_ZONE} )
+                    {
+                        if( $rec[ $recno ]{MY_CQ_ZONE} != $cq )
+                        {
+                            $serr = $serr . "mycq?";
+                            $nerr++;
+                        }
+                    }
+                    else
+                    {
+                        $rec[ $recno ]{MY_CQ_ZONE} = $cq;
+                    }
+                    if( $rec[ $recno ]{MY_ITU_ZONE} )
+                    {
+                        if( $rec[ $recno ]{MY_ITU_ZONE} != $itu )
+                        {
+                            $serr = $serr . "myitu?";
+                            $nerr++;
+                        }
+                    }
+                    else
+                    {
+                        $rec[ $recno ]{MY_ITU_ZONE} = $itu;
+                    }
+                }
+            }
+        }
     }
 
-    return ($nerr,$serr); 
+    return ( $nerr, $serr ); 
 
 }
 
