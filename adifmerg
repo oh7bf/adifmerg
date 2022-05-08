@@ -4121,12 +4121,25 @@ sub CheckQso()
     if( $opt_c )
     {
         $cntry = `dxcc $rec[$recno]{CALL}`;
-        if( $cntry =~ /.*Country\sName:\s+(\w+)(\s\w+)?.*/i )
+        # maximum five (5) words in the country name
+        if( $cntry =~ /.*Country\sName:\s+(\w+)(\s\w+)(\s\w+)(\s\w+)(\s\w+).*/i )
         {
             $ctry = $1;
-            if( $2 )
-            {
-                $ctry = $ctry . $2 if( $2 !~ /WAZ/ );
+            if( $2 && ($2 !~ /WAZ/))
+            { 
+                $ctry = $ctry . $2;
+                if( $3 && ($3 !~ /WAZ/))
+                {
+                    $ctry = $ctry . $3;
+                    if( $4 && ($4 !~ /WAZ/))
+                    {
+                        $ctry = $ctry . $4;
+                        if( $5 && ($5 !~ /WAZ/))
+                        {
+                            $ctry = $ctry . $5;
+                        } 
+                    }
+                }
             }
             if( $1 eq "Unknown" )
             {
