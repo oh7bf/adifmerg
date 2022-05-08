@@ -4122,8 +4122,10 @@ sub CheckQso()
     {
         $cntry = `dxcc $rec[$recno]{CALL}`;
         # maximum five (5) words in the country name
-        if( $cntry =~ /.*Country\sName:\s+(\w+)(\s\w+)(\s\w+)(\s\w+)(\s\w+).*/i )
+	print $cntry;
+        if( $cntry =~ /.*Country\sName:\s+(\w+)(\s\w+)(\s\w+)(\s\w+)(\s\w+)?.*/i )
         {
+	    print $ctry;
             $ctry = $1;
             if( $2 && ($2 !~ /WAZ/))
             { 
