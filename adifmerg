@@ -3953,6 +3953,13 @@ sub CheckQso()
     my $itu = "";
     my $cont = "";
     my $ctry = "";
+    my @entries;
+    my $cntry2 = "";
+    my $cq2 = "";
+    my $itu2 = "";
+    my $cont2 = "";
+    my $ctry2 = "";
+    my @entries2;
 
     print "--[$recno] checking data\n" if( $dbug );
 
@@ -4120,15 +4127,30 @@ sub CheckQso()
     }
     if( $opt_c )
     {
+        # Output format of dxcc command for each line:
+        #
+        #     ^ <- beginning position of the string
+        #  0: Callsign: JJ1BDX
+        #  1:
+        #  2: Main Prefix:    JA
+        #  3: Country Name:   Japan
+        #  4: WAZ Zone:       25
+        #  5: ITU Zone:       45
+        #  6: Continent:      AS
+        #  7: Latitude:       36.40
+        #  8: Longitude:      -138.38
+        #  9: UTC shift:      -9.0
+        #
+        #  I really hate positional parsing, but this is much better than
+        #  parsing the entire output without setting line borders.
+
         $cntry = `dxcc $rec[$recno]{CALL}`;
-        if( $cntry =~ /.*Country\sName:\s+(\w+)(\s\w+)?.*/i )
+        @entries = split('\n', $cntry);
+        # maximum five (5) words in the country name
+        if( $entries[3] =~ /^Country\sName:\s+([\w\s]*)$/i )
         {
             $ctry = $1;
-            if( $2 )
-            {
-                $ctry = $ctry . $2 if( $2 !~ /WAZ/ );
-            }
-            if( $1 eq "Unknown" )
+            if( ($ctry eq "Unknown") || ($ctry eq "") )
             {
                 $serr = $serr . "call?";
                 $nerr++;
@@ -4147,11 +4169,11 @@ sub CheckQso()
                 {
                     $rec[$recno]{COUNTRY}=$ctry;
                 }
-                $cq = $1 if( $cntry =~ /.*WAZ\sZone:\s+(\d{1,2}).*/i );
+                $cq = $1 if( $entries[4] =~ /^WAZ\sZone:\s+(\d{1,2})$/i );
                 $cq = 1*$cq;
-                $itu = $1 if( $cntry =~ /.*ITU\sZone:\s+(\d{1,2}).*/i );
+                $itu = $1 if( $entries[5] =~ /^ITU\sZone:\s+(\d{1,2})$/i );
                 $itu = 1*$itu;
-                $cont = $1 if( $cntry =~ /.*Continent:\s+(\w\w).*/i );
+                $cont = $1 if( $entries[6] =~ /^Continent:\s+(\w\w)$/i );
                 if( $rec[ $recno ]{CQZ} )
                 {
                     if( $rec[ $recno ]{CQZ} != $cq )
@@ -4189,19 +4211,17 @@ sub CheckQso()
                     $rec[ $recno ]{CONT} = $cont;
                 }
             }
-	}
+        }
         # check also STATION_CALLSIGN if exists
         if( $rec[ $recno ]{STATION_CALLSIGN} )
         {
-            $cntry = `dxcc $rec[ $recno ]{STATION_CALLSIGN}`;
-            if( $cntry =~ /.*Country\sName:\s+(\w+)(\s\w+)?.*/i )
+            $cntry2 = `dxcc $rec[ $recno ]{STATION_CALLSIGN}`;
+            @entries2 = split('\n', $cntry2);
+            # maximum five (5) words in the country name
+            if( $entries2[3] =~ /^Country\sName:\s+([\w\s]*)$/i )
             {
-                $ctry = $1;
-                if( $2 )
-                {
-                    $ctry = $ctry . $2 if( $2 !~ /WAZ/ );
-                }
-                if( $1 eq "Unknown" )
+                $ctry2 = $1;
+                if( ($ctry2 eq "Unknown") || ($ctry2 eq "") )
                 {
                     $serr = $serr . "mycall?";
                     $nerr++;
@@ -4210,7 +4230,7 @@ sub CheckQso()
                 {
                     if( $rec[ $recno ]{MY_COUNTRY} )
                     {
-                        if( $rec[ $recno ]{MY_COUNTRY} ne $ctry )
+                        if( $rec[ $recno ]{MY_COUNTRY} ne $ctry2 )
                         {
                             $serr = $serr . "mycntry?";
                             $nerr++;
@@ -4218,16 +4238,16 @@ sub CheckQso()
                     }
                     else
                     {
-                        $rec[ $recno ]{MY_COUNTRY} = $ctry;
+                        $rec[ $recno ]{MY_COUNTRY} = $ctry2;
                     }
-                    $cq = $1 if( $cntry =~ /.*WAZ\sZone:\s+(\d{1,2}).*/i );
-                    $cq = 1*$cq;
-                    $itu = $1 if( $cntry =~ /.*ITU\sZone:\s+(\d{1,2}).*/i );
-                    $itu = 1*$itu;
-                    $cont = $1 if( $cntry =~ /.*Continent:\s+(\w\w).*/i );
+                    $cq2 = $1 if( $entries2[4] =~ /^WAZ\sZone:\s+(\d{1,2})$/i );
+                    $cq2 = 1*$cq2;
+                    $itu2 = $1 if( $entries2[5] =~ /^ITU\sZone:\s+(\d{1,2})$/i );
+                    $itu2 = 1*$itu2;
+                    $cont2 = $1 if( $entries2[6] =~ /^Continent:\s+(\w\w)$/i );
                     if( $rec[ $recno ]{MY_CQ_ZONE} )
                     {
-                        if( $rec[ $recno ]{MY_CQ_ZONE} != $cq )
+                        if( $rec[ $recno ]{MY_CQ_ZONE} != $cq2 )
                         {
                             $serr = $serr . "mycq?";
                             $nerr++;
@@ -4235,11 +4255,11 @@ sub CheckQso()
                     }
                     else
                     {
-                        $rec[ $recno ]{MY_CQ_ZONE} = $cq;
+                        $rec[ $recno ]{MY_CQ_ZONE} = $cq2;
                     }
                     if( $rec[ $recno ]{MY_ITU_ZONE} )
                     {
-                        if( $rec[ $recno ]{MY_ITU_ZONE} != $itu )
+                        if( $rec[ $recno ]{MY_ITU_ZONE} != $itu2 )
                         {
                             $serr = $serr . "myitu?";
                             $nerr++;
@@ -4247,7 +4267,7 @@ sub CheckQso()
                     }
                     else
                     {
-                        $rec[ $recno ]{MY_ITU_ZONE} = $itu;
+                        $rec[ $recno ]{MY_ITU_ZONE} = $itu2;
                     }
                 }
             }
