@@ -3694,8 +3694,13 @@ sub ReadCtyPlist
                         if( $line =~ /<key>Country<\/key>/i )
 		        {
                             $line = <$CTYFILE>;
-			    $country = $1 if( $line =~ /<string>(.+)<\/string>/ );
-                        }
+                            if( $line =~ /<string>(.+)<\/string>/ )
+			    {
+                                $country = $1; 
+                                $country = "Federal Republic of Germany" if( $country =~ /Fed. Rep. of Germany/i);
+                                $country = "Democratic Republic of the Congo" if( $country =~ /Dem. Rep. of Congo/i);
+                            }
+		        }
                         elsif( $line =~ /<key>Prefix<\/key>/i )
 		        {
                             $line = <$CTYFILE>;
@@ -4088,6 +4093,7 @@ sub CheckQso()
     my $ctry2 = "";
     my @entries2;
     my $partial = "";
+    my $found = 0;
 
     print "--[$recno] checking data\n" if( $dbug );
 
@@ -4257,15 +4263,11 @@ sub CheckQso()
     {
         if( %ctylist )
         {
-            print "-- try to find $rec[ $recno ]{CALL} from ctylist hash\n" if( $dbug );
-            if( exists $ctylist{ $rec[ $recno ]{CALL} } )
-            {
-                $entries[ 3 ] = $ctylist{ $partial }[ 0 ];
-                $entries[ 4 ] = $ctylist{ $partial }[ 1 ];
-                $entries[ 5 ] = $ctylist{ $partial }[ 2 ];
-                $entries[ 6 ] = $ctylist{ $partial }[ 3 ];
-            }
-	    else
+            $found = 1;
+            $partial = $rec[ $recno ]{CALL};
+
+            print "-- try to find $partial from ctylist hash\n" if( $dbug );
+            if( !exists $ctylist{ $rec[ $recno ]{CALL} } )
 	    {
                 $rec[ $recno ]{CALL} =~ /^(\w+)\/.+/;
 		$partial = $1;
@@ -4273,47 +4275,47 @@ sub CheckQso()
                 $partial ="NoAncPfx" if( !$partial );
 
                 print "-- try to find $partial from ctylist hash\n" if( $dbug );
-                if( exists $ctylist{ $partial } )
+                if( !exists $ctylist{ $partial } )
                 {
-                    $entries[ 3 ] = $ctylist{ $partial }[ 0 ];
-                    $entries[ 4 ] = $ctylist{ $partial }[ 1 ];
-                    $entries[ 5 ] = $ctylist{ $partial }[ 2 ];
-                    $entries[ 6 ] = $ctylist{ $partial }[ 3 ];
-                }
-                else
-                {
-                    $rec[ $recno ]{CALL} =~ /(\w+\d).+/;
+                    $rec[ $recno ]{CALL} =~ /^(\w+\d\w)/;
                     $partial = $1;
 
-                    print "-- try to find $partial from ctylist hash\n" if( $dbug );
-                    if( exists $ctylist{ $partial } )
+		    print "-- try to find $partial from ctylist hash\n" if( $dbug );
+                    if( !exists $ctylist{ $partial } )
                     {
-                        $entries[ 3 ] = $ctylist{ $partial }[ 0 ];
-                        $entries[ 4 ] = $ctylist{ $partial }[ 1 ];
-                        $entries[ 5 ] = $ctylist{ $partial }[ 2 ];
-                        $entries[ 6 ] = $ctylist{ $partial }[ 3 ];
-                    }
-                    else
-                    {
-                        $rec[ $recno ]{CALL} =~ /(\w+)\d.+/;
+                        $rec[ $recno ]{CALL} =~ /^(\w+\d).+/;
                         $partial = $1;
 
                         print "-- try to find $partial from ctylist hash\n" if( $dbug );
-                        if( exists $ctylist{ $partial } )
+                        if( !exists $ctylist{ $partial } )
                         {
-                            $entries[ 3 ] = $ctylist{ $partial }[ 0 ];
-                            $entries[ 4 ] = $ctylist{ $partial }[ 1 ];
-                            $entries[ 5 ] = $ctylist{ $partial }[ 2 ];
-                            $entries[ 6 ] = $ctylist{ $partial }[ 3 ];
+                            $rec[ $recno ]{CALL} =~ /^(\w+)\d.+/;
+                            $partial = $1;
+
+                            print "-- try to find $partial from ctylist hash\n" if( $dbug );
+                            if( !exists $ctylist{ $partial } )
+                            {
+                                $found = 0;	
+                            }
                         }
                     }
                 }
 	    }
 
-            $entries[ 3 ] = "Country Name: " . $entries[ 3 ];
-            $entries[ 4 ] = "WAZ Zone: " . $entries[ 4 ];
-            $entries[ 5 ] = "ITU Zone: " . $entries[ 5 ];
-            $entries[ 6 ] = "Continent: " . $entries[ 6 ];
+	    if( $found )
+	    {
+                $entries[ 3 ] = "Country Name: " . $ctylist{ $partial }[ 0 ];
+                $entries[ 4 ] = "WAZ Zone: " . $ctylist{ $partial }[ 1 ];
+                $entries[ 5 ] = "ITU Zone: " . $ctylist{ $partial }[ 2 ];
+                $entries[ 6 ] = "Continent: " . $ctylist{ $partial }[ 3 ];
+            }
+	    else
+	    {
+                $entries[ 3 ] = "";
+                $entries[ 4 ] = "";
+                $entries[ 5 ] = "";
+                $entries[ 6 ] = "";
+            }
         }
 	else
 	{
@@ -4351,7 +4353,7 @@ sub CheckQso()
             {
                 if( $rec[ $recno ]{COUNTRY} )
                 {
-                    if( $rec[ $recno ]{COUNTRY} ne $ctry )
+                    if( $rec[ $recno ]{COUNTRY} !~ /$ctry/i )
                     {
                         $serr = $serr . "cntry?";
                         $nerr++;
@@ -4409,15 +4411,10 @@ sub CheckQso()
             {
                 if( %ctylist )
                 {
-                    print "-- try to find $rec[ $recno ]{STATION_CALLSIGN} from ctylist hash\n" if( $dbug );
-                    if( exists $ctylist{ $rec[ $recno ]{STATION_CALLSIGN} } )
-                    {
-                        $entries2[ 3 ] = $ctylist{ $partial }[ 0 ];
-                        $entries2[ 4 ] = $ctylist{ $partial }[ 1 ];
-                        $entries2[ 5 ] = $ctylist{ $partial }[ 2 ];
-                        $entries2[ 6 ] = $ctylist{ $partial }[ 3 ];
-                    }
-                    else
+                    $found = 1;
+                    $partial = $rec[ $recno ]{STATION_CALLSIGN};
+                    print "-- try to find $partial from ctylist hash\n" if( $dbug );
+                    if( !exists $ctylist{ $partial } )
                     {
                         $rec[ $recno ]{STATION_CALLSIGN} =~ /^(\w+)\/.+/;
                         $partial = $1;
@@ -4425,47 +4422,47 @@ sub CheckQso()
                         $partial ="NoAncPfx" if( !$partial );
     
                         print "-- try to find $partial from ctylist hash\n" if( $dbug );
-                        if( exists $ctylist{ $partial } )
+                        if( !exists $ctylist{ $partial } )
                         {
-                            $entries2[ 3 ] = $ctylist{ $partial }[ 0 ];
-                            $entries2[ 4 ] = $ctylist{ $partial }[ 1 ];
-                            $entries2[ 5 ] = $ctylist{ $partial }[ 2 ];
-                            $entries2[ 6 ] = $ctylist{ $partial }[ 3 ];
-                        }
-                        else
-                        {
-                            $rec[ $recno ]{STATION_CALLSIGN} =~ /(\w+\d).+/;
-                            $partial = $1;
+                            $rec[ $recno ]{CALL} =~ /^(\w+\d\w)/;
+			    $partial = $1;
 
                             print "-- try to find $partial from ctylist hash\n" if( $dbug );
-                            if( exists $ctylist{ $partial } )
+                            if( !exists $ctylist{ $partial } )
                             {
-                                $entries2[ 3 ] = $ctylist{ $partial }[ 0 ];
-                                $entries2[ 4 ] = $ctylist{ $partial }[ 1 ];
-                                $entries2[ 5 ] = $ctylist{ $partial }[ 2 ];
-                                $entries2[ 6 ] = $ctylist{ $partial }[ 3 ];
-                            }
-                            else
-                            {
-                                $rec[ $recno ]{STATION_CALLiSIGN} =~ /(\w+)\d.+/;
+                                $rec[ $recno ]{STATION_CALLSIGN} =~ /^(\w+\d)/;
                                 $partial = $1;
 
                                 print "-- try to find $partial from ctylist hash\n" if( $dbug );
-                                if( exists $ctylist{ $partial } )
+                                if( !exists $ctylist{ $partial } )
                                 {
-                                    $entries2[ 3 ] = $ctylist{ $partial }[ 0 ];
-                                    $entries2[ 4 ] = $ctylist{ $partial }[ 1 ];
-                                    $entries2[ 5 ] = $ctylist{ $partial }[ 2 ];
-                                    $entries2[ 6 ] = $ctylist{ $partial }[ 3 ];
+                                    $rec[ $recno ]{STATION_CALLSIGN} =~ /^(\w+)\d/;
+                                    $partial = $1;
+
+                                    print "-- try to find $partial from ctylist hash\n" if( $dbug );
+                                    if( !exists $ctylist{ $partial } )
+                                    {
+                                        $found = 0;
+                                    }
                                 }
                             }
                         }
         	    }
 
-		    $entries2[ 3 ] = "Country Name: " . $entries2[ 3 ];
-                    $entries2[ 4 ] = "WAZ Zone: " . $entries2[ 4 ];
-                    $entries2[ 5 ] = "ITU Zone: " . $entries2[ 5 ];
-                    $entries2[ 6 ] = "Continent: " . $entries2[ 6 ];
+		    if( $found )
+		    {
+                        $entries2[ 3 ] = "Country Name: " . $ctylist{ $partial }[ 0 ];
+                        $entries2[ 4 ] = "WAZ Zone: " . $ctylist{ $partial }[ 1 ];
+                        $entries2[ 5 ] = "ITU Zone: " . $ctylist{ $partial }[ 2 ];
+                        $entries2[ 6 ] = "Continent: " . $ctylist{ $partial }[ 3 ];
+                    }
+		    else
+		    {
+                        $entries2[ 3 ] = "";
+                        $entries2[ 4 ] = "";
+                        $entries2[ 5 ] = "";
+                        $entries2[ 6 ] = "";
+                    }
                 }
 		else
 		{
@@ -4486,7 +4483,7 @@ sub CheckQso()
                     {
                         if( $rec[ $recno ]{MY_COUNTRY} )
                         {
-                            if( $rec[ $recno ]{MY_COUNTRY} ne $ctry2 )
+                            if( $rec[ $recno ]{MY_COUNTRY} !~ /$ctry2/i )
                             {
                                 $serr = $serr . "mycntry?";
                                 $nerr++;
