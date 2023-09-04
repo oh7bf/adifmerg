@@ -23,8 +23,11 @@ use Getopt::Std;
 
 use subs qw/AddLoc AddRec AdifHead AdifLine AdifRecTo2 b2cabf b2sota Band2freq CalcDist CheckBand CheckCQZ CheckDate CheckGrid CheckIota CheckITUZ CheckLoc CheckMode CheckPmode CheckPwr CheckQslr CheckQsls CheckQso CheckRig CheckRst CheckSat CheckSatMode CheckSota CheckSubmode CheckUtc CheckVia CompareRec date2csv DelRec EmptyRec f2cabf FixRec Freq2band Grid2Loc jday Loc2Rad m2cab MapRec MergeRecs Modes2Submodes MRules MyNotes2Adif Notes2Adif PrintAdifHead PrintAdifRec PrintAdxHead PrintAdxRec PrintCabHead PrintCabRec PrintCsvRec PrintInfo PrintQsls PrintQso PrintQsos PrintTxtHead PrintTxtRec PrintTxtRecL printusage printversion QslDate QslVerified2Credit QslViaRemoveM Qso2Array Qso2Hash Qso2HashT Qso2Hash2s ReadAdifLog ReadAdifRec ReadCabLog ReadCsvLog ReadTxtLog SearchMatch StatQso time2csv Userdef2Standard/;
 
-my $verno="20230903";
+my $verno="20230904";
 my $averno="3.0.7";
+
+# Jim Reisert, AD1C, http://www.country-files.com/
+my $ctyplist = "/usr/share/dxcc/cty.plist"; 
 
 # general debugging switch
 my $dbug = 0;
@@ -729,6 +732,10 @@ my @sats=("AISAT1", "AO-10", "AO-13", "AO-16", "AO-21", "AO-24", "AO-27", "AO-3"
 # typical rigs
 my @rigs=("ATS3B","ATS3B.1","ATS4","FT100","FT1802","FT1900","FT1000","FT2000","FT250","FT270","FT2800","FT450","FTDX5000","FT60R","FT736","FT747","FT757","FT757GX","FT767","FT817","FT817ND","FT818ND","FT840","FT847","FT857","FT8800","FT8900","FTM10R","FTM350R","FT890","FT897","FT900","FT920","FT950","FT990","FTDX9000","VX110","VX120","VX127","VX150","VX170","VX3R","VX6R","VX7R","VX8R","VX8RD","FT50R","FT7800","IC271","IC275","IC471","IC475","IC7000","IC703","IC706","IC706MkII","IC707","IC718","IC7200","IC725","IC726","IC728","IC735","IC736","IC737","IC746","IC751","IC756","IC761","IC765","IC775","IC78","IC7800","IC781","IC820","IC821","IC910","IC970","ICR10","ICR20","ICR7000","ICR71","ICR7100","ICR72","ICR75","ICR8500","ICR9000","K1","KX1","K2","K3","R5000","R8A","R8B","THD7A","THF7E","THG71","TMD700","TMV7","TS140","TS2000","TS440","TS450","TS480","TS50S","TS570","TS570","TS680","TS690","TS711","TS790","TS811","TS850","TS870","TS930","TS940","TS950","VR5000");
 
+# /usr/(local/)share/dxcc/cty.plist for country, CQ, ITU and continent if
+# available
+my %ctylist;
+
 # options: -h help, -V version, -v verbose, -f adif file, -l list qsos etc
 our ($opt_h,$opt_V,$opt_v,$opt_f,$opt_m,$opt_M,$opt_s,$opt_l,$opt_o,$opt_i,$opt_b,$opt_L,$opt_t,$opt_C,$opt_p,$opt_e,$opt_A,$opt_D,$opt_S,$opt_x,$opt_F,$opt_d,$opt_c,$opt_Q,$opt_q,$opt_a,$opt_u,$opt_R,$opt_2,$opt_X,$opt_T,$opt_N);
 
@@ -917,8 +924,20 @@ if($opt_T)
     }
 }
 
-# check if dxcc can be used to check the call sign
-`dxcc`|| die("dxcc not found\n") if($opt_c);
+# check if /usr/(local/)share/dxcc/cty.plist or dxcc can be used to check 
+# the call sign
+if( $opt_c )
+{
+    if( -r $ctyplist )
+    {
+        ReadCtyPlist( $ctyplist );
+    }
+    else
+    { 
+        `dxcc`|| die("dxcc not found\n");
+    }
+}    
+
 
 if( $opt_f ) 
 {
@@ -3623,6 +3642,113 @@ sub ReadTxtLog
     return $l;
 }
 
+# read file cty.plist by AD1C from http://www.country-files.com/ to hash %ctylist
+sub ReadCtyPlist
+{
+    my $file = shift;
+    my $line;
+    my $CTYFILE;
+
+    my $key = "";
+    my $country = "";
+    my $prefix = "";
+    my $dxcc = 0;
+    my $cqzone = 0;
+    my $ituzone = 0;
+    my $continent = "";
+    my $exactCallsign = "";
+
+    my $nkeys = 0;
+    if( open( $CTYFILE, "<", $file ) )
+    {
+        $line = <$CTYFILE>;
+	#	print $line, "\n";
+
+	while( $line )
+	{
+            if( $line =~ /^<key>(\w+)<\/key>/i )
+	    {
+		    #		print $1, "\n";
+                $key = $1;
+                $nkeys++;
+
+                $country = "";
+                $prefix = "";
+                $dxcc = 0;
+                $cqzone = 0;
+                $ituzone = 0;
+                $continent = "";
+                $exactCallsign = "";
+
+                $line = <$CTYFILE>;
+		#	        print $line, "\n";
+
+		while( $line )
+		{
+		    if( $line =~ /<\/dict>/i )
+		    {
+                        $line = "";
+                    }
+		    else
+		    {
+                        if( $line =~ /<key>Country<\/key>/i )
+		        {
+                            $line = <$CTYFILE>;
+			    $country = $1 if( $line =~ /<string>(.+)<\/string>/ );
+                        }
+                        elsif( $line =~ /<key>Prefix<\/key>/i )
+		        {
+                            $line = <$CTYFILE>;
+                            $prefix = $1 if( $line =~ /<string>(\w+)<\/string>/ );
+                        }
+                        elsif( $line =~ /<key>ADIF<\/key>/i )
+                        {
+                            $line = <$CTYFILE>;
+                            $dxcc = scalar( $1 ) if( $line =~ /<integer>(\w+)<\/integer>/ );
+                        }
+                        elsif( $line =~ /<key>CQZone<\/key>/i )
+                        {
+                            $line = <$CTYFILE>;
+                            $cqzone = scalar( $1 ) if( $line =~ /<integer>(\w+)<\/integer>/ );
+                        }
+                        elsif( $line =~ /<key>ITUZone<\/key>/i )
+                        {
+                            $line = <$CTYFILE>;
+                            $ituzone = scalar( $1 ) if( $line =~ /<integer>(\w+)<\/integer>/ );
+                        }
+                        elsif( $line =~ /<key>Continent<\/key>/i )
+                        {
+                            $line = <$CTYFILE>;
+                            $continent = $1 if( $line =~ /<string>(\w+)<\/string>/ );
+                        }
+                        
+			$line = <$CTYFILE>;
+			#                        print $line, "\n";
+                    }
+                }
+
+		print "$key $country $prefix $dxcc $cqzone $ituzone $continent\n" if( $dbug );
+
+		$ctylist{ $key } = [$country, $cqzone, $ituzone, $continent];
+		$line = <$CTYFILE> if( !$line );
+            }
+	    else
+	    {
+                $line = <$CTYFILE>;
+            }
+	}
+    }
+    else
+    {
+        print "Could not read file $file\n";
+        return 0;
+    }
+
+    print "-- read $nkeys from cty.plist file\n" if( $dbug );
+
+    return $nkeys;
+}
+
 # fill adif records from the notes 
 sub Notes2Adif
 {
@@ -3961,6 +4087,7 @@ sub CheckQso()
     my $cont2 = "";
     my $ctry2 = "";
     my @entries2;
+    my $partial = "";
 
     print "--[$recno] checking data\n" if( $dbug );
 
@@ -4128,25 +4255,89 @@ sub CheckQso()
     }
     if( $opt_c )
     {
-        # Output format of dxcc command for each line:
-        #
-        #     ^ <- beginning position of the string
-        #  0: Callsign: JJ1BDX
-        #  1:
-        #  2: Main Prefix:    JA
-        #  3: Country Name:   Japan
-        #  4: WAZ Zone:       25
-        #  5: ITU Zone:       45
-        #  6: Continent:      AS
-        #  7: Latitude:       36.40
-        #  8: Longitude:      -138.38
-        #  9: UTC shift:      -9.0
-        #
-        #  I really hate positional parsing, but this is much better than
-        #  parsing the entire output without setting line borders.
+        if( %ctylist )
+        {
+            print "-- try to find $rec[ $recno ]{CALL} from ctylist hash\n" if( $dbug );
+            if( exists $ctylist{ $rec[ $recno ]{CALL} } )
+            {
+                $entries[ 3 ] = $ctylist{ $partial }[ 0 ];
+                $entries[ 4 ] = $ctylist{ $partial }[ 1 ];
+                $entries[ 5 ] = $ctylist{ $partial }[ 2 ];
+                $entries[ 6 ] = $ctylist{ $partial }[ 3 ];
+            }
+	    else
+	    {
+                $rec[ $recno ]{CALL} =~ /^(\w+)\/.+/;
+		$partial = $1;
 
-        $cntry = `dxcc $rec[$recno]{CALL}`;
-        @entries = split('\n', $cntry);
+                $partial ="NoAncPfx" if( !$partial );
+
+                print "-- try to find $partial from ctylist hash\n" if( $dbug );
+                if( exists $ctylist{ $partial } )
+                {
+                    $entries[ 3 ] = $ctylist{ $partial }[ 0 ];
+                    $entries[ 4 ] = $ctylist{ $partial }[ 1 ];
+                    $entries[ 5 ] = $ctylist{ $partial }[ 2 ];
+                    $entries[ 6 ] = $ctylist{ $partial }[ 3 ];
+                }
+                else
+                {
+                    $rec[ $recno ]{CALL} =~ /(\w+\d).+/;
+                    $partial = $1;
+
+                    print "-- try to find $partial from ctylist hash\n" if( $dbug );
+                    if( exists $ctylist{ $partial } )
+                    {
+                        $entries[ 3 ] = $ctylist{ $partial }[ 0 ];
+                        $entries[ 4 ] = $ctylist{ $partial }[ 1 ];
+                        $entries[ 5 ] = $ctylist{ $partial }[ 2 ];
+                        $entries[ 6 ] = $ctylist{ $partial }[ 3 ];
+                    }
+                    else
+                    {
+                        $rec[ $recno ]{CALL} =~ /(\w+)\d.+/;
+                        $partial = $1;
+
+                        print "-- try to find $partial from ctylist hash\n" if( $dbug );
+                        if( exists $ctylist{ $partial } )
+                        {
+                            $entries[ 3 ] = $ctylist{ $partial }[ 0 ];
+                            $entries[ 4 ] = $ctylist{ $partial }[ 1 ];
+                            $entries[ 5 ] = $ctylist{ $partial }[ 2 ];
+                            $entries[ 6 ] = $ctylist{ $partial }[ 3 ];
+                        }
+                    }
+                }
+	    }
+
+            $entries[ 3 ] = "Country Name: " . $entries[ 3 ];
+            $entries[ 4 ] = "WAZ Zone: " . $entries[ 4 ];
+            $entries[ 5 ] = "ITU Zone: " . $entries[ 5 ];
+            $entries[ 6 ] = "Continent: " . $entries[ 6 ];
+        }
+	else
+	{
+	    # Output format of dxcc command for each line:
+            #
+            #     ^ <- beginning position of the string
+            #  0: Callsign: JJ1BDX
+            #  1:
+            #  2: Main Prefix:    JA
+            #  3: Country Name:   Japan
+            #  4: WAZ Zone:       25
+            #  5: ITU Zone:       45
+            #  6: Continent:      AS
+            #  7: Latitude:       36.40
+            #  8: Longitude:      -138.38
+            #  9: UTC shift:      -9.0
+            #
+            #  I really hate positional parsing, but this is much better than
+            #  parsing the entire output without setting line borders.
+
+            $cntry = `dxcc $rec[$recno]{CALL}`;
+            @entries = split('\n', $cntry);
+        }
+
         # maximum five (5) words in the country name
         if( $entries[3] =~ /^Country\sName:\s+([\w\.?\s]*)$/i )
         {
@@ -4212,63 +4403,128 @@ sub CheckQso()
                     $rec[ $recno ]{CONT} = $cont;
                 }
             }
-        }
-        # check also STATION_CALLSIGN if exists
-        if( $rec[ $recno ]{STATION_CALLSIGN} )
-        {
-            $cntry2 = `dxcc $rec[ $recno ]{STATION_CALLSIGN}`;
-            @entries2 = split('\n', $cntry2);
-            # maximum five (5) words in the country name
-            if( $entries2[3] =~ /^Country\sName:\s+([\w\.?\s]*)$/i )
+
+    	    # check also STATION_CALLSIGN if exists
+            if( $rec[ $recno ]{STATION_CALLSIGN} )
             {
-                $ctry2 = $1;
-                if( ($ctry2 eq "Unknown") || ($ctry2 eq "") )
+                if( %ctylist )
                 {
-                    $serr = $serr . "mycall?";
-                    $nerr++;
+                    print "-- try to find $rec[ $recno ]{STATION_CALLSIGN} from ctylist hash\n" if( $dbug );
+                    if( exists $ctylist{ $rec[ $recno ]{STATION_CALLSIGN} } )
+                    {
+                        $entries2[ 3 ] = $ctylist{ $partial }[ 0 ];
+                        $entries2[ 4 ] = $ctylist{ $partial }[ 1 ];
+                        $entries2[ 5 ] = $ctylist{ $partial }[ 2 ];
+                        $entries2[ 6 ] = $ctylist{ $partial }[ 3 ];
+                    }
+                    else
+                    {
+                        $rec[ $recno ]{STATION_CALLSIGN} =~ /^(\w+)\/.+/;
+                        $partial = $1;
+
+                        $partial ="NoAncPfx" if( !$partial );
+    
+                        print "-- try to find $partial from ctylist hash\n" if( $dbug );
+                        if( exists $ctylist{ $partial } )
+                        {
+                            $entries2[ 3 ] = $ctylist{ $partial }[ 0 ];
+                            $entries2[ 4 ] = $ctylist{ $partial }[ 1 ];
+                            $entries2[ 5 ] = $ctylist{ $partial }[ 2 ];
+                            $entries2[ 6 ] = $ctylist{ $partial }[ 3 ];
+                        }
+                        else
+                        {
+                            $rec[ $recno ]{STATION_CALLSIGN} =~ /(\w+\d).+/;
+                            $partial = $1;
+
+                            print "-- try to find $partial from ctylist hash\n" if( $dbug );
+                            if( exists $ctylist{ $partial } )
+                            {
+                                $entries2[ 3 ] = $ctylist{ $partial }[ 0 ];
+                                $entries2[ 4 ] = $ctylist{ $partial }[ 1 ];
+                                $entries2[ 5 ] = $ctylist{ $partial }[ 2 ];
+                                $entries2[ 6 ] = $ctylist{ $partial }[ 3 ];
+                            }
+                            else
+                            {
+                                $rec[ $recno ]{STATION_CALLiSIGN} =~ /(\w+)\d.+/;
+                                $partial = $1;
+
+                                print "-- try to find $partial from ctylist hash\n" if( $dbug );
+                                if( exists $ctylist{ $partial } )
+                                {
+                                    $entries2[ 3 ] = $ctylist{ $partial }[ 0 ];
+                                    $entries2[ 4 ] = $ctylist{ $partial }[ 1 ];
+                                    $entries2[ 5 ] = $ctylist{ $partial }[ 2 ];
+                                    $entries2[ 6 ] = $ctylist{ $partial }[ 3 ];
+                                }
+                            }
+                        }
+        	    }
+
+		    $entries2[ 3 ] = "Country Name: " . $entries2[ 3 ];
+                    $entries2[ 4 ] = "WAZ Zone: " . $entries2[ 4 ];
+                    $entries2[ 5 ] = "ITU Zone: " . $entries2[ 5 ];
+                    $entries2[ 6 ] = "Continent: " . $entries2[ 6 ];
                 }
-                else
+		else
+		{
+                    $cntry2 = `dxcc $rec[ $recno ]{STATION_CALLSIGN}`;
+                    @entries2 = split('\n', $cntry2);
+		}
+
+                # maximum five (5) words in the country name
+                if( $entries2[3] =~ /^Country\sName:\s+([\w\.?\s]*)$/i )
                 {
-                    if( $rec[ $recno ]{MY_COUNTRY} )
+                    $ctry2 = $1;
+                    if( ($ctry2 eq "Unknown") || ($ctry2 eq "") )
                     {
-                        if( $rec[ $recno ]{MY_COUNTRY} ne $ctry2 )
-                        {
-                            $serr = $serr . "mycntry?";
-                            $nerr++;
-                        }
+                        $serr = $serr . "mycall?";
+                        $nerr++;
                     }
                     else
                     {
-                        $rec[ $recno ]{MY_COUNTRY} = $ctry2;
-                    }
-                    $cq2 = $1 if( $entries2[4] =~ /^WAZ\sZone:\s+(\d{1,2})$/i );
-                    $cq2 = 1*$cq2;
-                    $itu2 = $1 if( $entries2[5] =~ /^ITU\sZone:\s+(\d{1,2})$/i );
-                    $itu2 = 1*$itu2;
-                    $cont2 = $1 if( $entries2[6] =~ /^Continent:\s+(\w\w)$/i );
-                    if( $rec[ $recno ]{MY_CQ_ZONE} )
-                    {
-                        if( $rec[ $recno ]{MY_CQ_ZONE} != $cq2 )
+                        if( $rec[ $recno ]{MY_COUNTRY} )
                         {
-                            $serr = $serr . "mycq?";
-                            $nerr++;
+                            if( $rec[ $recno ]{MY_COUNTRY} ne $ctry2 )
+                            {
+                                $serr = $serr . "mycntry?";
+                                $nerr++;
+                            }
                         }
-                    }
-                    else
-                    {
-                        $rec[ $recno ]{MY_CQ_ZONE} = $cq2;
-                    }
-                    if( $rec[ $recno ]{MY_ITU_ZONE} )
-                    {
-                        if( $rec[ $recno ]{MY_ITU_ZONE} != $itu2 )
+                        else
                         {
-                            $serr = $serr . "myitu?";
-                            $nerr++;
+                            $rec[ $recno ]{MY_COUNTRY} = $ctry2;
                         }
-                    }
-                    else
-                    {
-                        $rec[ $recno ]{MY_ITU_ZONE} = $itu2;
+                        $cq2 = $1 if( $entries2[4] =~ /^WAZ\sZone:\s+(\d{1,2})$/i );
+                        $cq2 = 1*$cq2;
+                        $itu2 = $1 if( $entries2[5] =~ /^ITU\sZone:\s+(\d{1,2})$/i );
+                        $itu2 = 1*$itu2;
+                        $cont2 = $1 if( $entries2[6] =~ /^Continent:\s+(\w\w)$/i );
+                        if( $rec[ $recno ]{MY_CQ_ZONE} )
+                        {
+                            if( $rec[ $recno ]{MY_CQ_ZONE} != $cq2 )
+                            {
+                                $serr = $serr . "mycq?";
+                                $nerr++;
+                            }
+                        }
+                        else
+                        {
+                            $rec[ $recno ]{MY_CQ_ZONE} = $cq2;
+                        }
+                        if( $rec[ $recno ]{MY_ITU_ZONE} )
+                        {
+                            if( $rec[ $recno ]{MY_ITU_ZONE} != $itu2 )
+                            {
+                                $serr = $serr . "myitu?";
+                                $nerr++;
+                            }
+                        }
+                        else
+                        {
+                            $rec[ $recno ]{MY_ITU_ZONE} = $itu2;
+                        }
                     }
                 }
             }
@@ -4310,7 +4566,6 @@ sub jday()
 
     return $jday;
 }
-
 
 # test if valid date
 sub CheckDate()
