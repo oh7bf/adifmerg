@@ -4277,25 +4277,43 @@ sub CheckQso()
                 print "-- try to find $partial from ctylist hash\n" if( $dbug );
                 if( !exists $ctylist{ $partial } )
                 {
-                    $rec[ $recno ]{CALL} =~ /^(\w+\d\w)/;
-                    $partial = $1;
+                    $rec[ $recno ]{CALL} =~ /\/(\w+)$/;
+		    $partial = $1;
+		    if( $partial )
+		    {
+                        $partial = "Portable" if( ( uc $partial ) eq "P" );
+                        $partial = "Mobile" if( ( uc $partial ) eq "M" );
+                        $partial = "Maritime" if( ( uc $partial ) eq "MM" );
+                        $partial = "Aeronautical" if( ( uc $partial ) eq "AM" );
+                        $partial = "Alternative" if( ( uc $partial ) eq "A" );
+                    }
+		    else
+		    {
+                        $partial = "None";
+                    }
 
-		    print "-- try to find $partial from ctylist hash\n" if( $dbug );
                     if( !exists $ctylist{ $partial } )
-                    {
-                        $rec[ $recno ]{CALL} =~ /^(\w+\d).+/;
+		    {
+                        $rec[ $recno ]{CALL} =~ /^(\w+\d\w)/;
                         $partial = $1;
 
                         print "-- try to find $partial from ctylist hash\n" if( $dbug );
                         if( !exists $ctylist{ $partial } )
                         {
-                            $rec[ $recno ]{CALL} =~ /^(\w+)\d.+/;
+                            $rec[ $recno ]{CALL} =~ /^(\w+\d).+/;
                             $partial = $1;
 
                             print "-- try to find $partial from ctylist hash\n" if( $dbug );
                             if( !exists $ctylist{ $partial } )
                             {
-                                $found = 0;	
+                                $rec[ $recno ]{CALL} =~ /^(\w+)\d.+/;
+                                $partial = $1;
+
+                                print "-- try to find $partial from ctylist hash\n" if( $dbug );
+                                if( !exists $ctylist{ $partial } )
+                                {
+                                    $found = 0;	
+                                }
                             }
                         }
                     }
@@ -4424,25 +4442,43 @@ sub CheckQso()
                         print "-- try to find $partial from ctylist hash\n" if( $dbug );
                         if( !exists $ctylist{ $partial } )
                         {
-                            $rec[ $recno ]{CALL} =~ /^(\w+\d\w)/;
-			    $partial = $1;
+                            $rec[ $recno ]{STATION_CALLSIGN} =~ /\/(\w+)$/;
+        		    $partial = $1;
+        		    if( $partial )
+        		    {
+                                $partial = "Portable" if( ( uc $partial ) eq "P" );
+                                $partial = "Mobile" if( ( uc $partial ) eq "M" );
+                                $partial = "Maritime" if( ( uc $partial ) eq "MM" );
+                                $partial = "Aeronautical" if( ( uc $partial ) eq "AM" );
+                                $partial = "Alternative" if( ( uc $partial ) eq "A" );
+                            }
+        		    else
+        		    {
+                                $partial = "None";
+                            }
 
-                            print "-- try to find $partial from ctylist hash\n" if( $dbug );
-                            if( !exists $ctylist{ $partial } )
-                            {
-                                $rec[ $recno ]{STATION_CALLSIGN} =~ /^(\w+\d)/;
+			    if( !exists $ctylist{ $partial } )
+			    {
+                                $rec[ $recno ]{STATION_CALLSIGN} =~ /^(\w+\d\w)/;
                                 $partial = $1;
 
                                 print "-- try to find $partial from ctylist hash\n" if( $dbug );
                                 if( !exists $ctylist{ $partial } )
                                 {
-                                    $rec[ $recno ]{STATION_CALLSIGN} =~ /^(\w+)\d/;
+                                    $rec[ $recno ]{STATION_CALLSIGN} =~ /^(\w+\d)/;
                                     $partial = $1;
 
                                     print "-- try to find $partial from ctylist hash\n" if( $dbug );
                                     if( !exists $ctylist{ $partial } )
                                     {
-                                        $found = 0;
+                                        $rec[ $recno ]{STATION_CALLSIGN} =~ /^(\w+)\d/;
+                                        $partial = $1;
+
+                                        print "-- try to find $partial from ctylist hash\n" if( $dbug );
+                                        if( !exists $ctylist{ $partial } )
+                                        {
+                                            $found = 0;
+                                        }
                                     }
                                 }
                             }
