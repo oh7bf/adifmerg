@@ -72,4 +72,4 @@ else
 fi
 
 echo "Install better readline, e.g. 'sudo apt-get update' and 'sudo apt-get install libterm-readline-gnu-perl'"
-
+echo "Copy 'cty.plist' to /usr/share/dxcc/cty.plist"

@@ -35,6 +35,10 @@ DESCRIPTION
     information is missing it is filled into the empty records. The ITU zone
     is not necessarily the correct one for large countries.
 
+    If a local file /usr/share/dxcc/cty.plist is available it is read to a
+    hash for checking the QSO data instead of dxcc. This file is available
+    from Jim Reisert, AD1C, http://www.country-files.com .
+
     The switch -C allows to create Cabrillo log from the ADIF file and a
     template file. The *STX_STRING* and *SRX_STRING* are used without
     modifications as exchange for each QSO. Optionally points for each QSO
@@ -147,8 +151,8 @@ OPTIONS
 
     -b add band record from frequency
 
-    -c check call sign with dxcc and fill empty CQ/ITU zone and continent
-    records
+    -c check call sign with cty.plist or dxcc and fill empty CQ/ITU zone and
+    continent records
 
     -d calculate position and distance if Maidenhead locator information is
     available
@@ -366,6 +370,8 @@ LINKS
     http://www.adif.org
 
     http://www.kkn.net/~trey/cabrillo/
+
+    http://www.country-files.com
 
 SEE ALSO
     Getopt::Std(3pm), dxcc(1)

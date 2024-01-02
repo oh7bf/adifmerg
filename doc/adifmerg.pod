@@ -40,6 +40,10 @@ the CQ and ITU zones are checked in addition to the continent information.
 If this information is missing it is filled into the empty records. 
 The ITU zone is not necessarily the correct one for large countries.
 
+If a local file /usr/share/dxcc/cty.plist is available it is read to
+a hash for checking the QSO data instead of B<dxcc>. This file is available from
+Jim Reisert, AD1C, http://www.country-files.com . 
+
 The switch B<-C> allows to create Cabrillo log from the ADIF file and
 a template file. The I<STX_STRING> and I<SRX_STRING>
 are used without modifications as exchange for each QSO. Optionally points 
@@ -153,7 +157,7 @@ B<-M> matching merge for received QSL cards with possible false QSOs
 
 B<-b> add band record from frequency 
 
-B<-c> check call sign with dxcc and fill empty CQ/ITU zone and continent 
+B<-c> check call sign with cty.plist or dxcc and fill empty CQ/ITU zone and continent 
 records
 
 B<-d> calculate position and distance if Maidenhead locator information 
@@ -376,6 +380,8 @@ Jaakko Koivuniemi OH7BF, if tod lars ta fb7ho
 http://www.adif.org
 
 http://www.kkn.net/~trey/cabrillo/
+
+http://www.country-files.com
 
 =head1 SEE ALSO
 
