@@ -21,7 +21,7 @@ use strict;
 use POSIX;
 use Getopt::Std;
 
-use subs qw/AddLoc AddRec AdifHead AdifLine AdifRecTo2 b2cabf b2sota Band2freq CalcDist CheckBand CheckCQZ CheckDate CheckGrid CheckIota CheckITUZ CheckLoc CheckMode CheckPmode CheckPota CheckPwr CheckQslr CheckQsls CheckQso CheckRig CheckRst CheckSat CheckSatMode CheckSota CheckSubmode CheckUtc CheckVia CompareRec date2csv DelRec EmptyRec f2cabf FixRec Freq2band Grid2Loc jday Loc2Rad m2cab MapRec MergeRecs Modes2Submodes MRules MyNotes2Adif Notes2Adif PrintAdifHead PrintAdifRec PrintAdxHead PrintAdxRec PrintCabHead PrintCabRec PrintCsvRec PrintInfo PrintQsls PrintQso PrintQsos PrintTxtHead PrintTxtRec PrintTxtRecL printusage printversion QslDate QslVerified2Credit QslViaRemoveM Qso2Array Qso2Hash Qso2HashT Qso2Hash2s ReadAdifLog ReadAdifRec ReadCabLog ReadCsvLog ReadTxtLog SearchMatch StatQso time2csv Userdef2Standard/;
+use subs qw/AddLoc AddRec AdifHead AdifLine AdifRecTo2 b2cabf b2sota Band2freq CalcDist CheckBand CheckCQZ CheckDate CheckGrid CheckIota CheckITUZ CheckLoc CheckMode CheckPmode CheckPota CheckPwr CheckQslr CheckQsls CheckQso CheckRig CheckRst CheckSat CheckSatMode CheckSota CheckSubmode CheckUtc CheckWwff CheckVia CompareRec date2csv DelRec EmptyRec f2cabf FixRec Freq2band Grid2Loc jday Loc2Rad m2cab MapRec MergeRecs Modes2Submodes MRules MyNotes2Adif Notes2Adif PrintAdifHead PrintAdifRec PrintAdxHead PrintAdxRec PrintCabHead PrintCabRec PrintCsvRec PrintInfo PrintQsls PrintQso PrintQsos PrintTxtHead PrintTxtRec PrintTxtRecL printusage printversion QslDate QslVerified2Credit QslViaRemoveM Qso2Array Qso2Hash Qso2HashT Qso2Hash2s ReadAdifLog ReadAdifRec ReadCabLog ReadCsvLog ReadTxtLog SearchMatch StatQso time2csv Userdef2Standard/;
 
 my $verno="20240103";
 my $averno="3.1.4";
@@ -3490,7 +3490,11 @@ sub ReadCsvLog
                                         {
                                             $rec[ 0 ]{ POTA_REF } = $d[ $j ];
 					}
-                                        elsif( $comment )
+                                        elsif( CheckWwff( $d[ $j ] ) )
+                                        {
+                                            $rec[ 0 ]{ WWFF_REF } = $d[ $j ];
+					}
+					elsif( $comment )
                                         {
                                             $comment = $comment . " " . $d[ $j ];
                                         }
@@ -3580,6 +3584,7 @@ sub ReadTxtLog
     my $mycity="";
     my $mycountry="";
     my $mypota = "";
+    my $mywwff = "";
 
     if(open($LOGFILE,"<",$file)||($file eq "-txt"))
     {
@@ -3664,6 +3669,7 @@ sub ReadTxtLog
 		$rec[0]{MY_COUNTRY}=$mycountry if($mycountry);
 		$rec[0]{MY_STATE}=$mystate if($mystate);
                 $rec[0]{MY_POTA_REF}=$mypota if($mypota);
+                $rec[0]{MY_WWFF_REF}=$mywwff if($mywwff);
 
 		if(exists $rec[0]{MY_SOTA_REF})
 		{
@@ -3682,7 +3688,7 @@ sub ReadTxtLog
 		if(($d[0])&&($d[0]!~/date/i)&&($d[0]!~/#/))
 		{
 		    $statcall=$d[0];
-		    ($myloc,$mycq,$mysota,$myitu,$myrig,$txpwr,$mycounty,$mystate,$mycity,$mycountry,$mypota) = MyNotes2Adif( $line );
+		    ($myloc,$mycq,$mysota,$myitu,$myrig,$txpwr,$mycounty,$mystate,$mycity,$mycountry,$mypota,$mywwff) = MyNotes2Adif( $line );
 		}
 	    }
 	    $l++;
@@ -3855,11 +3861,15 @@ sub Notes2Adif
         {
            $rec[ 0 ]{ POTA_REF } = $d[ $i ];
 	}
-        elsif(CheckSota($d[$i]))
+	elsif(CheckSota($d[$i]))
         {
            $rec[0]{SOTA_REF}=$d[$i] if(exists $rec[0]{SOTA_REF});
         }
-        elsif(CheckVia($d[$i]))
+        elsif( CheckWwff( $d[ $i ] ) )
+        {
+           $rec[ 0 ]{ WWFF_REF } = $d[ $i ];
+	}
+	elsif(CheckVia($d[$i]))
         {
            $rec[0]{QSL_VIA}=CheckVia($d[$i]);
         }
@@ -3917,6 +3927,7 @@ sub MyNotes2Adif
     my $mycity = "";
     my $mycountry = "";
     my $mypota = "";
+    my $mywwff = "";
 
     @d = split /\s+/, $line;
 
@@ -3940,11 +3951,15 @@ sub MyNotes2Adif
         {
             $mysota = $d[ $i ];
         }
-	elsif( CheckPota( $d[ $i ] ) )
+        elsif( CheckPota( $d[ $i ] ) )
         {
             $mypota = $d[ $i ];
 	}
-        elsif( CheckRig( $d[ $i ] ) )
+        elsif( CheckWwff( $d[ $i ] ) )
+        {
+            $mywwff = $d[ $i ];
+	}
+	elsif( CheckRig( $d[ $i ] ) )
         {
             $myrig = $d[ $i ];
         }
@@ -3978,7 +3993,7 @@ sub MyNotes2Adif
         }
     }
 
-    return ($myloc,$mycq,$mysota,$myitu,$myrig,$txpwr,$mycounty,$mystate,$mycity,$mycountry,$mypota);
+    return ($myloc,$mycq,$mysota,$myitu,$myrig,$txpwr,$mycounty,$mystate,$mycity,$mycountry,$mypota,$mywwff);
 
 }
 
@@ -4328,26 +4343,36 @@ sub CheckQso()
             }
         }
     }
-    if( exists $rec[ $recno ]{POTA_REF} )
+    if( $rec[ $recno ]{POTA_REF} )
     {
-        if( $rec[ $recno ]{POTA_REF} )
-	{
-            if( !CheckPota( $rec[ $recno ]{POTA_REF} ) )
-	    {
-                $serr = $serr . "pota?";
-		$nerr++;
-            }
+        if( !CheckPota( $rec[ $recno ]{POTA_REF} ) )
+        {
+            $serr = $serr . "pota?";
+            $nerr++;
         }
     }
-    if( exists $rec[ $recno ]{MY_POTA_REF} )
+    if( $rec[ $recno ]{MY_POTA_REF} )
     {
-        if( $rec[ $recno ]{MY_POTA_REF} )
-	{
-            if( !CheckPota( $rec[ $recno ]{MY_POTA_REF} ) )
-	    {
-                $serr = $serr . "pota?";
-		$nerr++;
-            }
+        if( !CheckPota( $rec[ $recno ]{MY_POTA_REF} ) )
+        {
+            $serr = $serr . "pota?";
+            $nerr++;
+        }
+    }
+    if( $rec[ $recno ]{WWFF_REF} )
+    {
+        if( !CheckWwff( $rec[ $recno ]{WWFF_REF} ) )
+        {
+            $serr = $serr . "wwff?";
+            $nerr++;
+        }
+    }
+    if( $rec[ $recno ]{MY_WWFF_REF} )
+    {
+        if( !CheckWwff( $rec[ $recno ]{MY_WWFF_REF} ) )
+        {
+            $serr = $serr . "wwff?";
+            $nerr++;
         }
     }
     if( $opt_c )
@@ -4913,6 +4938,16 @@ sub CheckSota()
 
     $ok=1 if($l =~ /^(3Y|4O|4X|5B|8P|9A|9H|9M2|9M6|9V|A6|BV|C3|CT|CT3|CU|CX|DL|DM|DU2|DU3|DU4|DUC|E5|E7|EA1|EA2|EA3|EA4|EA5|EA6|EA7|EA8|EA9|EI|ES|F|FG|FH|FK|FL|FM|FP|FR|G|GD|GI|GJ|GM|GU|GW|HA|HB|HB0|HI|HL|HR|I|IA|IS0|JA|JA5|JA6|JA8|JW|JX|K0M|KH0|KH2|KH6|KLA|KLF|KLS|KP4|LA|LUD|LUH|LUM|LUP|LUQ|LUU|LUV|LUY|LX|LY|LZ|OD|OE|OH|OK|OM|ON|OY|OZ|PA|PP1|PP2|PP5|PP6|PP7|PQ2|PR8|PS7|PS8|PT2|PT7|PY1|PY2|PY3|PY4|PY5|PY6|PYF|PYT|R3|R9U|S5|S7|SM|SP|SV|TF|TI|TK|UT|V5|VE1|VE2|VE3|VE4|VE5|VE6|VE7|VE9|VK1|VK2|VK3|VK4|VK5|VK6|VK7|VK8|VK9|VKH|VKM|VO1|VO2|VP8|VR|VY1|VY2|W0C|W0D|W0I|W0M|W0N|W1|W2|W3|W4A|W4C|W4G|W4K|W4T|W4V|W5A|W5M|W5N|W5O|W5T|W6|W7A|W7I|W7M|W7N|W7O|W7U|W7W|W7Y|W8M|W8O|W8V|W9|XE1|XE2|XE3|XF4|YBE|YBJ|YL|YO|YU|Z3|ZB2|ZD|ZL1|ZL3|ZL7|ZL8|ZL9|ZS|ZS8)\/(\w\w)-(\d\d\d)/);
 
+    return $ok;
+}
+
+# check WWFF reference
+sub CheckWwff()
+{
+    my $l = shift;
+    my $ok = 0;
+
+    $ok = 1 if( $l =~ /^\w{1,4}FF-\d{4}/ );
     return $ok;
 }
 
