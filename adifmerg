@@ -21,7 +21,7 @@ use strict;
 use POSIX;
 use Getopt::Std;
 
-use subs qw/AddLoc AddRec AdifHead AdifLine AdifRecTo2 b2cabf b2sota Band2freq CalcDist CheckBand CheckCQZ CheckDate CheckGrid CheckIota CheckITUZ CheckLoc CheckMode CheckPmode CheckPwr CheckQslr CheckQsls CheckQso CheckRig CheckRst CheckSat CheckSatMode CheckSota CheckSubmode CheckUtc CheckVia CompareRec date2csv DelRec EmptyRec f2cabf FixRec Freq2band Grid2Loc jday Loc2Rad m2cab MapRec MergeRecs Modes2Submodes MRules MyNotes2Adif Notes2Adif PrintAdifHead PrintAdifRec PrintAdxHead PrintAdxRec PrintCabHead PrintCabRec PrintCsvRec PrintInfo PrintQsls PrintQso PrintQsos PrintTxtHead PrintTxtRec PrintTxtRecL printusage printversion QslDate QslVerified2Credit QslViaRemoveM Qso2Array Qso2Hash Qso2HashT Qso2Hash2s ReadAdifLog ReadAdifRec ReadCabLog ReadCsvLog ReadTxtLog SearchMatch StatQso time2csv Userdef2Standard/;
+use subs qw/AddLoc AddRec AdifHead AdifLine AdifRecTo2 b2cabf b2sota Band2freq CalcDist CheckBand CheckCQZ CheckDate CheckGrid CheckIota CheckITUZ CheckLoc CheckMode CheckPmode CheckPota CheckPwr CheckQslr CheckQsls CheckQso CheckRig CheckRst CheckSat CheckSatMode CheckSota CheckSubmode CheckUtc CheckVia CompareRec date2csv DelRec EmptyRec f2cabf FixRec Freq2band Grid2Loc jday Loc2Rad m2cab MapRec MergeRecs Modes2Submodes MRules MyNotes2Adif Notes2Adif PrintAdifHead PrintAdifRec PrintAdxHead PrintAdxRec PrintCabHead PrintCabRec PrintCsvRec PrintInfo PrintQsls PrintQso PrintQsos PrintTxtHead PrintTxtRec PrintTxtRecL printusage printversion QslDate QslVerified2Credit QslViaRemoveM Qso2Array Qso2Hash Qso2HashT Qso2Hash2s ReadAdifLog ReadAdifRec ReadCabLog ReadCsvLog ReadTxtLog SearchMatch StatQso time2csv Userdef2Standard/;
 
 my $verno="20240103";
 my $averno="3.1.4";
@@ -3486,6 +3486,10 @@ sub ReadCsvLog
                                         {
                                             $rec[ 0 ]{ SOTA_REF } = $d[ $j ] if( exists $rec[ 0 ]{ SOTA_REF } );
                                         }
+                                        elsif( CheckPota( $d[ $j ] ) )
+                                        {
+                                            $rec[ 0 ]{ POTA_REF } = $d[ $j ];
+					}
                                         elsif( $comment )
                                         {
                                             $comment = $comment . " " . $d[ $j ];
@@ -3575,6 +3579,7 @@ sub ReadTxtLog
     my $mystate="";
     my $mycity="";
     my $mycountry="";
+    my $mypota = "";
 
     if(open($LOGFILE,"<",$file)||($file eq "-txt"))
     {
@@ -3658,6 +3663,7 @@ sub ReadTxtLog
 		$rec[0]{MY_CNTY}=$mycounty if($mycounty);
 		$rec[0]{MY_COUNTRY}=$mycountry if($mycountry);
 		$rec[0]{MY_STATE}=$mystate if($mystate);
+                $rec[0]{MY_POTA_REF}=$mypota if($mypota);
 
 		if(exists $rec[0]{MY_SOTA_REF})
 		{
@@ -3676,7 +3682,7 @@ sub ReadTxtLog
 		if(($d[0])&&($d[0]!~/date/i)&&($d[0]!~/#/))
 		{
 		    $statcall=$d[0];
-		    ($myloc,$mycq,$mysota,$myitu,$myrig,$txpwr,$mycounty,$mystate,$mycity,$mycountry)=MyNotes2Adif($line);
+		    ($myloc,$mycq,$mysota,$myitu,$myrig,$txpwr,$mycounty,$mystate,$mycity,$mycountry,$mypota) = MyNotes2Adif( $line );
 		}
 	    }
 	    $l++;
@@ -3845,6 +3851,10 @@ sub Notes2Adif
            $rec[0]{CONT}=$1;
            $rec[0]{CQZ}=$2;
         }
+        elsif( CheckPota( $d[ $i ] ) )
+        {
+           $rec[ 0 ]{ POTA_REF } = $d[ $i ];
+	}
         elsif(CheckSota($d[$i]))
         {
            $rec[0]{SOTA_REF}=$d[$i] if(exists $rec[0]{SOTA_REF});
@@ -3895,75 +3905,80 @@ sub MyNotes2Adif
 {
     my $i;
     my @d;
-    my $line=shift; 
-    my $myloc="";
-    my $mycq=0;
-    my $mysota="";
-    my $myitu=0;
-    my $myrig="";
-    my $txpwr=0;
-    my $mycounty="";
-    my $mystate="";
-    my $mycity="";
-    my $mycountry="";
+    my $line = shift; 
+    my $myloc = "";
+    my $mycq = 0;
+    my $mysota = "";
+    my $myitu = 0;
+    my $myrig = "";
+    my $txpwr = 0;
+    my $mycounty = "";
+    my $mystate = "";
+    my $mycity = "";
+    my $mycountry = "";
+    my $mypota = "";
 
     @d = split /\s+/, $line;
 
-    for($i=1;$i<@d;$i++)
+    for( $i = 1; $i < scalar( @d ); $i++ )
     {
-	if((CheckGrid($d[$i]))&&(length($d[$i])>=4))
+	if( (CheckGrid($d[$i])) && (length($d[$i])>=4) )
 	{
-	    $myloc=$d[$i];
+	    $myloc = $d[$i];
 	}
-	elsif(CheckIota($d[$i]))
+	elsif( CheckIota( $d[ $i ] ) )
         {
-            $myiota=$d[$i];
+            $myiota = $d[ $i ];
         }
-        elsif(CheckCQZ($d[$i]))
+        elsif( CheckCQZ( $d[ $i ] ) )
         {
-            $d[$i] =~ /^(NA|SA|EU|AF|OC|AS|AN)-(\d{1,2})/;
+            $d[ $i ] =~ /^(NA|SA|EU|AF|OC|AS|AN)-(\d{1,2})/;
             #$mycont=$1;
-            $mycq=$2;
+            $mycq = $2;
         }
-        elsif(CheckSota($d[$i]))
+        elsif( CheckSota( $d[ $i ] ) )
         {
-            $mysota=$d[$i];
+            $mysota = $d[ $i ];
         }
-        elsif(CheckRig($d[$i]))
+	elsif( CheckPota( $d[ $i ] ) )
         {
-            $myrig=$d[$i];
+            $mypota = $d[ $i ];
+	}
+        elsif( CheckRig( $d[ $i ] ) )
+        {
+            $myrig = $d[ $i ];
         }
-        elsif(CheckPwr($d[$i]))
+        elsif( CheckPwr( $d[ $i ] ) )
         {
-            $txpwr=CheckPwr($d[$i]);
+            $txpwr = CheckPwr( $d[ $i ] );
         }
-        elsif($d[$i] =~ /I(\d{1,2})/i)
+        elsif( $d[ $i ] =~ /I(\d{1,2})/i )
         {
-            $myitu=$1;
+            $myitu = $1;
         }
-        elsif($d[$i] =~ /ci([A-Z]\w+(-\w+)?)/)
+        elsif( $d[ $i ] =~ /ci([A-Z]\w+(-\w+)?)/ )
         {
-            $mycity=$1;
-            $mycity =~ s/_/\ /g
+            $mycity = $1;
+            $mycity =~ s/_/\ /g;
         }
-        elsif($d[$i] =~ /st([A-Z]\w+(-\w+)?)/)
+        elsif( $d[ $i ] =~ /st([A-Z]\w+(-\w+)?)/ )
         {
-            $mystate=$1;
-            $mystate =~ s/_/\ /g
+            $mystate = $1;
+            $mystate =~ s/_/\ /g;
         }
-        elsif($d[$i] =~ /cy([A-Z]\w+(-\w+)?)/)
+        elsif( $d[ $i ] =~ /cy([A-Z]\w+(-\w+)?)/ )
         {
-            $mycounty=$1;
-            $mycounty =~ s/_/\ /g
+            $mycounty = $1;
+            $mycounty =~ s/_/\ /g;
         }
-        elsif($d[$i] =~ /co([A-Z]\w+(-\w+)?)/)
+        elsif( $d[ $i ] =~ /co([A-Z]\w+(-\w+)?)/ )
         {
-            $mycountry=$1;
-            $mycountry =~ s/_/\ /g
+            $mycountry = $1;
+            $mycountry =~ s/_/\ /g;
         }
     }
 
-    return ($myloc,$mycq,$mysota,$myitu,$myrig,$txpwr,$mycounty,$mystate,$mycity,$mycountry);
+    return ($myloc,$mycq,$mysota,$myitu,$myrig,$txpwr,$mycounty,$mystate,$mycity,$mycountry,$mypota);
 
 }
 
@@ -4310,6 +4325,28 @@ sub CheckQso()
             {
                 $serr = $serr . "sota?";
                 $nerr++;
+            }
+        }
+    }
+    if( exists $rec[ $recno ]{POTA_REF} )
+    {
+        if( $rec[ $recno ]{POTA_REF} )
+	{
+            if( !CheckPota( $rec[ $recno ]{POTA_REF} ) )
+	    {
+                $serr = $serr . "pota?";
+		$nerr++;
+            }
+        }
+    }
+    if( exists $rec[ $recno ]{MY_POTA_REF} )
+    {
+        if( $rec[ $recno ]{MY_POTA_REF} )
+	{
+            if( !CheckPota( $rec[ $recno ]{MY_POTA_REF} ) )
+	    {
+                $serr = $serr . "pota?";
+		$nerr++;
             }
         }
     }
@@ -4835,13 +4872,36 @@ sub CheckLoc()
 # check IOTA CC-XXX
 sub CheckIota()
 {
-    my $l=shift;
-    $l=uc $l;
-    my $ok=0;
+    my $l = shift;
+    $l = uc $l;
+    my $ok = 0;
 
-    $ok=1 if($l =~ /^(NA|SA|EU|AF|OC|AS|AN)-(\d\d\d)/);
+    $ok = 1 if( $l =~ /^(NA|SA|EU|AF|OC|AS|AN)-(\d\d\d)/ );
 
     return $ok;
+}
+
+# check POTA reference xxxx-nnnnn[@yyyyyy]
+sub CheckPota()
+{
+   my $l = shift;
+   $l = uc $l;
+   my $ok = 0;
+
+   if( $l =~ /^\w{1,4}-\d{4,5}(@(\w{2})-\w{2,3})?/ )
+   {
+	   #      print "match $1 and $2\n";
+      if( $1 )
+      {
+         $ok = 1 if( $2 =~ /^(AD|AE|AF|AG|AI|AL|AM|AO|AQ|AR|AS|AT|AU|AW|AX|AZ|BA|BB|BD|BE|BF|BG|BH|BI|BJ|BL|BM|BN|BO|BQ|BR|BS|BT|BV|BW|BY|CA|CC|CD|CF|CG|CI|CK|CL|CM|CN|CO|CR|CU|CV|CW|CX|CY|CZ|DE|DJ|DK|DM|DO|DZ|EC|EE|EG|EH|ER|ES|ET|FI|FJ|FK|FO|FR|GA|GB|GD|GE|GF|GG|GH|GI|GL|GM|GN|GP|GQ|GR|GS|GT|GU|GW|GY|HK|HM|HN|HR|HT|HU|ID|IE|IL|IM|IN|IO|IQ|IR|IS|IT|JE|JM|JO|JP|KE|KG|KH|KI|KM|KN|KP|KR|KW|KY|KZ|LA|LB|LC|LI|LK|LR|LS|LT|LU|LV|LY|MA|MC|MD|ME|MF|MG|MH|MK|ML|MM|MN|MO|MP|MQ|MR|MS|MT|MU|MV|MW|MY|MZ|NA|NC|NE|NF|NG|NI|NL|NO|NP|NR|NU|NZ|OM|PA|PE|PF|PG|PH|PK|PL|PM|PN|PR|PS|PT|PW|PY|QA|RE|RO|RS|RU|RW|SA|SB|SC|SD|SE|SG|SH|SI|SJ|SK|SL|SM|SN|SO|SR|SS|ST|SV|SX|SZ|TC|TD|TF|TG|TH|TJ|TK|TL|TM|TN|TO|TR|TT|TV|TW|TZ|UA|UG|UM|US|UY|UZ|VA|VC|VE|VG|VI|VN|VU|WF|WS|YE|YT|ZA|ZM|ZW)/ );
+      }
+      else
+      {
+         $ok = 1 if( $l !~ /@/ )
+      }
+   }
+
+   return $ok;
 }
 
 # check SOTA C/CC-XXX
