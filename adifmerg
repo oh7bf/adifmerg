@@ -23,7 +23,7 @@ use Getopt::Std;
 
 use subs qw/AddLoc AddRec AdifHead AdifLine AdifRecTo2 b2cabf b2sota Band2freq CalcDist CheckBand CheckCQZ CheckDate CheckGrid CheckIota CheckITUZ CheckLoc CheckMode CheckPmode CheckPota CheckPwr CheckQslr CheckQsls CheckQso CheckRig CheckRst CheckSat CheckSatMode CheckSota CheckSubmode CheckUtc CheckWwff CheckVia CompareRec date2csv DelRec EmptyRec f2cabf FixRec Freq2band Grid2Loc jday Loc2Rad m2cab MapRec MergeRecs Modes2Submodes MRules MyNotes2Adif Notes2Adif PrintAdifHead PrintAdifRec PrintAdxHead PrintAdxRec PrintCabHead PrintCabRec PrintCsvRec PrintInfo PrintQsls PrintQso PrintQsos PrintTxtHead PrintTxtRec PrintTxtRecL printusage printversion QslDate QslVerified2Credit QslViaRemoveM Qso2Array Qso2Hash Qso2HashT Qso2Hash2s ReadAdifLog ReadAdifRec ReadCabLog ReadCsvLog ReadTxtLog SearchMatch StatQso time2csv Userdef2Standard/;
 
-my $verno="20240104";
+my $verno="20240107";
 my $averno="3.1.4";
 
 # Jim Reisert, AD1C, http://www.country-files.com/
@@ -3388,6 +3388,8 @@ sub ReadCsvLog
 
 	print "-- header: $csvhead[0], $csvhead[1], ...\n" if( $dbug );
 
+	die("Check CSV-file header for \%cconv hash, exit now.\n") if( !exists( $cconv{ $csvhead[ 0 ] } )  && !exists( $cconv{ $csvhead[ 1 ] } ) );
+
 	if( $file ne "-csv" )
 	{
 	    $line = <$LOGFILE>; 
@@ -4108,7 +4110,7 @@ sub MapRec
 # precision depends on length of grid square 2, 4, 6 or 8
 sub AddLoc
 {
-    my $recno=shift;
+    my $recno = shift;
     if((!$rec[$recno]{LAT})&&(!$rec[$recno]{LON})&&($rec[$recno]{GRIDSQUARE}))
     {
 	($rec[$recno]{LON},$rec[$recno]{LAT})=Grid2Loc($rec[$recno]{GRIDSQUARE}) 
@@ -4126,47 +4128,47 @@ sub AddLoc
 # from DXBearing.pm by Dirk Koopman G1TLH
 sub CalcDist
 {
-    my $recno=shift;
-    my $pi=3.14159265358979;
-    my $er=6371; # earth radius
-    my $d=0;
-    my $ok=1;
+    my $recno = shift;
+    my $pi = 3.14159265358979;
+    my $er = 6371; # earth radius
+    my $d = 0;
+    my $ok = 1;
 
-    $ok=0 if(!CheckLoc($rec[$recno]{LAT}));
-    $ok=0 if(!CheckLoc($rec[$recno]{LON}));
-    $ok=0 if(!CheckLoc($rec[$recno]{MY_LAT}));
-    $ok=0 if(!CheckLoc($rec[$recno]{MY_LON}));
+    $ok = 0 if( !CheckLoc( $rec[ $recno ]{ LAT } ) );
+    $ok = 0 if( !CheckLoc( $rec[ $recno ]{ LON } ) );
+    $ok = 0 if( !CheckLoc( $rec[ $recno ]{ MY_LAT } ) );
+    $ok = 0 if( !CheckLoc( $rec[ $recno ]{ MY_LON } ) );
     
-    if(($ok)&&($rec[$recno]{LAT} ne $rec[$recno]{MY_LAT})&&($rec[$recno]{LON} ne $rec[$recno]{MY_LON}))
+    if( $ok && $rec[ $recno ]{ LAT } ne $rec[ $recno ]{ MY_LAT } && $rec[ $recno ]{ LON } ne $rec[ $recno ]{ MY_LON } )
     {
-	my $hn=Loc2Rad($rec[$recno]{MY_LAT});
-	my $he=Loc2Rad($rec[$recno]{MY_LON});
-	my $n=Loc2Rad($rec[$recno]{LAT});
-	my $e=Loc2Rad($rec[$recno]{LON});
+	my $hn = Loc2Rad( $rec[ $recno ]{ MY_LAT } );
+	my $he = Loc2Rad( $rec[ $recno ]{ MY_LON } );
+	my $n = Loc2Rad( $rec[ $recno ]{ LAT } );
+	my $e = Loc2Rad( $rec[ $recno ]{ LON } );
 
-	my $co=cos($he-$e)*cos($hn)*cos($n)+sin($hn)*sin($n);
-	my $ca=$co ? atan(abs(sqrt(1-$co*$co)/$co)) : $pi;
-	$ca=$pi-$ca if($co<0);
-	$d=$er*$ca;
-	$rec[$recno]{DISTANCE}=sprintf "%.3f",$d;
+	my $co = cos( $he - $e ) * cos( $hn ) * cos( $n ) + sin( $hn ) * sin( $n );
+	my $ca = $co ? atan( abs( sqrt( 1 - $co * $co ) / $co ) ) : $pi;
+	$ca = $pi - $ca if( $co < 0 );
+	$d = $er * $ca;
+	$rec[ $recno ]{ DISTANCE } = sprintf "%.3f", $d;
     }
 }
 
 # convert location to decimal radians
 sub Loc2Rad
 {
-    my $pi=3.14159265358979;
-    my $l=shift;
-    $l=uc $l;
-    my $d=0;
+    my $pi = 3.14159265358979;
+    my $l = shift;
+    $l = uc $l;
+    my $d = 0;
 
-    if($l =~ /^([EWNS])(\d\d\d)\s(\d\d\.\d\d\d)/)
+    if( $l =~ /^([EWNS])(\d\d\d)\s(\d\d\.\d\d\d)/ )
     {
-	$d=$2+$3/60;
-	$d=-$d if(($1 eq 'W')||($1 eq 'S'));
+	$d = $2 + $3 / 60;
+	$d = -$d if( $1 eq 'W' || $1 eq 'S' );
     };
 
-    $d*=$pi/180;
+    $d *= $pi / 180;
 
     return $d;
 }
