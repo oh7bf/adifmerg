@@ -46,7 +46,13 @@ echo "** PRINT QSL LABELS **"
 ../adifmerg -f newqsos2.adi -Q r
 echo ""
 
+echo "** CONVERT PAPER QSLs TO ADIF"
+../adifmerg -f qsl_paper.txt -A QSLRDATE=20080130 -o > qsl_paper.adif
+../adifmerg -f qsl_paper.adif -l -v
+echo ""
 
-
-
+echo "** SORT QSLs TO ASCENDING ORDER"
+../adifmerg -f qsl_paper.adif -s > qsl_paper_20080130.adi
+../adifmerg -f qsl_paper_20080130.adi -l -v 
+echo ""
 
