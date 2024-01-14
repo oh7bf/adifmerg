@@ -2296,47 +2296,53 @@ sub MergeRecs
     my $recn;
     my $wloss="";
     my @awards;
+    my $equal;
 
     foreach $recn (keys %typ)
     {
-	if((!$rec[0]{$recn})&&($rec[1]{$recn}))
+	if( !$rec[0]{$recn} && $rec[1]{$recn} )
 	{
-	    $rec[0]{$recn}=$rec[1]{$recn};
-	    $wloss=$wloss.$recn.":+".($rec[0]{$recn})." " if($opt_v);
+	    $rec[0]{$recn} = $rec[1]{$recn};
+	    $wloss = $wloss . $recn . ":+" . ($rec[0]{$recn}) . " " if( $opt_v );
 	}
 	else
 	{
-	    if(($recn ne 'TIME_ON')&&($recn ne 'QSO_DATE')&&((uc $rec[0]{$recn}) ne (uc $rec[1]{$recn}))&&($rec[1]{$recn}))
+            $equal = 0;
+            if( $rec[ 0 ]{ $recn } && $rec[ 1 ]{ $recn } )
+            {
+                $equal = 1 if( (uc $rec[ 0 ]{ $recn } ) eq (uc $rec[ 1 ]{ $recn } ) );
+            }
+            if( $recn ne 'TIME_ON' && $recn ne 'QSO_DATE' && !$equal && $rec[1]{$recn} )
 	    {
-		if(!(($opt_M)&&(MRules($recn,$rec[0]{$recn},$rec[1]{$recn}))))
+		if( !( $opt_M && MRules($recn,$rec[0]{$recn},$rec[1]{$recn}) ) )
 		{
-		    $wloss=$wloss.$recn.":+".($rec[0]{$recn}).",-".($rec[1]{$recn})." ";
+		    $wloss = $wloss . $recn . ":+" . $rec[0]{$recn} . ",-" . $rec[1]{$recn} . " ";
 		    $dloss++;
 		}
 	    } 
 	}
 
-	if(($opt_M)&&(MRules($recn,$rec[0]{$recn},$rec[1]{$recn})))
+	if( $opt_M && MRules($recn,$rec[0]{$recn},$rec[1]{$recn}) )
 	{
-	    $wloss=$wloss.$recn.":".($rec[0]{$recn})."->".($rec[1]{$recn})." ";
-	    $rec[0]{$recn}=$rec[1]{$recn};
+	    $wloss = $wloss . $recn . ":" . $rec[0]{$recn} ."->". $rec[1]{$recn} ." ";
+	    $rec[0]{$recn} = $rec[1]{$recn};
 	    $dloss++;
 	} 
 
-	if(($recn eq "CREDIT_SUBMITTED")||($recn eq "CREDIT_GRANTED"))
+	if( $recn eq "CREDIT_SUBMITTED" || $recn eq "CREDIT_GRANTED" )
 	{
-	    @awards=split /,/, $rec[1]{$recn}; 
-	    foreach(@awards)
+	    @awards = split /,/, $rec[ 1 ]{ $recn }; 
+	    foreach( @awards )
 	    {
-		$rec[0]{$recn}=$rec[0]{$recn}.",".$_ 
-		    if(($_)&&($rec[0]{$recn} !~ /$_/i));
+		$rec[ 0 ]{ $recn } = $rec[ 0 ]{ $recn } . "," . $_ 
+		    if( $_ && ($rec[0]{$recn} !~ /$_/i) );
 	    }
 	}
 
     }
 
-    print "L $rec[0]{QSO_DATE} $rec[0]{TIME_ON} $rec[0]{CALL} $wloss\n" 
-	if(($opt_v)&&($wloss));
+    print "L $rec[ 0 ]{ QSO_DATE } $rec[ 0 ]{ TIME_ON } $rec[ 0 ]{ CALL } $wloss\n" 
+	if( $opt_v && $wloss );
 }
 
 # rules for merging QSO records with '-M'
