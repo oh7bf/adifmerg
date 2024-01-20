@@ -129,6 +129,8 @@ I<nlqslr> number of LoTW QSL received
 
 I<nlqsls> number of LoTW QSL sent
 
+I<npota> number of POTAs
+
 I<nqslr> number of QSL received
 
 I<nqsls> number of QSL sent
@@ -139,6 +141,10 @@ I<nsota> number of SOTAs
 
 I<nstation> number of stations
 
+I<nwwff> number of WWFFs
+
+I<pota> list of POTAs
+
 I<props> list of propagation modes
 
 I<sota> list of SOTAs
@@ -146,6 +152,8 @@ I<sota> list of SOTAs
 I<stations> list of stations
 
 I<submodes> list of submodes
+
+I<wwff> list of WWFFs
 
 =head1 OPTIONS
 

@@ -58,10 +58,11 @@ need to be in cards/ directory to produce the LaTeX file.
 
 Check ADIF-file.
 
-I<file> B<check> [errors]
+I<file> B<check> [dxcc] [errors]
 
 The file is sent to B<adifmerg> to see any errors. The lines
-with errors can be optionally printed. 
+with errors can be optionally printed. With option I<dxcc> the DXCC entity
+is checked for the call sign. 
 
 Create a new log file. The file type 'eqsl', 'log' or 'lotw' determines how
 new QSOs and QSLs are added to the log. Optionally the file can created
@@ -122,8 +123,8 @@ I<file> B<query> parameter
 The possible parameters are bands, cont, country, cqz, dxcc, firstqso, grids,
 grid6, grid8, iota, ituz, lastqsl, lasteqsl, lastlqsl, lastqso, llastqsl,
 llastqso, llastqsot, lonlat, lonlatd, modes, ncont, ncq, ndxcc, neqslr,
-neqsls, nerr, ngrid, nitu, nlonlat, nlqslr, nlqsls, nqslr, nqsls, nqso,
-nsota, nstation, props, sota or stations.
+neqsls, nerr, ngrid, nitu, nlonlat, npota, nlqslr, nlqsls, nqslr, nqsls, nqso,
+nsota, nstation, nwwff, pota, props, sota, stations or wwff.
 
 Sort logfile to ascending time order.
 
