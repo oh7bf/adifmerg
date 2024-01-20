@@ -3,7 +3,7 @@
 #                                                                             
 # QSO repository for logging with ADIF-files.
 #
-# Copyright (C) 2013 - 2017 Jaakko Koivuniemi.
+# Copyright (C) 2013 - 2024 Jaakko Koivuniemi.
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@ use POSIX qw(strftime);
 
 use subs qw/add cards check create duplicate edittxt edtmp export info list logsplit merge printhelp printhistory printversion printusage query readfilter qsl qso resetvars timenow utcnow updatelotwd writecabtemp/;
 
-my $verno="20171127"; # YYYYMMDD
+my $verno="20240120"; # YYYYMMDD
 
 # change this if the logs are not in home directory
 my $path=$ENV{"HOME"}."/"; 
@@ -191,24 +191,24 @@ sub docmd
 	    printhelp("");
 	}
     }
-    elsif(@cm>1)
+    elsif( scalar( @cm ) > 1 )
     {
-        my $fname=$cm[0];
-        my $par1="";
+        my $fname = $cm[0];
+        my $par1 = "";
         $fname .= ".adi" if( $fname !~ /\w+[.]adi(f)?/i );
-        $par1=$cm[2] if($cm[2]);
-	my $par2="";
-	$par2=$cm[3] if($cm[3]);
-	my $par3="";
-	$par3=$cm[4] if($cm[4]);
-	my $res="";
-        for(my $i=5;$i<@cm;$i++)
+        $par1 = $cm[2] if( $cm[2] );
+	my $par2 = "";
+	$par2 = $cm[3] if( $cm[3] );
+	my $par3 = "";
+	$par3 = $cm[4] if( $cm[4] );
+	my $res = "";
+        for(my $i = 5; $i < scalar(@cm); $i++)
 	{
-	    $res=$res." ".$cm[$i];	  
+	    $res = $res . " " . $cm[ $i ];	  
 	}		
-	if($cm[1]=~/^add/i)
+	if( $cm[1] =~ /^add/i )
 	{
-	    add($fname);
+            add( $fname );
 	}
         elsif($cm[1]=~/^cards/i)
         {
@@ -216,7 +216,7 @@ sub docmd
         }
         elsif($cm[1]=~/^check/i)
         {
-            check($fname,$par1);
+            check( $fname, $par1, $par2 );
         }
 	elsif($cm[1]=~/^create/i)
 	{
@@ -332,15 +332,17 @@ sub cards
 # check ADIF-file by reading it with 'adifmerg'
 sub check
 {
-    my $fname=shift;
-    my $prerr=shift;
-    my $file=$apath.$fname; # file with path
-    my $c="";
+    my $fname = shift;
+    my $pdxcc = shift;
+    my $prerr = shift;
 
-    $c="adifmerg -f $file";
-    $c=$c." -e" if($prerr=~/^errors/i);
+    my $file = $apath . $fname; # file with path
+    my $c = "";
+
+    $c = "adifmerg -f $file";
+    $c = $c . " -c" if( $pdxcc =~ /^dxcc/i );
+    $c = $c . " -e" if( $prerr =~ /^errors/i || $pdxcc =~ /^errors/i );
     print `$c`;
-    
 }
 
 # search for duplicate QSOs in the ADIF-file
@@ -802,7 +804,7 @@ sub printhelp
         if($cmd=~/^check/i)
         {
             print "Check ADIF-file and optionally print lines with errors.\n";
-            print "file check [errors]\n";
+            print "file check [dxcc] [errors]\n";
         }	
         if($cmd=~/^create/i)
 	{
@@ -862,7 +864,7 @@ sub printhelp
 	}
         if($cmd=~/^query/i)
 	{
-            print "Query parameter from file. The parameter can be 'bands', 'cont', 'country', 'cqz', 'dxcc', 'firstqso', 'grids', 'grid6', 'grid8', 'iota', 'ituz', 'lastqsl', 'lasteqsl', 'lastlqsl', 'lastqso', 'llastqso', 'llastqsot', 'lonlat', 'lonlatd', 'modes', 'ncont', 'ncq', 'ndxcc', 'neqslr', 'neqsls', 'nerr', 'ngrid', 'niota', 'nitu', 'nlonlat', 'nlqslr', 'nlqsls', ' nqslr', 'nqsls', 'nqso', 'nstation', 'props', 'sota', 'stations' or 'submodes'.\n";
+            print "Query parameter from file. The parameter can be 'bands', 'cont', 'country', 'cqz', 'dxcc', 'firstqso', 'grids', 'grid6', 'grid8', 'iota', 'ituz', 'lastqsl', 'lasteqsl', 'lastlqsl', 'lastqso', 'llastqso', 'llastqsot', 'lonlat', 'lonlatd', 'modes', 'ncont', 'ncq', 'ndxcc', 'neqslr', 'neqsls', 'nerr', 'ngrid', 'niota', 'nitu', 'nlonlat', 'nlqslr', 'nlqsls', 'npota, 'nqslr', 'nqsls', 'nqso', 'nstation', 'nwwff', 'pota', 'props', 'sota', 'stations', 'submodes' or 'wwff'.\n";
             print "file query parameter\n";
 	}
 	if($cmd=~/^split/i)
@@ -884,7 +886,7 @@ sub printhelp
     {
 	print "file add\n";
         print "file cards\n";
-        print "file check [errors]\n";
+        print "file check [dxcc] [errors]\n";
 	print "file create eqsl|log|lotw [path/file2] [filter [parameters]]\n";
         print "file duplicate [minutes]\n";
 	print "file edit [config|diff]\n";
@@ -945,23 +947,23 @@ sub printusage
 # update QSLs in ADIF-file
 sub qsl
 {
-    my $fname=shift;
-    my $par1=shift;
-    my $file=$apath.$fname;
+    my $fname = shift;
+    my $par1 = shift;
+    my $file = $apath . $fname;
     my @calls;
-    my $qsos="";
-    my $ans="";
-    my $c="";
+    my $qsos = "";
+    my $ans = "";
+    my $c = "";
 
-    readvars($fname);
-    if($vars{TYPE} eq "log")
+    readvars( $fname );
+    if( $vars{TYPE} eq "log" )
     {
 	print "Calls:";
 	$ans=<>;
-	@calls=split /\s+/,$ans;
+	@calls=split /\s+/, $ans;
 
 	# write file of possible QSOs
-	if(@calls)
+	if( @calls )
 	{
 	    if(open(TMP,">","/tmp/qsorep.txt"))
 	    {
@@ -1041,50 +1043,50 @@ sub qsl
 # update QSOs in ADIF-file
 sub qso
 {
-    my $fname=shift;
-    my $par1=shift;
-    my $file=$apath.$fname;
+    my $fname = shift;
+    my $par1 = shift;
+    my $file = $apath . $fname;
 
-    readvars($fname);
-    if($vars{TYPE} eq "lotw")
+    readvars( $fname );
+    if( $vars{ TYPE } eq "lotw" )
     {
-	my $lq="https://p1k.arrl.org/lotwuser/lotwreport.adi"; 
-	$lq=$lq."?login=$vars{LOTWUSER}\&password=$vars{LOTWPASS}\&qso_query=1\&qso_qsl=no";
-	$lq=$lq."\&qso_qsorxsince=".$vars{LOTWREADDATE} 
-	if($vars{LOTWREADDATE}=~/\d\d\d\d\-\d\d\-\d\d/);
-	$lq=$lq."\&qso_qsldetail=yes";
-	$lq=$lq."\&qso_withown=yes";
+        my $lq = "https://p1k.arrl.org/lotwuser/lotwreport.adi"; 
+        $lq = $lq."?login=$vars{LOTWUSER}\&password=$vars{LOTWPASS}\&qso_query=1\&qso_qsl=no";
+        $lq = $lq."\&qso_qsorxsince=" . $vars{LOTWREADDATE} 
+        if( $vars{LOTWREADDATE} =~ /\d\d\d\d\-\d\d\-\d\d/ );
+        $lq = $lq . "\&qso_qsldetail=yes";
+        $lq = $lq . "\&qso_withown=yes";
 
-	print "$lq\n" if($dbg);
+        print "$lq\n" if( $dbg );
 
-	my $c="wget '$lq' -q -O - ".readfilter($vars{QSOFILTER})." | adifmerg -f - -m $file -o -v > /tmp/qsorep.adi";
+        my $c = "wget '$lq' -q -O - " . readfilter($vars{QSOFILTER}) . " | adifmerg -f - -m $file -o -v > /tmp/qsorep.adi";
 
-	print "$c\n" if($dbg);
-	if(readfilter($vars{QSOFILTER}))
-	{
-	    `$c`;
+        print "$c\n" if( $dbg );
+        if( readfilter( $vars{QSOFILTER} ) )
+        {
+            `$c`;
 	}
-	else
-	{
+        else
+        {
 	    print "filter $vars{QSOFILTER} not found\n";
 	}
 
-	if($par1 eq "diff")
-	{
-	    $c="adifmerg -f /tmp/qsorep.adi -l -v > /tmp/qsorep.txt";
-	    `$c`;
-	    $c="adifmerg -f $file -l -v | diff - /tmp/qsorep.txt";
-	    print `$c`;
-	}
+        if( $par1 eq "diff" )
+        {
+            $c = "adifmerg -f /tmp/qsorep.adi -l -v > /tmp/qsorep.txt";
+            `$c`;
+            $c = "adifmerg -f $file -l -v | diff - /tmp/qsorep.txt";
+            print `$c`;
+        }
 
-	my ($nqso,$nqsl)=split /\s+/, `adifmerg -f $file -q nqso,nlqslr`;
-	my ($nqso2,$nqsl2)=split /\s+/, `adifmerg -f /tmp/qsorep.adi -q nqso,nlqslr`;
+	my ( $nqso, $nqsl ) = split /\s+/, `adifmerg -f $file -q nqso,nlqslr`;
+	my ( $nqso2, $nqsl2 ) = split /\s+/, `adifmerg -f /tmp/qsorep.adi -q nqso,nlqslr`;
 	print "--QSO $nqso -> $nqso2, QSL $nqsl -> $nqsl2\n";
 
 	$c="cp -i /tmp/qsorep.adi $file";
 	`$c`;
 # FIX ME: update when the file was not overwritten 
-	updatelotwd($fname); 
+	updatelotwd( $fname ); 
     }
 }
 
@@ -1190,14 +1192,14 @@ sub readlotw
 # read variables for the file
 sub readvars
 {
-    my $fname=shift;
-    my $cfile=$cpath.$fname; # configuration file
-    my $line="";
+    my $fname = shift;
+    my $cfile = $cpath . $fname; # configuration file
+    my $line = "";
 
     resetvars(); # empty hash
 
     # read variables
-    if(open(VAF,"<",$cfile))
+    if( open( VAF, "<", $cfile) )
     {
 	while($line=<VAF>)
 	{
