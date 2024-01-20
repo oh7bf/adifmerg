@@ -23,7 +23,7 @@ use Getopt::Std;
 
 use subs qw/AddLoc AddRec AdifHead AdifLine AdifRecTo2 b2cabf b2sota Band2freq CalcDist CheckBand CheckCQZ CheckDate CheckGrid CheckIota CheckITUZ CheckLoc CheckMode CheckPmode CheckPota CheckPwr CheckQslr CheckQsls CheckQso CheckRig CheckRst CheckSat CheckSatMode CheckSota CheckSubmode CheckUtc CheckWwff CheckVia CompareRec date2csv DelRec EmptyRec f2cabf FixRec Freq2band Grid2Loc jday Loc2Rad m2cab MapRec MergeRecs Modes2Submodes MRules MyNotes2Adif Notes2Adif PrintAdifHead PrintAdifRec PrintAdxHead PrintAdxRec PrintCabHead PrintCabRec PrintCsvRec PrintInfo PrintQsls PrintQso PrintQsos PrintTxtHead PrintTxtRec PrintTxtRecL printusage printversion QslDate QslVerified2Credit QslViaRemoveM Qso2Array Qso2Hash Qso2HashT Qso2Hash2s ReadAdifLog ReadAdifRec ReadCabLog ReadCsvLog ReadTxtLog SearchMatch StatQso time2csv Userdef2Standard/;
 
-my $verno="20240114";
+my $verno="20240120";
 my $averno="3.1.4";
 
 # Jim Reisert, AD1C, http://www.country-files.com/
@@ -2837,7 +2837,7 @@ sub PrintQsos
 # print short text file header
 sub PrintTxtHead
 {
-    if((!$opt_d)&&(!$opt_c)&&(!$opt_a))
+    if( !$opt_d && !$opt_c && !$opt_a )
     {
 	print "date     utc  band   mode   call        rsts rstr qsls/r eQ Lo prop comment\n";
     }
@@ -2988,7 +2988,7 @@ sub PrintTxtRec
 	$oline=$oline."        " if(!$rec[$recno]{GRIDSQUARE});
 	$oline=$oline.(sprintf " %6.0f",$rec[$recno]{DISTANCE}) if($rec[$recno]{DISTANCE});
     }
-    if($opt_c)
+    if( $opt_c )
     {
 	$oline=$oline.(sprintf " %6d",$rec[$recno]{DXCC}) if($rec[$recno]{DXCC});
 	$oline=$oline."       " if(!$rec[$recno]{DXCC});
@@ -3824,7 +3824,7 @@ sub ReadCtyPlist
 
 		print "$key $country $prefix $dxcc $cqzone $ituzone $continent\n" if( $dbug );
 
-		$ctylist{ $key } = [$country, $cqzone, $ituzone, $continent];
+		$ctylist{ $key } = [$country, $cqzone, $ituzone, $continent, $dxcc];
 		$line = <$CTYFILE> if( !$line );
             }
 	    else
@@ -4193,12 +4193,14 @@ sub CheckQso()
     my $itu = "";
     my $cont = "";
     my $ctry = "";
+    my $dxcc = "";
     my @entries;
     my $cntry2 = "";
     my $cq2 = "";
     my $itu2 = "";
     my $cont2 = "";
     my $ctry2 = "";
+    my $dxcc2 = "";
     my @entries2;
     my $partial = "";
     my $found = 0;
@@ -4466,6 +4468,7 @@ sub CheckQso()
                 $entries[ 4 ] = "WAZ Zone: " . $ctylist{ $partial }[ 1 ];
                 $entries[ 5 ] = "ITU Zone: " . $ctylist{ $partial }[ 2 ];
                 $entries[ 6 ] = "Continent: " . $ctylist{ $partial }[ 3 ];
+                $entries[ 10 ] = "Dxcc: " . $ctylist{ $partial }[ 4 ];
             }
 	    else
 	    {
@@ -4473,6 +4476,7 @@ sub CheckQso()
                 $entries[ 4 ] = "";
                 $entries[ 5 ] = "";
                 $entries[ 6 ] = "";
+                $entries[ 10 ] = "";
             }
         }
 	else
@@ -4496,6 +4500,7 @@ sub CheckQso()
 
             $cntry = `dxcc $rec[$recno]{CALL}`;
             @entries = split('\n', $cntry);
+            $entries[ 10 ] = "";
         }
 
         # maximum five (5) words in the country name
@@ -4522,10 +4527,13 @@ sub CheckQso()
                     $rec[$recno]{COUNTRY}=$ctry;
                 }
                 $cq = $1 if( $entries[4] =~ /^WAZ\sZone:\s+(\d{1,2})$/i );
-                $cq = 1*$cq;
+                $cq = scalar( $cq );
                 $itu = $1 if( $entries[5] =~ /^ITU\sZone:\s+(\d{1,2})$/i );
-                $itu = 1*$itu;
+                $itu = scalar( $itu );
                 $cont = $1 if( $entries[6] =~ /^Continent:\s+(\w\w)$/i );
+                $dxcc = $1 if( $entries[ 10 ] =~ /Dxcc:\s+(\d{1,3})$/i );
+                $dxcc = scalar( $dxcc );
+
                 if( $rec[ $recno ]{CQZ} )
                 {
                     if( $rec[ $recno ]{CQZ} != $cq )
@@ -4538,6 +4546,7 @@ sub CheckQso()
                 {
                     $rec[ $recno ]{CQZ} = $cq;
                 }
+
                 if( $rec[ $recno ]{ITUZ} )
                 {
                     if( $rec[ $recno ]{ITUZ} != $itu )
@@ -4550,7 +4559,8 @@ sub CheckQso()
                 {
                     $rec[$recno]{ITUZ}=$itu;
                 }
-                if( $rec[ $recno ]{CONT} )
+
+		if( $rec[ $recno ]{CONT} )
                 {
                     if( $rec[ $recno ]{CONT} ne $cont )
                     {
@@ -4562,9 +4572,19 @@ sub CheckQso()
                 {
                     $rec[ $recno ]{CONT} = $cont;
                 }
+
+                if( $rec[ $recno ]{DXCC} && $dxcc )
+                {
+                    if( $rec[ $recno ]{DXCC} != $dxcc )
+                    {
+                        $serr = $serr . "dxcc?";
+                        $nerr++;
+                    }
+                }
+
             }
 
-    	    # check also STATION_CALLSIGN if exists
+	    # check also STATION_CALLSIGN if exists
             if( $rec[ $recno ]{STATION_CALLSIGN} )
             {
                 if( %ctylist )
@@ -4631,6 +4651,7 @@ sub CheckQso()
                         $entries2[ 4 ] = "WAZ Zone: " . $ctylist{ $partial }[ 1 ];
                         $entries2[ 5 ] = "ITU Zone: " . $ctylist{ $partial }[ 2 ];
                         $entries2[ 6 ] = "Continent: " . $ctylist{ $partial }[ 3 ];
+                        $entries[ 10 ] = "Dxcc: " . $ctylist{ $partial }[ 4 ];
                     }
 		    else
 		    {
@@ -4638,13 +4659,15 @@ sub CheckQso()
                         $entries2[ 4 ] = "";
                         $entries2[ 5 ] = "";
                         $entries2[ 6 ] = "";
+                        $entries[ 10 ] = "";
                     }
                 }
 		else
 		{
                     $cntry2 = `dxcc $rec[ $recno ]{STATION_CALLSIGN}`;
                     @entries2 = split('\n', $cntry2);
-		}
+                    $entries[ 10 ] = "";
+	        }
 
                 # maximum five (5) words in the country name
                 if( $entries2[3] =~ /^Country\sName:\s+([\w\.?\s]*)$/i )
@@ -4670,11 +4693,15 @@ sub CheckQso()
                             $rec[ $recno ]{MY_COUNTRY} = $ctry2;
                         }
                         $cq2 = $1 if( $entries2[4] =~ /^WAZ\sZone:\s+(\d{1,2})$/i );
-                        $cq2 = 1*$cq2;
+                        $cq2 = scalar( $cq2 );
                         $itu2 = $1 if( $entries2[5] =~ /^ITU\sZone:\s+(\d{1,2})$/i );
-                        $itu2 = 1*$itu2;
+                        $itu2 = scalar( $itu2 );
                         $cont2 = $1 if( $entries2[6] =~ /^Continent:\s+(\w\w)$/i );
-                        if( $rec[ $recno ]{MY_CQ_ZONE} )
+
+                        $dxcc2 = $1 if( $entries[ 10 ] =~ /Dxcc:\s+(\d{1,3})$/i );
+                        $dxcc2 = scalar( $dxcc2 );
+
+			if( $rec[ $recno ]{MY_CQ_ZONE} )
                         {
                             if( $rec[ $recno ]{MY_CQ_ZONE} != $cq2 )
                             {
@@ -4698,6 +4725,16 @@ sub CheckQso()
                         {
                             $rec[ $recno ]{MY_ITU_ZONE} = $itu2;
                         }
+
+                        if( $rec[ $recno ]{MY_DXCC} && $dxcc2 )
+                        {
+                            if( $rec[ $recno ]{MY_DXCC} != $dxcc2 )
+                            {
+                                $serr = $serr . "mydxcc?";
+                                $nerr++;
+                            }
+                        }
+
                     }
                 }
             }
