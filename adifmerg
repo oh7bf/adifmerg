@@ -5623,8 +5623,10 @@ sub PrintInfo
 	    } 
 	    print "$ncont " if( $p eq 'ncont' );
 	    print "$ncq " if( $p eq 'ncq' );
-	    print "$ndx " if( $p eq 'ndxcc' );
-	    print "$neqslr " if( $p eq 'neqslr' );
+            print "$ndx " if( $p eq 'ndxcc' );
+            print "$ncnty " if( $p eq 'ncnty' );
+            print "$nstate " if( $p eq 'nstate' );
+            print "$neqslr " if( $p eq 'neqslr' );
 	    print "$neqsls " if( $p eq 'neqsls' );
 	    print "$ngrid " if( $p eq 'ngrid' );
 	    print "$nitu " if( $p eq 'nitu' );
@@ -5642,7 +5644,6 @@ sub PrintInfo
 	}
 	print "\n";
     }
-
 }
 
 
