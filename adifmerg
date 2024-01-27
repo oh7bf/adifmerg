@@ -23,7 +23,7 @@ use Getopt::Std;
 
 use subs qw/AddLoc AddRec AdifHead AdifLine AdifRecTo2 b2cabf b2sota Band2freq CalcDist CheckBand CheckCQZ CheckDate CheckGrid CheckIota CheckITUZ CheckLoc CheckMode CheckPmode CheckPota CheckPwr CheckQslr CheckQsls CheckQso CheckRig CheckRst CheckSat CheckSatMode CheckSota CheckSubmode CheckUtc CheckWwff CheckVia CompareRec date2csv DelRec EmptyRec f2cabf FixRec Freq2band Grid2Loc jday Loc2Rad m2cab MapRec MergeRecs Modes2Submodes MRules MyNotes2Adif Notes2Adif PrintAdifHead PrintAdifRec PrintAdxHead PrintAdxRec PrintCabHead PrintCabRec PrintCsvRec PrintInfo PrintQsls PrintQso PrintQsos PrintTxtHead PrintTxtRec PrintTxtRecL printusage printversion QslDate QslVerified2Credit QslViaRemoveM Qso2Array Qso2Hash Qso2HashT Qso2Hash2s ReadAdifLog ReadAdifRec ReadCabLog ReadCsvLog ReadTxtLog SearchMatch StatQso time2csv Userdef2Standard/;
 
-my $verno="20240121";
+my $verno="20240127";
 my $averno="3.1.4";
 
 # Jim Reisert, AD1C, http://www.country-files.com/
@@ -1035,9 +1035,9 @@ if( $opt_f )
 
 #  print sorted adif log to simple ascending time order
 #  for descending time order use 'sort {$b <=> $a} (@qsos)';
-if($opt_s)
+if( $opt_s )
 {
-    @qsos=sort(@qsos);
+    @qsos = sort( @qsos );
     PrintAdifHead();
     PrintQsos();
 }
@@ -2435,17 +2435,38 @@ sub EmptyRec
     print "--[$recno] cleaned\n" if($dbug);
 }
 
+# test record is valid
+sub TestRecValid
+{
+    my $recn = shift;
+    my $recv = shift;
+    my $valid = 0;
+
+    $recn = uc $recn if( $recn );
+
+    if( $recn eq "RST_RCVD" || $recn eq "RST_SENT")
+    {
+        $valid = 1 if( $recv || $recv eq "0" );
+    }
+    else
+    {
+        $valid = 1 if( $recv );
+    }
+
+    return $valid;
+}
+
 # print adif record
 sub PrintAdifRec
 {
-    my $recno=shift;
-    my $oline="";
+    my $recno = shift;
+    my $oline = "";
     my $recn; # record name
 
-    $oline="";
-    foreach $recn (sort keys %typ)
+    $oline = "";
+    foreach $recn ( sort keys %typ )
     {
-	$oline=$oline."<".$recn.":".length($rec[$recno]{$recn}).">".($rec[$recno]{$recn}) if($rec[$recno]{$recn});
+        $oline = $oline . "<" . $recn . ":" . length( $rec[ $recno ]{ $recn } ) . ">" . ( $rec[ $recno ]{ $recn } ) if( TestRecValid( $recn, $rec[ $recno ]{ $recn } ) );
     }
     $oline=$oline."<eor>\n";
 
@@ -2476,23 +2497,21 @@ sub PrintAdxRec
 # of each line
 sub Qso2Array
 {
-    my $oline="";
+    my $oline = "";
     my $recn; # record name
 
-    $oline=$rec[0]{QSO_DATE}.$rec[0]{TIME_ON};
-    $oline=$oline."00" if(length($rec[0]{TIME_ON})==4);
-    $oline=$oline.$rec[0]{CALL} if($rec[0]{CALL});
+    $oline = $rec[0]{QSO_DATE} . $rec[0]{TIME_ON};
+    $oline = $oline . "00" if( length( $rec[ 0 ]{ TIME_ON } ) == 4 );
+    $oline = $oline . $rec[ 0 ]{ CALL } if( $rec[ 0 ]{ CALL } );
 
     foreach $recn (sort keys %typ)
     {
-	$oline=$oline."<".$recn.":".length($rec[0]{$recn}).">".$rec[0]{$recn} 
-	if($rec[0]{$recn});
+        $oline = $oline . "<" . $recn . ":" . length( $rec[ 0 ]{ $recn } ) . ">" . $rec[ 0 ]{ $recn } if( TestRecValid( $recn, $rec[ 0 ]{ $recn } ) );
     }
-    $oline=$oline."<eor>\n";
+    $oline = $oline . "<eor>\n";
 
-    $qsos[$qi]=$oline;
+    $qsos[ $qi ] = $oline;
     $qi++;
-
 }
 
 # fill hash for duplicate QSOs, warn if duplicates found
@@ -2842,14 +2861,14 @@ sub PrintQsos
     my $i;
     my $l;
     
-    for($i=0;$i<$qi;$i++)
+    for( $i = 0; $i < $qi; $i++)
     {
-	$l=substr $qsos[$i],14;
-	while((substr $l,0,1) ne "<")
-	{
-	    $l=substr $l,1,(length($l)-1);
-	}
-	print $l;
+        $l = substr $qsos[ $i ], 14;
+        while( ( substr $l, 0, 1 ) ne "<" )
+        {
+            $l = substr $l, 1, length($l) - 1;
+        }
+        print $l;
     }
 }
 
@@ -2944,12 +2963,12 @@ sub PrintTxtRec
         $oline=$oline.(sprintf " %-6.6s",$rec[$recno]{MODE});
     }
     $oline=$oline.(sprintf " %-12.12s",$rec[$recno]{CALL});
-    $oline=$oline.(sprintf " %-3.3s",$rec[$recno]{RST_SENT}) 
-	if($rec[$recno]{RST_SENT});
+    $oline = $oline . ( sprintf " %-3.3s", $rec[ $recno ]{ RST_SENT } ) 
+        if( $rec[ $recno ]{ RST_SENT } || $rec[ $recno ]{ RST_SENT } eq "0" );
     $oline=$oline." -  " if(!$rec[$recno]{RST_SENT});
-    $oline=$oline.(sprintf " %-3.3s  ",$rec[$recno]{RST_RCVD}) 
-	if($rec[$recno]{RST_RCVD});
-    $oline=$oline." -    " if(!$rec[$recno]{RST_RCVD});
+    $oline = $oline . ( sprintf " %-3.3s  ", $rec[ $recno ]{ RST_RCVD } ) 
+        if( $rec[ $recno ]{ RST_RCVD } || $rec[ $recno ]{ RST_RCVD } eq "0" );
+    $oline=$oline." -    " if( !$rec[$recno]{RST_RCVD} && $rec[ $recno ]{ RST_RCVD } ne "0" );
     $oline=$oline.($rec[$recno]{QSL_SENT}) 
 	if($rec[$recno]{QSL_SENT});
     $oline=$oline."-" if(!$rec[$recno]{QSL_SENT});
@@ -3031,51 +3050,49 @@ sub PrintTxtRec
 # print full text record
 sub PrintTxtRecL
 {
-    my $serr=shift;
-    my $recno=shift;
-    my $s=shift;
-    my $oline="";
+    my $serr = shift;
+    my $recno = shift;
+    my $s = shift;
+    my $oline = "";
     my $recn;
 
-    if($rec[$recno]{QSO_DATE})
+    if( $rec[ $recno ]{ QSO_DATE } )
     {
-	if($s eq " ")
-	{
-	    $oline=$serr.$rec[$recno]{QSO_DATE};
-	}
-	else
-	{
-	    $oline=$serr.date2csv($rec[$recno]{QSO_DATE});
-	}
+        if($s eq " ")
+        {
+            $oline = $serr . $rec[ $recno ]{ QSO_DATE };
+        }
+        else
+        {
+            $oline = $serr . date2csv( $rec[ $recno ]{ QSO_DATE } );
+        }
     }
     else
     {
-	$oline=$serr."-";
+        $oline = $serr . "-";
     }
-    if($rec[$recno]{TIME_ON})
+    if( $rec[ $recno ]{ TIME_ON } )
     {
-	if($s eq " ")
-	{
-	    $oline=$oline.$s.(substr $rec[$recno]{TIME_ON},0,4);
-	}
-	else
-	{
-	    $oline=$oline.$s.time2csv($rec[$recno]{TIME_ON});
-	}
+        if( $s eq " " )
+        {
+            $oline = $oline . $s . (substr $rec[ $recno ]{ TIME_ON }, 0, 4 );
+        }
+        else
+        {
+            $oline = $oline . $s . time2csv( $rec[ $recno ]{ TIME_ON } );
+        }
     }
     else
     {
-	$oline=$oline."-";
+        $oline = $oline . "-";
     }
     
     foreach $recn (sort keys %typ)
     {
-	$oline=$oline.$s.$rec[$recno]{$recn} 
-	if(($rec[$recno]{$recn})&&($recn ne "QSO_DATE")&&($recn ne "TIME_ON"));
+        $oline = $oline . $s . $rec[ $recno ]{ $recn } if( TestRecValid( $recn, $rec[ $recno ]{ $recn } ) && $recn ne "QSO_DATE" && $recn ne "TIME_ON" );
     }
 
-    $oline="NIL:".$oline if((uc $rec[$recno]{QSO_COMPLETE} eq "NIL")||(uc $rec[$recno]{QSO_COMPLETE} eq "N"));
-
+    $oline = "NIL:" . $oline if( (uc $rec[$recno]{QSO_COMPLETE} eq "NIL") || (uc $rec[$recno]{QSO_COMPLETE} eq "N") );
 
     print "$oline\n";
 
@@ -3162,14 +3179,14 @@ sub PrintCsvRec
 	$oline="-,";
     }
 
-    if($rec[$recno]{RST_SENT})
+    if( $rec[ $recno ]{ RST_SENT } || $rec[ $recno ]{ RST_SENT } eq "0" )
     {
-	$oline=$oline.$rec[$recno]{RST_SENT};
+        $oline = $oline . $rec[ $recno ]{ RST_SENT };
     }
-    $oline=$oline."/";
-    if($rec[$recno]{RST_RCVD})
+    $oline = $oline . "/";
+    if( $rec[ $recno ]{ RST_RCVD } || $rec[ $recno ]{ RST_RCVD } eq "0" )
     {
-	$oline=$oline.$rec[$recno]{RST_RCVD};
+        $oline = $oline . $rec[ $recno ]{ RST_RCVD };
     }
 
     print "$oline\n";
