@@ -3,7 +3,7 @@
 #                                                                             
 # Merge and convert ADIF files.
 #
-# Copyright (C) 2008 - 2024 Jaakko Koivuniemi.
+# Copyright (C) 2008 - 2025 Jaakko Koivuniemi.
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -23,7 +23,7 @@ use Getopt::Std;
 
 use subs qw/AddLoc AddRec AdifHead AdifLine AdifRecTo2 b2cabf b2sota Band2freq CalcDist CheckBand CheckCQZ CheckDate CheckGrid CheckIota CheckITUZ CheckLoc CheckMode CheckPmode CheckPota CheckPwr CheckQslr CheckQsls CheckQso CheckRig CheckRst CheckSat CheckSatMode CheckSota CheckSubmode CheckUtc CheckWwff CheckVia CompareRec date2csv DelRec EmptyRec f2cabf FixRec Freq2band Grid2Loc jday Loc2Rad m2cab MapRec MergeRecs Modes2Submodes MRules MyNotes2Adif Notes2Adif PrintAdifHead PrintAdifRec PrintAdxHead PrintAdxRec PrintCabHead PrintCabRec PrintCsvRec PrintInfo PrintQsls PrintQso PrintQsos PrintTxtHead PrintTxtRec PrintTxtRecL printusage printversion QslDate QslVerified2Credit QslViaRemoveM Qso2Array Qso2Hash Qso2HashT Qso2Hash2s ReadAdifLog ReadAdifRec ReadCabLog ReadCsvLog ReadTxtLog SearchMatch StatQso time2csv Userdef2Standard/;
 
-my $verno="20240127";
+my $verno="20241230";
 my $averno="3.1.4";
 
 # Jim Reisert, AD1C, http://www.country-files.com/
@@ -538,6 +538,9 @@ my %typ = ("ADDRESS" => "M",
            "WWFF_REF" => "S");
 
 
+# csv out separator
+my $csv_out_separator = ",";
+
 # csv record convertion hash
 my %cconv = ("Band" => "BAND",
 	     "Full reference" => "SOTA_REF",
@@ -851,6 +854,8 @@ getopts('2hVvf:m:M:lsoibLt:C:A:D:p:eS:xq:F:dcQ:a:uR:XT:N');
 printversion() if($opt_V); 
 printusage() if($opt_h||(!$opt_f)); 
 
+setvariables();
+
 $opt_t=24*60 if((!$opt_t)&&($opt_2));
 
 $gridlen=6 if($opt_q =~ /grid6/);
@@ -1060,6 +1065,17 @@ PrintQsls() if(($opt_Q)&&(!$opt_o));
 PrintInfo($nqso) if($opt_q);
 
 print "Warning: data changed $dloss times during merging\n" if($dloss>0);
+
+# set variables from command line, e.g. 'adifmerg -f file.adi -x csv_out_separator=$'\t' '
+sub setvariables
+{
+    for(my $i = 0; $i < scalar( @ARGV ); $i++)
+    {
+       print "-- match ", $ARGV[ $i ], "\n" if( $dbug );
+       $csv_out_separator = $1 if( $ARGV[ $i ] =~ "csv_out_separator=([,;:\|\ \t\-\n@#\$\/%_])" );
+       print "-- CSV out separator = ", $csv_out_separator, "\n" if( $dbug );
+    }
+}
 
 # read in QSO data from ADIF file
 sub ReadAdifLog
@@ -1479,8 +1495,8 @@ sub PrintQso
         PrintTxtRec( $serr, $recno, $awstatus ) if( $opt_e && $serr );
         PrintTxtRecL( $serr, $recno, " " ) if( $opt_L );
         PrintCabRec( $recno ) if( $opt_C );
-        PrintTxtRecL( $serr, $recno, "," ) if( $opt_x );
-        PrintCsvRec( $recno ) if( $opt_X );
+        PrintTxtRecL( $serr, $recno, $csv_out_separator ) if( $opt_x );
+        PrintCsvRec( $recno, $csv_out_separator ) if( $opt_X );
         PrintTempRec( $recno ) if( $opt_T && !$opt_Q );
         Qso2Array() if( $opt_s );
         Qso2Hash2s() if( $opt_2 );
@@ -3101,82 +3117,84 @@ sub PrintTxtRecL
 # print comma-seprated-value (csv) record truncated for SOTA database import
 sub PrintCsvRec
 {
-    my $recno=shift;
-    my $oline="";
+    my $recno = shift;
+    my $sep  = shift;
+    $sep = "," if( $sep !~ /[,;:\|\ \t\-\n@#\$\/%_]/ );
+    my $oline = "";
     my $recn;
 
-    if($rec[$recno]{STATION_CALLSIGN})
+    if( $rec[ $recno ]{ STATION_CALLSIGN } )
     {
-	$oline=$rec[$recno]{STATION_CALLSIGN}.",";
+	$oline = $rec[ $recno ]{ STATION_CALLSIGN } . $sep;
     }
     else
     {
-	$oline="-,";
+	$oline = "-" . $sep;
     }
     
-    if($rec[$recno]{QSO_DATE})
+    if( $rec[ $recno ]{ QSO_DATE } )
     {
-	$oline=$oline.date2csv($rec[$recno]{QSO_DATE}).",";
+	$oline = $oline . date2csv( $rec[ $recno ]{ QSO_DATE } ) . $sep;
     }
     else
     {
-	$oline=$oline."-,";
+	$oline = $oline . "-". $sep;
     }
 
-    if($rec[$recno]{TIME_ON})
+    if( $rec[ $recno ]{ TIME_ON } )
     {
-	$oline=$oline.(substr $rec[$recno]{TIME_ON},0,4).","; 
+	$oline = $oline . ( substr $rec[ $recno ]{ TIME_ON }, 0, 4 ) . $sep;
     }
     else
     {
-	$oline=$oline."-,";
+	$oline = $oline . "-". $sep;
     }
 
-    if($rec[$recno]{MY_SOTA_REF})
+    if( $rec[ $recno ]{ MY_SOTA_REF } )
     {
-	$oline=$oline.$rec[$recno]{MY_SOTA_REF}.","; 
+	$oline = $oline . $rec[ $recno ]{ MY_SOTA_REF } . $sep;
     }
     else
     {
-	if($rec[$recno]{SOTA_REF})
+	if( $rec[ $recno ]{ SOTA_REF } )
 	{
-	    $oline=$oline.$rec[$recno]{SOTA_REF}.","; 
+	    $oline = $oline . $rec[ $recno ]{ SOTA_REF } . $sep;
 	}
 	else
 	{
-	    $oline=$oline."-,";
+	    $oline = $oline . "-" . $sep;
 	}
     }
 
-    if($rec[$recno]{BAND})
+    if( $rec[ $recno ]{ BAND } )
     {
-	$oline=$oline.b2sota($rec[$recno]{BAND}).",";
+	$oline = $oline . b2sota ($rec[ $recno ]{ BAND } ) . $sep;
     }
     else
     {
-	$oline="-,";
+	$oline = "-" . $sep;
     }
     
-    if($rec[$recno]{SUBMODE})
+    if( $rec[ $recno ]{ SUBMODE } )
     {
-        $oline=$oline.$rec[$recno]{SUBMODE}.",";
+        $oline = $oline . $rec[ $recno ]{ SUBMODE } . $sep;
     }
-    elsif($rec[$recno]{MODE})
+    elsif( $rec[ $recno ]{ MODE } )
     {
-        $oline=$oline.$rec[$recno]{MODE}.",";
+        $oline = $oline . $rec[ $recno ]{ MODE } . $sep;
     }
     else
     {
-	$oline="-,";
+	$oline = "-" . $sep;
     }
 
-    if($rec[$recno]{CALL})
+    if( $rec[ $recno ]{ CALL } )
     {
-	$oline=$oline.$rec[$recno]{CALL}.",";
+	$oline = $oline . $rec[ $recno ]{ CALL } . $sep;
     }
     else
     {
-	$oline="-,";
+	$oline = "-" . $sep;
     }
 
     if( $rec[ $recno ]{ RST_SENT } || $rec[ $recno ]{ RST_SENT } eq "0" )
@@ -4841,7 +4859,7 @@ sub CheckDate()
 	    $ok=1 if(($day>=1)&&($day<=29)&&($year%2==0));
 	    $ok=1 if(($day>=1)&&($day<=28)&&($year%2!=0));
 	}
-	$ok=0 if(($year<1930)||($year>2024));
+	$ok=0 if(($year<1930)||($year>2025));
     }
 
     return $ok;
