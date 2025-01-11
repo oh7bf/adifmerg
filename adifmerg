@@ -23,7 +23,7 @@ use Getopt::Std;
 
 use subs qw/AddLoc AddRec AdifHead AdifLine AdifRecTo2 b2cabf b2sota Band2freq CalcDist CheckBand CheckCQZ CheckDate CheckGrid CheckIota CheckITUZ CheckLoc CheckMode CheckPmode CheckPota CheckPwr CheckQslr CheckQsls CheckQso CheckRig CheckRst CheckSat CheckSatMode CheckSota CheckSubmode CheckUtc CheckWwff CheckVia CompareRec date2csv DelRec EmptyRec f2cabf FixRec Freq2band Grid2Loc jday Loc2Rad m2cab MapRec MergeRecs Modes2Submodes MRules MyNotes2Adif Notes2Adif PrintAdifHead PrintAdifRec PrintAdxHead PrintAdxRec PrintCabHead PrintCabRec PrintCsvRec PrintInfo PrintQsls PrintQso PrintQsos PrintTxtHead PrintTxtRec PrintTxtRecL printusage printversion QslDate QslVerified2Credit QslViaRemoveM Qso2Array Qso2Hash Qso2HashT Qso2Hash2s ReadAdifLog ReadAdifRec ReadCabLog ReadCsvLog ReadTxtLog SearchMatch StatQso time2csv Userdef2Standard/;
 
-my $verno="20241230";
+my $verno="20241231";
 my $averno="3.1.4";
 
 # Jim Reisert, AD1C, http://www.country-files.com/
@@ -1071,6 +1071,7 @@ sub setvariables
 {
     for(my $i = 0; $i < scalar( @ARGV ); $i++)
     {
+       $dbug = 1 if( $ARGV[ $i ] =~ /debug/i );
        print "-- match ", $ARGV[ $i ], "\n" if( $dbug );
        $csv_out_separator = $1 if( $ARGV[ $i ] =~ "csv_out_separator=([,;:\|\ \t\-\n@#\$\/%_])" );
        print "-- CSV out separator = ", $csv_out_separator, "\n" if( $dbug );

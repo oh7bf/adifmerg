@@ -8,7 +8,7 @@ B<adifmerg> B<-f> file [B<-m> file|B<-M> file] [B<-b>] [B<-d>] [B<-c>] [B<-i>]
 [B<-u>] [B<-a> award] [B<-o>|B<-s>|B<-x>|B<-X>|B<-l>|B<-L>|B<-e>|B<-C> file|B<-T> file] 
 [B<-A> record] [B<-D> record] [B<-S> record] [B<-F> record] [B<-R> record] 
 [B<-t> min] [B<-p> script] [B<-q> query] [B<-Q> all|requested] [B<-2>] 
-[B<-N>] [B<-h>] [B<-v>] [B<-V>]
+[B<-N>] [B<-h>] [B<-v>] [B<-V>] [variable=value]
 
 =head1 DESCRIPTION
 
@@ -42,7 +42,7 @@ The ITU zone is not necessarily the correct one for large countries.
 
 If a local file /usr/share/dxcc/cty.plist is available it is read to
 a hash for checking the QSO data instead of B<dxcc>. This file is available from
-Jim Reisert, AD1C, http://www.country-files.com . 
+Jim Reisert, AD1C, https://www.country-files.com .
 
 The switch B<-C> allows to create Cabrillo log from the ADIF file and
 a template file. The I<STX_STRING> and I<SRX_STRING>
@@ -281,6 +281,12 @@ I<ciCity>, I<stState>, I<cyCounty> and I<coCountry>.
 For example I<coFrance> could be used.
 
 
+=head1 VARIABLES
+
+I<csv_out_separator> change output separator character for options B<-x> and B<-X>, for example I<csv_out_separator=$'\t'> uses tab instead of comma
+
+I<debug> print debug messages
+
 =head1 EXAMPLE
 
 Print simple list of QSOs to screen
@@ -389,15 +395,15 @@ Program breaks if CALL, TIME_ON or QSO_DATE is missing.
 
 =head1 AUTHORS
 
-Jaakko Koivuniemi OH7BF, if tod lars ta fb7ho
+Jaakko Koivuniemi OH7BF
 
 =head1 LINKS
 
-http://www.adif.org
+https://www.adif.org
 
-http://www.kkn.net/~trey/cabrillo/
+https://wwrof.org/cabrillo/
 
-http://www.country-files.com
+https://www.country-files.com
 
 =head1 SEE ALSO
 

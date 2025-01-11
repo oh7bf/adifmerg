@@ -14,7 +14,7 @@ directory does not exist, a new repository is created. The repository has
 subdirectories for the ADIF logs and produced QSL cards. There are
 separate directories for the exported Cabrillo logs, csv-files, eQSL logs
 and LoTW logs. The filter subdirectory has all the filters to manipulate
-the log files. For example to I<txt2adif> has a single line
+the log files. For example, I<txt2adif> has a single line
 
 | adifmerg -f -txt -o
 
@@ -185,7 +185,7 @@ Split log file into different log files for each station call sign
 
 I<lotwin> B<split> I<stations>
 
-Extrac all QSOs to NO0CALL
+Extract all QSOs to NO0CALL
 
 I<NO0CALL> B<create> I<log> Qsorep/adif/lotwin.adi dummy -S CALL=NO0CALL
 
@@ -196,7 +196,7 @@ I<20130331SOTAREF> B<create> I<log> /home/my0call/Downloads/mylog.csv sotaMY0CAL
 
 Typical filter file sotaMY0CALL could contain a line like
 
-| adifmerg -f - -o -R MY_SOTA=SOTA -A MY_COUNTRY=Finland,MY_ITU_ZONE=18,MY_CQ_ZONE=15
+| adifmerg -f - -o -A MY_COUNTRY=Finland,MY_ITU_ZONE=18,MY_CQ_ZONE=15
 
 Export the file for signing and uploading to LoTW
 
@@ -235,7 +235,7 @@ the script to your environment.
 
 =head1 AUTHORS
 
-Jaakko Koivuniemi OH7BF, if tod lars ta fb7ho
+Jaakko Koivuniemi OH7BF
 
 =head1 LINKS
 
