@@ -21,10 +21,10 @@ use strict;
 use POSIX;
 use Getopt::Std;
 
-use subs qw/AddLoc AddRec AdifHead AdifLine AdifRecTo2 b2cabf b2sota Band2freq CalcDist CheckBand CheckCQZ CheckDate CheckGrid CheckIota CheckITUZ CheckLoc CheckMode CheckPmode CheckPota CheckPwr CheckQslr CheckQsls CheckQso CheckRig CheckRst CheckSat CheckSatMode CheckSota CheckSubmode CheckUtc CheckWwff CheckVia CompareRec date2csv DelRec EmptyRec f2cabf FixRec Freq2band Grid2Loc jday Loc2Rad m2cab MapRec MergeRecs Modes2Submodes MRules MyNotes2Adif Notes2Adif PrintAdifHead PrintAdifRec PrintAdxHead PrintAdxRec PrintCabHead PrintCabRec PrintCsvRec PrintInfo PrintQsls PrintQso PrintQsos PrintTxtHead PrintTxtRec PrintTxtRecL printusage printversion QslDate QslVerified2Credit QslViaRemoveM Qso2Array Qso2Hash Qso2HashT Qso2Hash2s ReadAdifLog ReadAdifRec ReadCabLog ReadCsvLog ReadTxtLog SearchMatch StatQso time2csv Userdef2Standard/;
+use subs qw/AddLoc AddRec AdifHead AdifLine AdifRecTo2 b2cabf b2sota Band2freq CalcDist CheckBand CheckCQZ CheckDate CheckGrid CheckIota CheckITUZ CheckLoc CheckMode CheckMorsekey CheckPmode CheckPota CheckPwr CheckQslr CheckQsls CheckQso CheckRig CheckRst CheckSat CheckSatMode CheckSota CheckSubmode CheckUtc CheckWwff CheckVia CompareRec date2csv DelRec EmptyRec f2cabf FixRec Freq2band Grid2Loc jday Loc2Rad m2cab MapRec MergeRecs Modes2Submodes MRules MyNotes2Adif Notes2Adif PrintAdifHead PrintAdifRec PrintAdxHead PrintAdxRec PrintCabHead PrintCabRec PrintCsvRec PrintInfo PrintQsls PrintQso PrintQsos PrintTxtHead PrintTxtRec PrintTxtRecL printusage printversion QslDate QslVerified2Credit QslViaRemoveM Qso2Array Qso2Hash Qso2HashT Qso2Hash2s ReadAdifLog ReadAdifRec ReadCabLog ReadCsvLog ReadTxtLog SearchMatch StatQso time2csv Userdef2Standard/;
 
-my $verno="20241231";
-my $averno="3.1.4";
+my $verno="20250112";
+my $averno="3.1.5";
 
 # Jim Reisert, AD1C, http://www.country-files.com/
 my $ctyplist = "/usr/share/dxcc/cty.plist"; 
@@ -59,6 +59,7 @@ my @rec = ({"ADDRESS" => "",
            "CLUBLOG_QSO_UPLOAD_DATE" => "",
            "CLUBLOG_QSO_UPLOAD_STATUS" => "",
            "CNTY" => "",
+           "CNTY_ALT" => "",
            "COMMENT" => "",
            "COMMENT_INTL" => "",
            "CONT" => "",
@@ -70,6 +71,10 @@ my @rec = ({"ADDRESS" => "",
            "CREDIT_GRANTED" => "",
            "CREDIT_SUBMITTED" => "",
            "DARC_DOK" => "",
+           "DCL_QSLRDATE" => "",
+           "DCL_QSLSDATE" => "",
+           "DCL_QSL_RCVD" => "",
+           "DCL_QSL_SENT" => "",
            "DISTANCE" => 0,
            "DXCC" => 0,
            "EMAIL" => "",
@@ -104,16 +109,21 @@ my @rec = ({"ADDRESS" => "",
            "LOTW_QSL_SENT" => "",
            "MAX_BURSTS" => 0,
            "MODE" => "",
+           "MORSE_KEY_INFO" => "",
+           "MORSE_KEY_TYPE" => "",
            "MS_SHOWER" => "",
            "MY_ALTITUDE" => 0,
            "MY_ANTENNA" => "",
            "MY_ANTENNA_INTL" => "",
+           "MY_ARRL_SECT" => "",
            "MY_CITY" => "",
            "MY_CITY_INTL" => "",
            "MY_CNTY" => "",
+           "MY_CNTY_ALT" => "",
            "MY_COUNTRY" => "",
            "MY_COUNTRY_INTL" => "",
            "MY_CQ_ZONE" => 0,
+           "MY_DARC_DOK" => "",
            "MY_DXCC" => 0,
            "MY_FISTS" => "",
            "MY_GRIDSQUARE" => "",
@@ -123,6 +133,8 @@ my @rec = ({"ADDRESS" => "",
            "MY_ITU_ZONE" => "",
            "MY_LAT" => "",
            "MY_LON" => "",
+           "MY_MORSE_KEY_INFO" => "",
+           "MY_MORSE_KEY_TYPE" => "",
            "MY_NAME" => "",
            "MY_NAME_INTL" => "",
            "MY_POSTAL_CODE" => "",
@@ -150,13 +162,17 @@ my @rec = ({"ADDRESS" => "",
            "OPERATOR" => "",
            "OWNER_CALLSIGN" => "",
            "PFX" => "",
+           "POTA_REF" => "",
            "PRECEDENCE" => "",
            "PROP_MODE" => "",
            "PUBLIC_KEY" => "",
+           "QRZCOM_QSO_DOWNLOAD_DATE" => "",
+           "QRZCOM_QSO_DOWNLOAD_STATUS" => "",
            "QRZCOM_QSO_UPLOAD_DATE" => "",
            "QRZCOM_QSO_UPLOAD_STATUS" => "",
            "QSLMSG" => "",
            "QSLMSG_INTL" => "",
+           "QSLMSG_RCVD" => "",
            "QSLRDATE" => "",
            "QSLSDATE" => "",
            "QSL_RCVD" => "",
@@ -223,6 +239,7 @@ my @rec = ({"ADDRESS" => "",
            "CLUBLOG_QSO_UPLOAD_DATE" => "",
            "CLUBLOG_QSO_UPLOAD_STATUS" => "",
            "CNTY" => "",
+           "CNTY_ALT" => "",
            "COMMENT" => "",
            "COMMENT_INTL" => "",
            "CONT" => "",
@@ -234,6 +251,10 @@ my @rec = ({"ADDRESS" => "",
            "CREDIT_GRANTED" => "",
            "CREDIT_SUBMITTED" => "",
            "DARC_DOK" => "",
+           "DCL_QSLRDATE" => "",
+           "DCL_QSLSDATE" => "",
+           "DCL_QSL_RCVD" => "",
+           "DCL_QSL_SENT" => "",
            "DISTANCE" => 0,
 	   "DXCC" => 0,
 	   "EMAIL" => "",
@@ -268,16 +289,21 @@ my @rec = ({"ADDRESS" => "",
            "LOTW_QSL_SENT" => "",
            "MAX_BURSTS" => 0,
            "MODE" => "",
+           "MORSE_KEY_INFO" => "",
+           "MORSE_KEY_TYPE" => "",
            "MS_SHOWER" => "",
            "MY_ALTITUDE" => 0,
            "MY_ANTENNA" => "",
            "MY_ANTENNA_INTL" => "",
+           "MY_ARRL_SECT" => "",
            "MY_CITY" => "",
            "MY_CITY_INTL" => "",
 	   "MY_CNTY" => "",
-	   "MY_COUNTRY" => "",
+           "MY_CNTY_ALT" => "",
+           "MY_COUNTRY" => "",
            "MY_COUNTRY_INTL" => "",
            "MY_CQ_ZONE" => 0,
+           "MY_DARC_DOK" => "",
            "MY_DXCC" => 0,
            "MY_FISTS" => "",
            "MY_GRIDSQUARE" => "",
@@ -286,8 +312,10 @@ my @rec = ({"ADDRESS" => "",
            "MY_IOTA_ISLAND_ID" => "",
            "MY_ITU_ZONE" => "",
            "MY_LAT" => "",
-	   "MY_LON" => "",
-	   "MY_NAME" => "",
+           "MY_LON" => "",
+           "MY_MORSE_KEY_INFO" => "",
+           "MY_MORSE_KEY_TYPE" => "",
+           "MY_NAME" => "",
            "MY_NAME_INTL" => "",
            "MY_POSTAL_CODE" => "",
            "MY_POSTAL_CODE_INTL" => "",
@@ -314,17 +342,21 @@ my @rec = ({"ADDRESS" => "",
            "OPERATOR" => "",
            "OWNER_CALLSIGN" => "",
            "PFX" => "",
+           "POTA_REF" => "",
            "PRECEDENCE" => "",
            "PROP_MODE" => "",
            "PUBLIC_KEY" => "",
+           "QRZCOM_QSO_DOWNLOAD_DATE" => "",
+           "QRZCOM_QSO_DOWNLOAD_STATUS" => "",
            "QRZCOM_QSO_UPLOAD_DATE" => "",
            "QRZCOM_QSO_UPLOAD_STATUS" => "",
            "QSLMSG" => "",
            "QSLMSG_INTL" => "",
-	   "QSLRDATE" => "",
-	   "QSLSDATE" => "",
-	   "QSL_RCVD" => "",
-	   "QSL_RCVD_VIA" => "",
+           "QSLMSG_RCVD" => "",
+           "QSLRDATE" => "",
+           "QSLSDATE" => "",
+           "QSL_RCVD" => "",
+           "QSL_RCVD_VIA" => "",
            "QSL_SENT" => "",
            "QSL_SENT_VIA" => "",
            "QSL_VIA" => "",
@@ -391,7 +423,8 @@ my %typ = ("ADDRESS" => "M",
            "CLUBLOG_QSO_UPLOAD_DATE" => "D",
            "CLUBLOG_QSO_UPLOAD_STATUS" => "E",
            "CNTY" => "E",
-	   "COMMENT" => "S",
+           "CNTY_ALT" => "E",
+           "COMMENT" => "S",
            "COMMENT_INTL" => "I",
 	   "CONT" => "E",
 	   "CONTACTED_OP" => "S",
@@ -402,6 +435,10 @@ my %typ = ("ADDRESS" => "M",
            "CREDIT_GRANTED" => "A", # can be also CreditList 
 	   "CREDIT_SUBMITTED" => "A", # can be also CreditList 
            "DARC_DOK" => "E",
+           "DCL_QSLRDATE" => "D",
+           "DCL_QSLSDATE" => "D",
+           "DCL_QSL_RCVD" => "E",
+           "DCL_QSL_SENT" => "E",
            "DISTANCE" => "N",
 	   "DXCC" => "E",
 	   "EMAIL" => "S",
@@ -435,25 +472,32 @@ my %typ = ("ADDRESS" => "M",
 	   "LOTW_QSL_SENT" => "E",
 	   "MAX_BURSTS" => "N",
 	   "MODE" => "E",
-	   "MS_SHOWER" => "S",
+           "MORSE_KEY_INFO" => "S",
+           "MORSE_KEY_TYPE" => "E",
+           "MS_SHOWER" => "S",
            "MY_ALTITUDE" => "N",       
            "MY_ANTENNA" => "S",
            "MY_ANTENNA_INTL" => "I",
+           "MY_ARRL_SECT" => "E",
            "MY_CITY" => "S",
            "MY_CITY_INTL" => "I",
 	   "MY_CNTY" => "E",
-	   "MY_COUNTRY" => "S",
+           "MY_CNTY_ALT" => "E",
+           "MY_COUNTRY" => "S",
            "MY_COUNTRY_INTL" => "I",
 	   "MY_CQ_ZONE" => "N",
+           "MY_DARC_DOK" => "E",
            "MY_DXCC" => "E",
            "MY_FISTS" => "N",
 	   "MY_GRIDSQUARE" => "S",
            "MY_GRIDSQUARE_EXT" => "S",
-	   "MY_IOTA" => "S",
-	   "MY_IOTA_ISLAND_ID" => "N",
-	   "MY_ITU_ZONE" => "N",
-	   "MY_LAT" => "L",
-	   "MY_LON" => "L",
+           "MY_IOTA" => "S",
+           "MY_IOTA_ISLAND_ID" => "N",
+           "MY_ITU_ZONE" => "N",
+           "MY_LAT" => "L",
+           "MY_LON" => "L",
+           "MY_MORSE_KEY_INFO" => "S",
+           "MY_MORSE_KEY_TYPE" => "E",
 	   "MY_NAME" => "S",
            "MY_NAME_INTL" => "I",
 	   "MY_POSTAL_CODE" => "S",
@@ -485,10 +529,13 @@ my %typ = ("ADDRESS" => "M",
 	   "PRECEDENCE" => "S",
 	   "PROP_MODE" => "E",
 	   "PUBLIC_KEY" => "S",
+           "QRZCOM_QSO_DOWNLOAD_DATE" => "D",
+           "QRZCOM_QSO_DOWNLOAD_STATUS" => "E",
            "QRZCOM_QSO_UPLOAD_DATE" => "D",
            "QRZCOM_QSO_UPLOAD_STATUS" => "E",
            "QSLMSG" => "M",
            "QSLMSG_INTL" => "G",
+           "QSLMSG_RCVD" => "M",
            "QSLRDATE" => "D",
            "QSLSDATE" => "D",
 	   "QSL_RCVD" => "E",
@@ -575,11 +622,11 @@ my %cconv = ("Band" => "BAND",
              "Call (his call)" => "CALL",
              "Full Reference (his summit)" => "SOTA_REF");
 
-# modes for adif 3.1.4, import only modes at end 
+# modes for adif 3.1.5, import only modes at end
 my @modes=("AM", "ARDOP", "ATV", "CHIP", "CLO", "CONTESTI", "CW", "DIGITALVOICE", "DOMINO", "DYNAMIC", "FAX", "FM", "FSK441", "FT8", "HELL", "ISCAT", "JT4", "JT6M", "JT9", "JT44", "JT65", "MFSK", "MSK144", "MT63", "OLIVIA", "OPERA", "PAC", "PAX", "PKT", "PSK", "PSK2K", "Q15", "QRA64", "ROS", "RTTY", "RTTYM", "SSB", "SSTV", "T10", "THOR", "THRB", "TOR", "V4", "VOI", "WINMOR", "WSPR", "AMTORFEC", "ASCI", "C4FM", "CHIP64", "CHIP128", "DOMINOF", "DSTAR", "FMHELL", "FSK31", "GTOR", "HELL80", "HFSK", "JT4A", "JT4B", "JT4C", "JT4D", "JT4E", "JT4F", "JT4G", "JT65A", "JT65B", "JT65C", "MFSK8", "MFSK16", "PAC2", "PAC3", "PAX2", "PCW", "PSK10", "PSK31", "PSK63", "PSK63F", "PSK125", "PSKAM10", "PSKAM31", "PSKAM50", "PSKFEC31", "PSKHELL", "QPSK31", "QPSK63", "QPSK125", "THRBX");
  
  
-# import-only modes for adif 3.1.4
+# import-only modes for adif 3.1.5
 my @modesimport=("AMTORFEC", "ASCI", "C4FM", "CHIP64", "CHIP128", "DOMINOF", "DSTAR", "FMHELL", "FSK31", "GTOR", "HELL80", "HFSK", "JT4A", "JT4B", "JT4C", "JT4D", "JT4E", "JT4F", "JT4G", "JT65A", "JT65B", "JT65C", "MFSK8", "MFSK16", "PAC2", "PAC3", "PAX2", "PCW", "PSK10", "PSK31", "PSK63", "PSK63F", "PSK125", "PSKAM10", "PSKAM31", "PSKAM50", "PSKFEC31", "PSKHELL", "QPSK31", "QPSK63", "QPSK125", "THRBX");
 
 # submode hash to mode for adif 3.1.4
@@ -615,6 +662,8 @@ my %submodes = ("8PSK125" => "PSK",
                 "FMHELL" => "HELL",
                 "FREEDV" => "DIGITALVOICE",
                 "FSK31" => "PSK",
+                "FSKH105" => "HELL",
+                "FSKH245" => "HELL",
                 "FSKHELL" => "HELL",
                 "FSQCALL" => "MFSK",
                 "FST4" => "MFSK",
@@ -762,14 +811,14 @@ my %submodes = ("8PSK125" => "PSK",
 
 
 # propagation modes
-my @pmodes=("AS", "AUE", "AUR", "BS", "ECH", "EME", "ES", "F2", "FAI", "INTERNET", "ION", "IRL", "MS", "RPT", "RS", "SAT", "TEP", "TR");
+my @pmodes=("AS", "AUE", "AUR", "BS", "ECH", "EME", "ES", "F2", "FAI", "GWAVE", "INTERNET", "ION", "IRL", "LOS", "MS", "RPT", "RS", "SAT", "TEP", "TR");
 
-# bands for adif 2.2.7
-my @bands=("2190M", "630M", "560M", "160M", "80M", "60M", "40M", "30M", "20M", "17M", "15M", "12M", "10M", "6M", "5M", "4M", "2M", "1.25M", "70CM", "33CM", "23CM", "13CM", "9CM", "6CM", "3CM", "1.25CM", "6MM", "4MM", "2.5MM", "2MM", "1MM");
+# bands for adif 3.1.5
+my @bands=("2190M", "630M", "560M", "160M", "80M", "60M", "40M", "30M", "20M", "17M", "15M", "12M", "10M", "8M", "6M", "5M", "4M", "2M", "1.25M", "70CM", "33CM", "23CM", "13CM", "9CM", "6CM", "3CM", "1.25CM", "6MM", "4MM", "2.5MM", "2MM", "1MM", "SUBMM");
 
-my @bandl=(0.1357, 0.472, 0.501, 1.8, 3.5, 5.06, 7.0, 10.1, 14.0, 18.068, 21.0, 24.89, 28.0, 50, 54.000001, 70, 144, 222, 420, 902, 1240, 2300, 3300, 5650, 10000, 24000, 47000, 75500, 119980, 142000, 241000);
+my @bandl=(0.1357, 0.472, 0.501, 1.8, 3.5, 5.06, 7.0, 10.1, 14.0, 18.068, 21.0, 24.89, 28.0, 40, 50, 54.000001, 70, 144, 222, 420, 902, 1240, 2300, 3300, 5650, 10000, 24000, 47000, 75500, 119980, 142000, 241000, 300000);
 
-my @bandu=(0.1378, 0.479, 0.504, 2.0, 4.0, 5.45, 7.3, 10.15, 14.35, 18.168, 21.45, 24.99, 29.7, 54, 69.9, 71, 148, 225, 450, 928, 1300, 2450, 3500, 5925, 10500, 24250, 47200, 81000, 120020, 149000, 250000);
+my @bandu=(0.1378, 0.479, 0.504, 2.0, 4.0, 5.45, 7.3, 10.15, 14.35, 18.168, 21.45, 24.99, 29.7, 45, 54, 69.9, 71, 148, 225, 450, 928, 1300, 2450, 3500, 5925, 10500, 24250, 47200, 81000, 120020, 149000, 250000, 7500000);
 
 my @bandf=(0.137, 0.475, 0.5, 1.8, 3.5, 5, 7, 10.1, 14, 18.068, 21, 24.89, 28, 50, 60, 70, 144, 222, 432, 902, 1240, 2300, 3300, 5650, 10000, 24000, 47000, 75500, 119980, 142000, 241000);
 
@@ -778,6 +827,11 @@ my @sats=("AISAT1", "AO-10", "AO-13", "AO-16", "AO-21", "AO-24", "AO-27", "AO-3"
 
 # typical rigs
 my @rigs=("ATS3B","ATS3B.1","ATS4","FT100","FT1802","FT1900","FT1000","FT2000","FT250","FT270","FT2800","FT450","FTDX5000","FT60R","FT736","FT747","FT757","FT757GX","FT767","FT817","FT817ND","FT818ND","FT840","FT847","FT857","FT8800","FT8900","FTM10R","FTM350R","FT890","FT897","FT900","FT920","FT950","FT990","FTDX9000","VX110","VX120","VX127","VX150","VX170","VX3R","VX6R","VX7R","VX8R","VX8RD","FT50R","FT7800","IC271","IC275","IC471","IC475","IC7000","IC703","IC706","IC706MkII","IC707","IC718","IC7200","IC725","IC726","IC728","IC735","IC736","IC737","IC746","IC751","IC756","IC761","IC765","IC775","IC78","IC7800","IC781","IC820","IC821","IC910","IC970","ICR10","ICR20","ICR7000","ICR71","ICR7100","ICR72","ICR75","ICR8500","ICR9000","K1","KX1","K2","K3","R5000","R8A","R8B","THD7A","THF7E","THG71","TMD700","TMV7","TS140","TS2000","TS440","TS450","TS480","TS50S","TS570","TS570","TS680","TS690","TS711","TS790","TS811","TS850","TS870","TS930","TS940","TS950","VR5000");
+
+# morse key types Straight Key, Sideswiper, Mechanical semi-automatic keyer
+# or Bug, Mechanical fully-automatic keyer or Bug, Single Paddle, Dual Paddle,
+# Computer Driven
+my @morsekeytypes = ("SK", "SS", "BUG", "FAB", "SP", "DP", "CPU");
 
 # /usr/(local/)share/dxcc/cty.plist for country, CQ, ITU and continent if
 # available
@@ -4282,6 +4336,22 @@ sub CheckQso()
         $serr = $serr . "mode?";
         $nerr++;
     }
+    if( $rec[ $recno ]{MORSE_KEY_TYPE} )
+    {
+        if( !CheckMorsekey( $rec[ $recno ]{MORSE_KEY_TYPE} ) )
+        {
+            $serr = $serr . "morse key?";
+            $nerr++;
+        }
+    }
+    if( $rec[ $recno ]{MY_MORSE_KEY_TYPE} )
+    {
+        if( !CheckMorsekey( $rec[ $recno ]{MY_MORSE_KEY_TYPE} ) )
+        {
+            $serr = $serr . "my morse key?";
+            $nerr++;
+        }
+    }
     if( $rec[ $recno ]{SUBMODE} )
     {
         if( !CheckSubmode( $rec[ $recno ]{SUBMODE} ) )
@@ -4935,6 +5005,22 @@ sub CheckMode()
     foreach(@modes) 
     {
 	$ok=1 if($mode eq $_); 	
+    }
+
+    return $ok;
+}
+
+# test if morse key type looks ok
+sub CheckMorsekey()
+{
+    my $morse = shift;
+    my $ok = 0;
+
+    $morse = uc $morse;
+
+    foreach(@morsekeytypes)
+    {
+	$ok=1 if($morse eq $_);
     }
 
     return $ok;
