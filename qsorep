@@ -3,7 +3,7 @@
 #                                                                             
 # QSO repository for logging with ADIF-files.
 #
-# Copyright (C) 2013 - 2024 Jaakko Koivuniemi.
+# Copyright (C) 2013 - 2025 Jaakko Koivuniemi.
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@ use POSIX qw(strftime);
 
 use subs qw/add cards check create duplicate edittxt edtmp export info list logsplit merge printhelp printhistory printversion printusage query readfilter qsl qso resetvars timenow utcnow updatelotwd writecabtemp/;
 
-my $verno="20240120"; # YYYYMMDD
+my $verno="20250112"; # YYYYMMDD
 
 # change this if the logs are not in home directory
 my $path=$ENV{"HOME"}."/"; 
@@ -643,35 +643,48 @@ sub list
 
     if($fname)
     {
-	my $c="adifmerg -f ".$apath.$fname." -l";
-	if($par1)
-	{
-	    if($par1=~/verb/i)
+        my $c = "adifmerg -f " . $apath . $fname;
+        if( $par1 )
+        {
+            if( $par1 =~ /verb/i )
+            {
+                $c = $c . " -v";
+            }
+	    elsif( $par1 =~ /[=!]/ )
 	    {
-		$c=$c." -v";
+                $c = $c . " -S " . $par1 if( $par1 );
 	    }
-	    elsif($par1=~/[=!]/)
-	    {
-		$c=$c." -S ".$par1 if($par1);
-	    }
+            if( $par1 =~ /long/i )
+            {
+                $c = $c . " -L";
+            }
+            else
+            {
+                $c = $c . " -l";
+            }
 	}
-	if($par2)
-	{
-	    if($par2=~/verb/i)
-	    {
-		$c=$c." -v";
-	    }
-	    elsif($par2=~/[=!]/)
-	    {
-		$c=$c." -S ".$par2 if($par2);
-	    }
-	}
-	$c=$c." | less";
-	$status=system($c);
+        else
+        {
+            $c = $c . " -l";
+        }
+
+	if( $par2 )
+        {
+            if( $par2 =~ /verb/i )
+            {
+                $c = $c . " -v";
+            }
+            elsif( $par2 =~ /[=!]/ )
+            {
+                $c = $c . " -S " . $par2 if( $par2 );
+            }
+        }
+        $c = $c . " | less";
+        $status = system( $c );
     }
     else
     {
-	print `ls $apath`;
+        print `ls $apath`;
     }
 }
 
@@ -850,7 +863,7 @@ sub printhelp
 	if($cmd=~/^list/i)
 	{
 	    print "Print QSOs from file.\n";
-	    print "[file] list [verbosed] [selection]\n";
+	    print "[file] list [long] [verbosed] [selection]\n";
 	}
 	if($cmd=~/^qsl/i)
 	{
@@ -894,7 +907,7 @@ sub printhelp
 	print "file info [verbosed]\n";
 	print "[command] help\n";
 	print "[number] history\n";
-	print "[file] list [verbosed] [selection]\n";
+	print "[file] list [long] [verbosed] [selection]\n";
 	print "file merge file2 [diff|test]\n";
 	print "file qsl [diff]\n";
 	print "file qso [diff]\n";
